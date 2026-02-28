@@ -7,78 +7,27 @@ import { fileURLToPath } from "url";
 import crypto from "crypto";
 
 const app = express();
-app.use(express.json({ limit: "10mb" }));
+app.use(express.json({ limit: "20mb" }));
 
 const upload = multer({ limits: { fileSize: 50 * 1024 * 1024 } });
 
 const { Pool } = pg;
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
+  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
 });
-const initDatabase = async () => {
-  await pool.query(`
-    CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
-    CREATE TABLE IF NOT EXISTS users (
-      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-      login text UNIQUE NOT NULL,
-      password_hash text NOT NULL,
-      role text NOT NULL CHECK (role IN ('admin','manager')),
-      created_at timestamptz DEFAULT now()
-    );
-
-    CREATE TABLE IF NOT EXISTS imports (
-      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-      name text NOT NULL,
-      date date DEFAULT CURRENT_DATE,
-      creator_login text NOT NULL,
-      uploaded_at timestamptz DEFAULT now(),
-      bytes_b64 text NOT NULL,
-      mime text NOT NULL,
-      rows_count integer DEFAULT 0
-    );
-
-    CREATE TABLE IF NOT EXISTS records (
-      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-      type text NOT NULL,
-      date date,
-      time timestamp,
-      person_login text,
-      task_order text,
-      sku text,
-      box_number text,
-      container text,
-      auditor text,
-      result text,
-      import_id uuid REFERENCES imports(id) ON DELETE SET NULL,
-      created_at timestamptz DEFAULT now()
-    );
-  `);
-
-  await pool.query(`
-    INSERT INTO users (login, password_hash, role)
-    VALUES (
-      '60078903',
-      crypt('123456', gen_salt('bf')),
-      'admin'
-    )
-    ON CONFLICT (login)
-    DO UPDATE SET role='admin';
-  `);
-
-  console.log("Database initialized");
-};
-
-initDatabase();
 const JWT_SECRET = process.env.JWT_SECRET || "CHANGE_ME_IN_RENDER_ENV";
 const TOKEN_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days
 
 function nowISO() { return new Date().toISOString(); }
 function uuid() { return crypto.randomUUID(); }
+function sha256(s) { return crypto.createHash("sha256").update(String(s)).digest("hex"); }
 
-function base64url(buf){
-  return Buffer.from(buf).toString("base64").replace(/=/g,"").replace(/\+/g,"-").replace(/\//g,"_");
+// ===== JWT (без библиотек) =====
+function base64url(input){
+  const buf = Buffer.isBuffer(input) ? input : Buffer.from(String(input));
+  return buf.toString("base64").replace(/=/g,"").replace(/\+/g,"-").replace(/\//g,"_");
 }
 function signJWT(payload){
   const header = { alg:"HS256", typ:"JWT" };
@@ -99,12 +48,12 @@ function verifyJWT(token){
   const data = `${h}.${b}`;
   const expected = base64url(crypto.createHmac("sha256", JWT_SECRET).update(data).digest());
   if(expected !== s) return null;
+
   const payload = JSON.parse(Buffer.from(b.replace(/-/g,"+").replace(/_/g,"/"), "base64").toString("utf8"));
   const now = Math.floor(Date.now()/1000);
   if(payload.exp && now > payload.exp) return null;
   return payload;
 }
-
 function authRequired(req,res,next){
   const hdr = req.headers.authorization || "";
   const token = hdr.startsWith("Bearer ") ? hdr.slice(7) : "";
@@ -121,74 +70,81 @@ function roleRequired(...roles){
   };
 }
 
-// ====== DB init ======
-await pool.query(`
-CREATE TABLE IF NOT EXISTS users (
-  id TEXT PRIMARY KEY,
-  login TEXT UNIQUE NOT NULL,
-  pass_hash TEXT NOT NULL,
-  role TEXT NOT NULL,
-  created_at TEXT NOT NULL
-);
+// ===== DB init (ОДИН раз, одна схема) =====
+async function initDatabase(){
+  await pool.query(`
+    CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
-CREATE TABLE IF NOT EXISTS imports (
-  id TEXT PRIMARY KEY,
-  name TEXT,
-  creator_login TEXT,
-  uploaded_at TEXT,
-  rows_count INT,
-  mime TEXT,
-  bytes BYTEA
-);
+    CREATE TABLE IF NOT EXISTS users (
+      id uuid PRIMARY KEY,
+      login text UNIQUE NOT NULL,
+      pass_hash text NOT NULL,
+      role text NOT NULL CHECK (role IN ('admin','manager')),
+      created_at timestamptz NOT NULL DEFAULT now()
+    );
 
-CREATE TABLE IF NOT EXISTS records (
-  id TEXT PRIMARY KEY,
-  type TEXT NOT NULL,
-  date TEXT,
-  time TEXT,
-  person_login TEXT,
-  task_order TEXT,
-  sku TEXT,
-  box_number TEXT,
-  container TEXT,
-  auditor TEXT,
-  result TEXT,
-  import_id TEXT,
-  created_at TEXT
-);
+    CREATE TABLE IF NOT EXISTS imports (
+      id uuid PRIMARY KEY,
+      name text NOT NULL,
+      creator_login text NOT NULL,
+      uploaded_at timestamptz NOT NULL DEFAULT now(),
+      rows_count int NOT NULL DEFAULT 0,
+      mime text NOT NULL,
+      bytes bytea NOT NULL
+    );
 
-CREATE INDEX IF NOT EXISTS idx_records_type_date ON records(type, date);
-CREATE INDEX IF NOT EXISTS idx_records_login_date ON records(person_login, date);
-CREATE INDEX IF NOT EXISTS idx_records_import_id ON records(import_id);
-`);
+    CREATE TABLE IF NOT EXISTS records (
+      id uuid PRIMARY KEY,
+      type text NOT NULL CHECK (type IN ('shortpick','audit_pick','audit_pa')),
+      date date,
+      time timestamp,
+      person_login text,
+      task_order text,
+      sku text,
+      box_number text,
+      container text,
+      auditor text,
+      result text,
+      import_id uuid REFERENCES imports(id) ON DELETE SET NULL,
+      created_at timestamptz NOT NULL DEFAULT now()
+    );
 
-// seed admin if empty
-const ucount = await pool.query(`SELECT COUNT(*)::int AS c FROM users`);
-if(ucount.rows[0].c === 0){
-  // ВАЖНО: это demo. После запуска поменяй пароль.
-  // login: 60078903 pass: 123456 role: admin
-  const demoId = uuid();
-  const demoHash = crypto.createHash("sha256").update("123456").digest("hex");
+    CREATE INDEX IF NOT EXISTS idx_records_type_date ON records(type, date);
+    CREATE INDEX IF NOT EXISTS idx_records_login_date ON records(person_login, date);
+    CREATE INDEX IF NOT EXISTS idx_records_import_id ON records(import_id);
+  `);
+
+  // гарантируем, что 60078903 всегда admin (пароль 123456)
+  const adminId = "00000000-0000-0000-0000-000000000001";
   await pool.query(
-    `INSERT INTO users(id,login,pass_hash,role,created_at) VALUES($1,$2,$3,$4,$5)`,
-    [demoId, "60078903", demoHash, "admin", nowISO()]
+    `
+    INSERT INTO users(id,login,pass_hash,role)
+    VALUES($1,$2,$3,$4)
+    ON CONFLICT (login) DO UPDATE
+      SET role='admin', pass_hash=EXCLUDED.pass_hash
+    `,
+    [adminId, "60078903", sha256("123456"), "admin"]
   );
+
+  console.log("DB initialized / admin ensured");
 }
 
-// ====== health ======
-app.get("/api/health", (req,res)=>res.json({ok:true}));
+// ===== health =====
+app.get("/api/health", (req,res)=>res.json({ ok:true }));
 
-// ====== AUTH ======
+// ===== AUTH =====
 app.post("/api/auth/login", async (req,res)=>{
   const { login, password } = req.body || {};
   if(!login || !password) return res.status(400).json({ error:"missing login/password" });
 
-  const q = await pool.query(`SELECT id,login,pass_hash,role FROM users WHERE login=$1`, [String(login).trim()]);
+  const q = await pool.query(
+    `SELECT id,login,pass_hash,role FROM users WHERE login=$1`,
+    [String(login).trim()]
+  );
   const u = q.rows[0];
   if(!u) return res.status(401).json({ error:"invalid credentials" });
 
-  const passHash = crypto.createHash("sha256").update(String(password)).digest("hex");
-  if(passHash !== u.pass_hash) return res.status(401).json({ error:"invalid credentials" });
+  if(sha256(password) !== u.pass_hash) return res.status(401).json({ error:"invalid credentials" });
 
   const token = signJWT({ userId: u.id, login: u.login, role: u.role });
   res.json({ token, user: { id:u.id, login:u.login, role:u.role } });
@@ -202,15 +158,13 @@ app.post("/api/auth/change-password", authRequired, async (req,res)=>{
   const u = q.rows[0];
   if(!u) return res.status(404).json({ error:"user not found" });
 
-  const curHash = crypto.createHash("sha256").update(String(currentPassword)).digest("hex");
-  if(curHash !== u.pass_hash) return res.status(401).json({ error:"wrong password" });
+  if(sha256(currentPassword) !== u.pass_hash) return res.status(401).json({ error:"wrong password" });
 
-  const newHash = crypto.createHash("sha256").update(String(newPassword)).digest("hex");
-  await pool.query(`UPDATE users SET pass_hash=$1 WHERE id=$2`, [newHash, req.user.userId]);
+  await pool.query(`UPDATE users SET pass_hash=$1 WHERE id=$2`, [sha256(newPassword), req.user.userId]);
   res.json({ ok:true });
 });
 
-// ====== USERS (admin/manager) ======
+// ===== USERS (admin/manager) =====
 app.get("/api/users", authRequired, roleRequired("admin","manager"), async (req,res)=>{
   const q = await pool.query(`SELECT id,login,role,created_at FROM users ORDER BY created_at DESC`);
   res.json({ rows: q.rows });
@@ -225,14 +179,13 @@ app.post("/api/users", authRequired, roleRequired("admin","manager"), async (req
   if(me.role === "manager" && r === "admin") return res.status(403).json({ error:"manager cannot create admin" });
 
   const id = uuid();
-  const pass_hash = crypto.createHash("sha256").update(String(password)).digest("hex");
   try{
     await pool.query(
-      `INSERT INTO users(id,login,pass_hash,role,created_at) VALUES($1,$2,$3,$4,$5)`,
-      [id, String(login).trim(), pass_hash, r, nowISO()]
+      `INSERT INTO users(id,login,pass_hash,role) VALUES($1,$2,$3,$4)`,
+      [id, String(login).trim(), sha256(password), r]
     );
   }catch(e){
-    if(String(e?.message||"").includes("unique")) return res.status(409).json({ error:"login exists" });
+    if(String(e?.message||"").toLowerCase().includes("unique")) return res.status(409).json({ error:"login exists" });
     throw e;
   }
   res.json({ ok:true, id });
@@ -255,10 +208,7 @@ app.put("/api/users/:id", authRequired, roleRequired("admin","manager"), async (
   const add = (sql, v)=>{ vals.push(v); sets.push(sql.replace("?", `$${vals.length}`)); };
 
   if(role) add(`role=?`, String(role));
-  if(password){
-    const pass_hash = crypto.createHash("sha256").update(String(password)).digest("hex");
-    add(`pass_hash=?`, pass_hash);
-  }
+  if(password) add(`pass_hash=?`, sha256(password));
   if(!sets.length) return res.json({ ok:true });
 
   vals.push(id);
@@ -269,7 +219,6 @@ app.put("/api/users/:id", authRequired, roleRequired("admin","manager"), async (
 app.delete("/api/users/:id", authRequired, roleRequired("admin","manager"), async (req,res)=>{
   const me = req.user;
   const id = req.params.id;
-
   if(me.userId === id) return res.status(400).json({ error:"cannot delete self" });
 
   const q = await pool.query(`SELECT role FROM users WHERE id=$1`, [id]);
@@ -282,7 +231,7 @@ app.delete("/api/users/:id", authRequired, roleRequired("admin","manager"), asyn
   res.json({ ok:true });
 });
 
-// ====== RECORDS ======
+// ===== RECORDS =====
 app.get("/api/records", authRequired, async (req,res)=>{
   const { type, login, from, to, result, page="1", pageSize="14" } = req.query;
 
@@ -305,7 +254,7 @@ app.get("/api/records", authRequired, async (req,res)=>{
   const total = await pool.query(`SELECT COUNT(*)::int AS c FROM records ${whereSql}`, vals);
   const rows = await pool.query(
     `SELECT * FROM records ${whereSql}
-     ORDER BY date DESC, time DESC NULLS LAST
+     ORDER BY date DESC NULLS LAST, time DESC NULLS LAST
      LIMIT ${ps} OFFSET ${offset}`,
     vals
   );
@@ -313,7 +262,7 @@ app.get("/api/records", authRequired, async (req,res)=>{
   res.json({ page:p, pageSize:ps, total: total.rows[0].c, rows: rows.rows });
 });
 
-// summary для вкладки User (группировка по датам + stats)
+// summary для вкладки User
 app.get("/api/user-summary", authRequired, async (req,res)=>{
   const { login, from, to } = req.query;
 
@@ -335,7 +284,7 @@ app.get("/api/user-summary", authRequired, async (req,res)=>{
   );
 
   const sp = await pool.query(
-    `SELECT COUNT(*)::int AS c FROM records ${whereSql} ${whereSql? "AND":"WHERE"} type='shortpick'`,
+    `SELECT COUNT(*)::int AS c FROM records ${whereSql} ${whereSql ? "AND" : "WHERE"} type='shortpick'`,
     vals
   );
 
@@ -345,7 +294,7 @@ app.get("/api/user-summary", authRequired, async (req,res)=>{
       SUM(CASE WHEN LOWER(result)='profit' THEN 1 ELSE 0 END)::int AS profit,
       SUM(CASE WHEN LOWER(result)='loss' THEN 1 ELSE 0 END)::int AS loss,
       0::int AS occupied
-     FROM records ${whereSql} ${whereSql? "AND":"WHERE"} type='audit_pick'`,
+     FROM records ${whereSql} ${whereSql ? "AND" : "WHERE"} type='audit_pick'`,
     vals
   );
 
@@ -355,7 +304,7 @@ app.get("/api/user-summary", authRequired, async (req,res)=>{
       SUM(CASE WHEN LOWER(result)='profit' THEN 1 ELSE 0 END)::int AS profit,
       SUM(CASE WHEN LOWER(result)='loss' THEN 1 ELSE 0 END)::int AS loss,
       SUM(CASE WHEN LOWER(result)='occupied' THEN 1 ELSE 0 END)::int AS occupied
-     FROM records ${whereSql} ${whereSql? "AND":"WHERE"} type='audit_pa'`,
+     FROM records ${whereSql} ${whereSql ? "AND" : "WHERE"} type='audit_pa'`,
     vals
   );
 
@@ -367,7 +316,7 @@ app.get("/api/user-summary", authRequired, async (req,res)=>{
   });
 });
 
-// ====== IMPORTS (admin only) ======
+// ===== IMPORTS (admin only) =====
 app.get("/api/imports", authRequired, roleRequired("admin"), async (req,res)=>{
   const q = await pool.query(
     `SELECT id,name,creator_login,uploaded_at,rows_count
@@ -408,6 +357,7 @@ app.post("/api/import", authRequired, roleRequired("admin"), upload.single("file
   if(!req.file) return res.status(400).json({ error:"no file" });
 
   const importId = uuid();
+
   const wb = XLSX.read(req.file.buffer, { type:"buffer", cellDates:false });
   const ws = wb.Sheets[wb.SheetNames[0]];
   const data = XLSX.utils.sheet_to_json(ws, { header:1, defval:"", raw:true });
@@ -426,14 +376,14 @@ app.post("/api/import", authRequired, roleRequired("admin"), upload.single("file
       const has=[Date,TaskOrder,SKU,BoxNumber,Time,Picker].some(v=>String(v||"").trim()!=="");
       if(has) recs.push({
         id: uuid(), type:"shortpick",
-        date: String(Date||"").slice(0,10),
-        time: String(Time||""),
+        date: String(Date||"").slice(0,10) || null,
+        time: null,
         person_login: String(Picker||"").trim(),
         task_order: String(TaskOrder||""),
         sku: String(SKU||""),
         box_number: String(BoxNumber||""),
         container:"", auditor:"", result:"",
-        import_id: importId, created_at: nowISO()
+        import_id: importId
       });
     }
 
@@ -442,12 +392,13 @@ app.post("/api/import", authRequired, roleRequired("admin"), upload.single("file
       const has=[Date,Container,SKU,Picker,Error].some(v=>String(v||"").trim()!=="");
       if(has) recs.push({
         id: uuid(), type:"audit_pick",
-        date: String(Date||"").slice(0,10),
-        time: String(Date||"").slice(0,10) ? String(Date).slice(0,10)+"T00:00:00" : "",
+        date: String(Date||"").slice(0,10) || null,
+        time: null,
         person_login: String(Picker||"").trim(),
         task_order:"", sku:String(SKU||""), box_number:"",
         container:String(Container||""), auditor:String(Audytor||""),
-        result:String(Error||""), import_id: importId, created_at: nowISO()
+        result:String(Error||""),
+        import_id: importId
       });
     }
 
@@ -456,12 +407,13 @@ app.post("/api/import", authRequired, roleRequired("admin"), upload.single("file
       const has=[Date,Container,Packer,Eror,SKU].some(v=>String(v||"").trim()!=="");
       if(has) recs.push({
         id: uuid(), type:"audit_pa",
-        date: String(Date||"").slice(0,10),
-        time: String(Date||"").slice(0,10) ? String(Date).slice(0,10)+"T00:00:00" : "",
+        date: String(Date||"").slice(0,10) || null,
+        time: null,
         person_login: String(Packer||"").trim(),
         task_order:"", sku:String(SKU||""), box_number:"",
         container:String(Container||""), auditor:String(Audytor||""),
-        result:String(Eror||""), import_id: importId, created_at: nowISO()
+        result:String(Eror||""),
+        import_id: importId
       });
     }
   }
@@ -471,19 +423,21 @@ app.post("/api/import", authRequired, roleRequired("admin"), upload.single("file
   const client = await pool.connect();
   try{
     await client.query("BEGIN");
+
     await client.query(
-      `INSERT INTO imports(id,name,creator_login,uploaded_at,rows_count,mime,bytes)
-       VALUES($1,$2,$3,$4,$5,$6,$7)`,
-      [importId, req.file.originalname, req.user.login, nowISO(), recs.length, req.file.mimetype, req.file.buffer]
+      `INSERT INTO imports(id,name,creator_login,rows_count,mime,bytes)
+       VALUES($1,$2,$3,$4,$5,$6)`,
+      [importId, req.file.originalname, req.user.login, recs.length, req.file.mimetype, req.file.buffer]
     );
 
     for(const x of recs){
       await client.query(
-        `INSERT INTO records(id,type,date,time,person_login,task_order,sku,box_number,container,auditor,result,import_id,created_at)
-         VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
-        [x.id,x.type,x.date,x.time,x.person_login,x.task_order,x.sku,x.box_number,x.container,x.auditor,x.result,x.import_id,x.created_at]
+        `INSERT INTO records(id,type,date,time,person_login,task_order,sku,box_number,container,auditor,result,import_id)
+         VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+        [x.id,x.type,x.date,x.time,x.person_login,x.task_order,x.sku,x.box_number,x.container,x.auditor,x.result,x.import_id]
       );
     }
+
     await client.query("COMMIT");
   }catch(e){
     await client.query("ROLLBACK");
@@ -496,10 +450,17 @@ app.post("/api/import", authRequired, roleRequired("admin"), upload.single("file
   res.json({ importId, rowsAdded: recs.length });
 });
 
-// ====== serve frontend ======
+// ===== serve frontend =====
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 app.use(express.static(__dirname));
 
-const port = process.env.PORT || 3000;
-app.listen(port, ()=> console.log("Listening on", port));
+async function start(){
+  await initDatabase();
+  const port = process.env.PORT || 3000;
+  app.listen(port, ()=> console.log("Listening on", port));
+}
+start().catch(err=>{
+  console.error("Startup error:", err);
+  process.exit(1);
+});
