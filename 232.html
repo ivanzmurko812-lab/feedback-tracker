@@ -1,0 +1,2063 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Feedback Tracker</title>
+
+  <!-- SheetJS -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <style>
+    :root{
+      --bg0:#0b1020;
+      --bg1:#cfd6e6;
+      --bg2:#eef2ff;
+
+      --card: rgba(255,255,255,.82);
+      --card2: rgba(255,255,255,.62);
+      --stroke: rgba(190,200,220,.85);
+
+      --text:#101526;
+      --muted:#5e6a84;
+
+      --blue1:#2f6cf6;
+      --blue2:#1e4fd3;
+
+      --danger:#d6363a;
+
+      --shadow: 0 26px 70px rgba(12,18,40,.18);
+      --shadow2: 0 14px 30px rgba(12,18,40,.14);
+
+      --r1: 22px;
+      --r2: 16px;
+
+      --focus: 0 0 0 4px rgba(47,108,246,.22);
+
+      --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+
+    *{ box-sizing:border-box; }
+    html, body{ height:100%; }
+    body{
+      margin:0;
+      font-family:var(--font);
+      color:var(--text);
+      overflow-x:hidden;
+
+      background:
+        radial-gradient(1200px 700px at 15% 10%, rgba(255,255,255,.95) 0%, rgba(255,255,255,0) 55%),
+        radial-gradient(900px 600px at 90% 0%, rgba(255,255,255,.90) 0%, rgba(255,255,255,0) 55%),
+        linear-gradient(180deg, var(--bg1), var(--bg2));
+    }
+
+    .hidden{ display:none !important; }
+    a{ color:var(--blue1); text-decoration:none; }
+
+    /* ===== Topbar ===== */
+    .topbar{
+      position:sticky; top:0; z-index:50;
+      padding: 14px 18px;
+      background:
+        linear-gradient(180deg, rgba(28,40,80,.45), rgba(28,40,80,.18));
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255,255,255,.35);
+    }
+    .topbar-inner{
+      max-width: 1800px;
+      margin: 0 auto;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:14px;
+    }
+    .brand{
+      flex:1;
+      text-align:center;
+      color:#fff;
+      font-weight: 900;
+      font-size: 34px;
+      letter-spacing:.3px;
+      text-shadow: 0 12px 26px rgba(0,0,0,.25);
+    }
+    .actions{
+      width: 360px;
+      display:flex;
+      justify-content:flex-end;
+      align-items:center;
+      gap: 12px;
+      color:#eef2ff;
+      font-weight:800;
+      white-space:nowrap;
+    }
+    .pill{
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.16);
+      border: 1px solid rgba(255,255,255,.22);
+      box-shadow: 0 10px 24px rgba(0,0,0,.12);
+      font-size: 14px;
+    }
+    .linklike{
+      cursor:pointer;
+      opacity:.95;
+      user-select:none;
+    }
+    .linklike:hover{ opacity:1; text-decoration:underline; }
+
+    /* ===== Layout ===== */
+    .app-shell{
+      max-width: 1800px;
+      margin: 18px auto 46px;
+      padding: 0 18px;
+    }
+
+    .shell-card{
+      border-radius: var(--r1);
+      background: linear-gradient(180deg, rgba(255,255,255,.52), rgba(255,255,255,.26));
+      border: 1px solid rgba(255,255,255,.55);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      min-height: calc(100vh - 120px);
+    }
+
+    /* ===== Tabs ===== */
+    .tabs{
+      display:flex;
+      gap: 12px;
+      padding: 14px 16px;
+      border-bottom:1px solid rgba(255,255,255,.55);
+      background: linear-gradient(180deg, rgba(255,255,255,.56), rgba(255,255,255,.28));
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .tab{
+      padding: 12px 18px;
+      border-radius: 14px;
+      border: 1px solid rgba(190,200,220,.9);
+      background: rgba(255,255,255,.72);
+      font-weight: 900;
+      cursor:pointer;
+      box-shadow: 0 10px 20px rgba(12,18,40,.10);
+      font-size: 16px;
+      user-select:none;
+    }
+    .tab.active{
+      background: linear-gradient(180deg, var(--blue1), var(--blue2));
+      color:#fff;
+      border-color: rgba(30,79,211,.55);
+      box-shadow: 0 18px 34px rgba(30,79,211,.28);
+    }
+
+    .content{ padding: 18px; }
+
+    /* ===== Cards, inputs, buttons ===== */
+    .card{
+      border-radius: var(--r2);
+      background: linear-gradient(180deg, var(--card), var(--card2));
+      border: 1px solid var(--stroke);
+      box-shadow: var(--shadow2);
+      padding: 16px;
+    }
+    .card h3{
+      margin: 0 0 12px;
+      font-size: 20px;
+      letter-spacing:.2px;
+    }
+    .muted{
+      color: var(--muted);
+      font-weight: 700;
+    }
+    .hr{
+      height:1px;
+      background: rgba(190,200,220,.8);
+      margin: 12px 0;
+    }
+
+    label{ font-weight:900; color:#222a3f; }
+    .row{ display:flex; gap:12px; align-items:center; }
+    .col{ display:flex; flex-direction:column; gap:10px; }
+
+    input[type="text"], input[type="password"], input[type="date"], select{
+      width:100%;
+      padding: 14px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(190,200,220,.95);
+      background: rgba(255,255,255,.90);
+      outline:none;
+      font-size: 16px;
+      font-weight: 800;
+      box-shadow: 0 10px 18px rgba(12,18,40,.08) inset;
+    }
+    input:focus, select:focus{
+      box-shadow: var(--focus), 0 10px 18px rgba(12,18,40,.08) inset;
+      border-color: rgba(47,108,246,.55);
+    }
+
+    .btn{
+      user-select:none;
+      padding: 14px 16px;
+      border-radius: 14px;
+      border: 1px solid rgba(30,79,211,.55);
+      background: linear-gradient(180deg, var(--blue1), var(--blue2));
+      color:#fff;
+      font-weight: 950;
+      cursor:pointer;
+      box-shadow: 0 18px 30px rgba(30,79,211,.26);
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      font-size: 16px;
+    }
+    .btn:hover{ filter:brightness(1.03); }
+    .btn:active{ transform: translateY(1px); }
+
+    .btn.secondary{
+      background: rgba(255,255,255,.86);
+      color:#1f273b;
+      border: 1px solid rgba(190,200,220,.95);
+      box-shadow: 0 14px 26px rgba(12,18,40,.12);
+    }
+    .btn.danger{
+      background: linear-gradient(180deg, #ff5a5f, var(--danger));
+      border-color: rgba(214,54,58,.7);
+      box-shadow: 0 18px 30px rgba(214,54,58,.22);
+    }
+    .btn.wide{ width:100%; font-size:18px; padding: 16px 18px; }
+
+    /* ===== Big dashboard grids ===== */
+    .grid-user, .grid-any{
+      display:grid;
+      grid-template-columns: 420px 1fr 360px;
+      gap: 16px;
+      align-items:start;
+    }
+    @media (max-width: 1200px){
+      .grid-user, .grid-any{ grid-template-columns: 1fr; }
+      .actions{ width:auto; }
+    }
+
+    /* ===== Stats ===== */
+    .stats{
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+    }
+    @media (max-width: 1200px){
+      .stats{ grid-template-columns: repeat(2, 1fr); }
+    }
+    .stat{
+      border-radius: var(--r2);
+      background: linear-gradient(180deg, rgba(255,255,255,.88), rgba(255,255,255,.62));
+      border: 1px solid rgba(190,200,220,.9);
+      box-shadow: var(--shadow2);
+      padding: 16px;
+      text-align:center;
+    }
+    .stat .k{
+      font-weight: 950;
+      font-size: 16px;
+      color:#293252;
+    }
+    .stat .v{
+      margin-top: 10px;
+      font-size: 54px;
+      font-weight: 950;
+      line-height:1;
+      letter-spacing:-1px;
+    }
+    .stat .sub{
+      margin-top: 8px;
+      font-size: 15px;
+      font-weight: 900;
+      color: var(--muted);
+      line-height:1.25;
+    }
+
+    /* ===== Tables ===== */
+    .table-wrap{
+      border-radius: 16px;
+      overflow:hidden;
+      border: 1px solid rgba(190,200,220,.95);
+      background: rgba(255,255,255,.78);
+      box-shadow: 0 14px 28px rgba(12,18,40,.10);
+    }
+    table{
+      width: 100%;
+      border-collapse:separate;
+      border-spacing:0;
+      overflow:hidden;
+      border-radius: 14px;
+      border: 1px solid rgba(217,222,234,.95);
+      background: rgba(255,255,255,.78);
+      box-shadow: 0 10px 18px rgba(25,35,70,.10);
+    }
+    th, td{
+      padding: 12px 12px;
+      border-bottom: 1px solid rgba(190,200,220,.9);
+      font-size: 14px;
+      font-weight: 800;
+      color:#1e2740;
+      vertical-align: top;
+    }
+    th{
+      background: rgba(240,244,255,.90);
+      font-weight: 950;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    tr:last-child td{ border-bottom:none; }
+    .td-muted{ color: var(--muted); font-weight: 850; }
+    .right{ text-align:right; }
+    .table-scroll{ max-height: 56vh; overflow:auto; }
+
+    /* ===== Date chooser ===== */
+    .chooser{
+      display:flex;
+      flex-direction:column;
+      gap: 10px;
+    }
+    .chip{
+      padding: 12px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(190,200,220,.95);
+      background: rgba(255,255,255,.86);
+      font-weight: 950;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      user-select:none;
+      font-size: 16px;
+    }
+    .chip.active{
+      background: linear-gradient(180deg, var(--blue1), var(--blue2));
+      color:#fff;
+      border-color: rgba(30,79,211,.55);
+      box-shadow: 0 18px 28px rgba(30,79,211,.24);
+    }
+
+    /* ===== Modals & toast ===== */
+    .modal-backdrop{
+      position:fixed; inset:0;
+      background: rgba(10,14,26,.58);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index:1000;
+      padding: 18px;
+    }
+    .modal{
+      width: min(620px, 96vw);
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(255,255,255,.94), rgba(255,255,255,.78));
+      border: 1px solid rgba(255,255,255,.68);
+      box-shadow: 0 26px 70px rgba(0,0,0,.32);
+      padding: 18px;
+    }
+    .modal h2{ margin:0 0 12px; font-size: 24px; }
+
+    .toast{
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 18px;
+      background: rgba(22,28,50,.94);
+      color:#fff;
+      padding: 12px 14px;
+      border-radius: 14px;
+      box-shadow: 0 18px 40px rgba(0,0,0,.28);
+      z-index:1100;
+      font-weight: 950;
+      display:none;
+    }
+
+    /* ===== Login ===== */
+    .login-wrap{
+      min-height: calc(100vh - 72px);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 26px 16px;
+    }
+    .login-card{
+      width: min(720px, 96vw);
+      border-radius: 26px;
+      background: linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,255,255,.70));
+      border: 1px solid rgba(255,255,255,.70);
+      box-shadow: var(--shadow);
+      padding: 26px;
+      text-align:center;
+    }
+    .login-card h1{
+      margin:0 0 10px;
+      font-size: 54px;
+      font-weight: 950;
+      letter-spacing:.3px;
+    }
+    .underline{
+      height: 5px;
+      width: 120px;
+      margin: 12px auto 20px;
+      border-radius: 999px;
+      background: var(--blue1);
+      box-shadow: 0 14px 24px rgba(30,79,211,.25);
+    }
+    .login-form{
+      display:flex;
+      flex-direction:column;
+      gap: 14px;
+      text-align:left;
+      margin-top: 8px;
+    }
+    .login-btn{
+      margin-top: 8px;
+      border-radius: 16px;
+      padding: 18px 18px;
+      font-size: 30px;
+      letter-spacing:.6px;
+      text-transform: lowercase;
+    }
+    .hint{
+      margin-top: 12px;
+      font-size: 14px;
+      color: var(--muted);
+      font-weight: 800;
+      text-align:center;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- TOPBAR -->
+  <div class="topbar hidden" id="topbar">
+    <div class="topbar-inner">
+      <div style="width:360px"></div>
+      <div class="brand">Feedback Tracker</div>
+      <div class="actions">
+        <span class="pill" id="whoami">—</span>
+        <span class="linklike" id="btnChangePwd">🔒 Change Password</span>
+        <span class="linklike" id="btnLogout">Logout</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOGIN -->
+  <div class="login-wrap" id="loginView">
+    <div class="login-card">
+      <h1>Feedback Tracker</h1>
+      <div class="underline"></div>
+
+      <div class="login-form">
+        <div class="col">
+          <label>Login</label>
+          <input id="loginInput" type="text" placeholder="например 60078903" autocomplete="username" />
+        </div>
+        <div class="col">
+          <label>Password</label>
+          <input id="passwordInput" type="password" placeholder="******" autocomplete="current-password" />
+        </div>
+        <button class="btn wide login-btn" id="btnLogin">login</button>
+      </div>
+
+      <div class="hint">
+        Демо admin: <b>60078903</b> / <b>123456</b>
+      </div>
+    </div>
+  </div>
+
+  <!-- APP -->
+  <div class="app-shell hidden" id="appView">
+    <div class="shell-card">
+      <div class="tabs">
+        <div class="tab active" data-tab="userTab" id="tabUser">User</div>
+        <div class="tab" data-tab="shortpickTab" id="tabShortpick">Shortpick</div>
+        <div class="tab" data-tab="auditPickTab" id="tabAuditPick">Audit pick</div>
+        <div class="tab" data-tab="auditPATab" id="tabAuditPA">Audit PA</div>
+        <div class="tab" data-tab="usersTab" id="tabUsers">User management</div>
+        <div class="tab" data-tab="importsTab" id="tabImports">Imports</div>
+      </div>
+
+      <div class="content">
+        <!-- USER TAB -->
+        <div id="userTab">
+          <div class="grid-user">
+            <div class="card">
+              <h3>Search (User)</h3>
+              <div class="col">
+                <label>Login</label>
+                <input id="userSearchLogin" type="text" placeholder="введите логин (или пусто для всех)" />
+                <button class="btn wide" id="btnUserSearch">Search</button>
+              </div>
+              <div class="hr"></div>
+              <div class="muted">
+                • если логин пустой — покажет всех<br>
+                • фильтр дат справа
+              </div>
+              <div class="hr"></div>
+              <button class="btn wide" id="btnExportFromUser">⬇ Export current view</button>
+            </div>
+
+            <div class="col" style="gap:16px;">
+              <div class="stats">
+                <div class="stat">
+                  <div class="k">Shortpick</div>
+                  <div class="v" id="statShortpick">0</div>
+                  <div class="sub">rows</div>
+                </div>
+                <div class="stat">
+                  <div class="k">Audit pick</div>
+                  <div class="v" id="statAuditPickAll">0</div>
+                  <div class="sub">all</div>
+                </div>
+                <div class="stat">
+                  <div class="k">Audit PA</div>
+                  <div class="v" id="statAuditPAAll">0</div>
+                  <div class="sub">all</div>
+                </div>
+                <div class="stat">
+                  <div class="k">Period</div>
+                  <div class="v" style="font-size:18px; margin-top:14px;" id="statPeriod">—</div>
+                  <div class="sub">range</div>
+                </div>
+              </div>
+
+              <div class="card">
+                <h3>All feedback (by Date)</h3>
+                <div id="userByDateTableWrap"></div>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3>Choose Date</h3>
+              <div class="chooser" id="userChooser">
+                <div class="chip active" data-mode="day">📅 Day</div>
+                <div class="chip" data-mode="week">🗓 Week</div>
+                <div class="chip" data-mode="month">🗓 Month</div>
+                <div class="chip" data-mode="custom">🗓 Custom Date</div>
+              </div>
+              <div class="hr"></div>
+              <div class="col" id="dateInputs"></div>
+              <button class="btn wide" id="btnApplyDate">Apply</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- SHORTPICK TAB -->
+        <div id="shortpickTab" class="hidden">
+          <div class="grid-any">
+            <div class="card">
+              <h3>Search (Shortpick)</h3>
+              <div class="col">
+                <label>Login (Picker)</label>
+                <input id="spSearchLogin" type="text" placeholder="введите логин (или пусто для всех)" />
+                <button class="btn wide" id="btnSpSearch">Search</button>
+              </div>
+              <div class="hr"></div>
+              <button class="btn wide" id="btnExportShortpick">⬇ Export Shortpick</button>
+            </div>
+
+            <div class="card">
+              <div class="row" style="justify-content:space-between; align-items:flex-end; gap:14px;">
+                <div>
+                  <h3 style="margin:0">Shortpick (details)</h3>
+                  <div class="muted" id="spPageInfo" style="margin-top:6px;">Page 1</div>
+                </div>
+                <div class="row">
+                  <button class="btn secondary" id="spPrev">← Prev</button>
+                  <button class="btn secondary" id="spNext">Next →</button>
+                </div>
+              </div>
+              <div class="hr"></div>
+              <div class="table-wrap table-scroll" id="shortpickTableWrap"></div>
+            </div>
+
+            <div class="card">
+              <h3>Choose Date</h3>
+              <div class="chooser" id="spChooser">
+                <div class="chip active" data-mode="day">📅 Day</div>
+                <div class="chip" data-mode="week">🗓 Week</div>
+                <div class="chip" data-mode="month">🗓 Month</div>
+                <div class="chip" data-mode="custom">🗓 Custom Date</div>
+              </div>
+              <div class="hr"></div>
+              <div class="col" id="spDateInputs"></div>
+              <button class="btn wide" id="btnApplySpDate">Apply</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- AUDIT PICK TAB -->
+        <div id="auditPickTab" class="hidden">
+          <div class="grid-any">
+            <div class="card">
+              <h3>Search (Audit pick)</h3>
+              <div class="col">
+                <label>Login (Picker)</label>
+                <input id="apSearchLogin" type="text" placeholder="введите логин (или пусто для всех)" />
+                <label>Result</label>
+                <select id="apResult">
+                  <option value="all">All</option>
+                  <option value="profit">Profit</option>
+                  <option value="loss">Loss</option>
+                </select>
+                <button class="btn wide" id="btnApSearch">Search</button>
+              </div>
+              <div class="hr"></div>
+              <button class="btn wide" id="btnExportAuditPick">⬇ Export Audit pick</button>
+              <div class="hr"></div>
+              <div class="muted">
+                Stats: Profit / Loss / All
+              </div>
+            </div>
+
+            <div class="col" style="gap:16px;">
+              <div class="stats">
+                <div class="stat"><div class="k">Profit</div><div class="v" id="apStatProfit">0</div><div class="sub">rows</div></div>
+                <div class="stat"><div class="k">Loss</div><div class="v" id="apStatLoss">0</div><div class="sub">rows</div></div>
+                <div class="stat"><div class="k">All</div><div class="v" id="apStatAll">0</div><div class="sub">rows</div></div>
+                <div class="stat"><div class="k">Period</div><div class="v" style="font-size:18px; margin-top:14px;" id="apStatPeriod">—</div><div class="sub">range</div></div>
+              </div>
+
+              <div class="card">
+                <div class="row" style="justify-content:space-between; align-items:flex-end; gap:14px;">
+                  <div>
+                    <h3 style="margin:0">Audit pick (details)</h3>
+                    <div class="muted" id="apPageInfo" style="margin-top:6px;">Page 1</div>
+                  </div>
+                  <div class="row">
+                    <button class="btn secondary" id="apPrev">← Prev</button>
+                    <button class="btn secondary" id="apNext">Next →</button>
+                  </div>
+                </div>
+                <div class="hr"></div>
+                <div class="table-wrap table-scroll" id="auditPickTableWrap"></div>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3>Choose Date</h3>
+              <div class="chooser" id="apChooser">
+                <div class="chip active" data-mode="day">📅 Day</div>
+                <div class="chip" data-mode="week">🗓 Week</div>
+                <div class="chip" data-mode="month">🗓 Month</div>
+                <div class="chip" data-mode="custom">🗓 Custom Date</div>
+              </div>
+              <div class="hr"></div>
+              <div class="col" id="apDateInputs"></div>
+              <button class="btn wide" id="btnApplyApDate">Apply</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- AUDIT PA TAB -->
+        <div id="auditPATab" class="hidden">
+          <div class="grid-any">
+            <div class="card">
+              <h3>Search (Audit PA)</h3>
+              <div class="col">
+                <label>Login (Packer)</label>
+                <input id="paSearchLogin" type="text" placeholder="введите логин (или пусто для всех)" />
+                <label>Result</label>
+                <select id="paResult">
+                  <option value="all">All</option>
+                  <option value="profit">Profit</option>
+                  <option value="loss">Loss</option>
+                  <option value="occupied">Occupied</option>
+                </select>
+                <button class="btn wide" id="btnPaSearch">Search</button>
+              </div>
+              <div class="hr"></div>
+              <button class="btn wide" id="btnExportAuditPA">⬇ Export Audit PA</button>
+              <div class="hr"></div>
+              <div class="muted">
+                Stats: Profit / Loss / Occupied / All
+              </div>
+            </div>
+
+            <div class="col" style="gap:16px;">
+              <div class="stats">
+                <div class="stat"><div class="k">Profit</div><div class="v" id="paStatProfit">0</div><div class="sub">rows</div></div>
+                <div class="stat"><div class="k">Loss</div><div class="v" id="paStatLoss">0</div><div class="sub">rows</div></div>
+                <div class="stat"><div class="k">Occupied</div><div class="v" id="paStatOcc">0</div><div class="sub">rows</div></div>
+                <div class="stat"><div class="k">All</div><div class="v" id="paStatAll">0</div><div class="sub">rows</div></div>
+              </div>
+
+              <div class="card">
+                <div class="row" style="justify-content:space-between; align-items:flex-end; gap:14px;">
+                  <div>
+                    <h3 style="margin:0">Audit PA (details)</h3>
+                    <div class="muted" id="paPageInfo" style="margin-top:6px;">Page 1</div>
+                  </div>
+                  <div class="row">
+                    <button class="btn secondary" id="paPrev">← Prev</button>
+                    <button class="btn secondary" id="paNext">Next →</button>
+                  </div>
+                </div>
+                <div class="hr"></div>
+                <div class="table-wrap table-scroll" id="auditPATableWrap"></div>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3>Choose Date</h3>
+              <div class="chooser" id="paChooser">
+                <div class="chip active" data-mode="day">📅 Day</div>
+                <div class="chip" data-mode="week">🗓 Week</div>
+                <div class="chip" data-mode="month">🗓 Month</div>
+                <div class="chip" data-mode="custom">🗓 Custom Date</div>
+              </div>
+              <div class="hr"></div>
+              <div class="col" id="paDateInputs"></div>
+              <button class="btn wide" id="btnApplyPaDate">Apply</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- USERS TAB -->
+        <div id="usersTab" class="hidden">
+          <div class="row" style="justify-content:space-between; margin-bottom:14px;">
+            <div class="muted" style="font-weight:950; font-size:18px;">User management</div>
+            <button class="btn" id="btnAddUser">Add User</button>
+          </div>
+          <div id="usersTableWrap"></div>
+        </div>
+
+        <!-- IMPORTS TAB -->
+        <div id="importsTab" class="hidden">
+          <div class="row" style="justify-content:space-between; margin-bottom:14px;">
+            <div class="muted" style="font-weight:950; font-size:18px;">Imports (Upload Excel → Save to system)</div>
+            <button class="btn" id="btnAddImport">Add Import</button>
+          </div>
+
+          <div class="card" style="margin-bottom:14px;">
+            <div class="muted">
+              Excel должен содержать блоки <b>Shortpick</b>, <b>Audit pick</b>, <b>Audit PA</b> (как в вашем шаблоне).
+            </div>
+          </div>
+
+          <div id="importsTableWrap"></div>
+          <input id="fileInput" type="file" accept=".xlsx,.xlsm,.xls" class="hidden" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHANGE PASSWORD MODAL -->
+  <div class="modal-backdrop hidden" id="pwdModal">
+    <div class="modal">
+      <h2>Change Password</h2>
+      <div class="col" style="gap:12px;">
+        <div class="col">
+          <label>Current password</label>
+          <input id="pwdCurrent" type="password" />
+        </div>
+        <div class="col">
+          <label>New password</label>
+          <input id="pwdNew" type="password" />
+        </div>
+        <div class="col">
+          <label>Repeat new password</label>
+          <input id="pwdNew2" type="password" />
+        </div>
+        <div class="row" style="justify-content:flex-end; gap:12px; margin-top:4px;">
+          <button class="btn secondary" id="btnPwdCancel">Cancel</button>
+          <button class="btn" id="btnPwdSave">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADD/EDIT USER MODAL -->
+  <div class="modal-backdrop hidden" id="userModal">
+    <div class="modal">
+      <h2 id="userModalTitle">Add User</h2>
+      <div class="col" style="gap:12px;">
+        <div class="col">
+          <label>Login</label>
+          <input id="umLogin" type="text" />
+        </div>
+        <div class="col">
+          <label>Password</label>
+          <input id="umPassword" type="password" />
+          <div class="muted" style="font-size:13px;">Для редактирования: оставь пустым, чтобы не менять пароль</div>
+        </div>
+        <div class="col">
+          <label>Role</label>
+          <select id="umRole">
+            <option value="manager">manager</option>
+            <option value="admin">admin</option>
+          </select>
+          <div class="muted" style="font-size:13px;">manager не видит вкладку Imports</div>
+        </div>
+
+        <div class="row" style="justify-content:flex-end; gap:12px; margin-top:4px;">
+          <button class="btn secondary" id="btnUserCancel">Cancel</button>
+          <button class="btn" id="btnUserSave">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">—</div>
+
+<script>
+/** =========================================================
+ *  STORAGE
+ *  ========================================================= */
+const LS_KEYS = {
+  users:   "ft_users_v1",
+  session: "ft_session_v1",
+  records: "ft_records_v2",      // <-- общий storage для всех типов
+  imports: "ft_imports_v1"
+};
+
+const TYPES = {
+  SHORTPICK: "shortpick",
+  AUDIT_PICK: "audit_pick",
+  AUDIT_PA: "audit_pa"
+};
+
+function nowISO(){ return new Date().toISOString(); }
+function toast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.style.display = "block";
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(()=> t.style.display="none", 2400);
+}
+
+async function sha256(str){
+  const enc = new TextEncoder().encode(str);
+  const buf = await crypto.subtle.digest("SHA-256", enc);
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+
+function loadJSON(key, fallback){
+  try{
+    const v = localStorage.getItem(key);
+    return v ? JSON.parse(v) : fallback;
+  }catch{ return fallback; }
+}
+function saveJSON(key, value){ localStorage.setItem(key, JSON.stringify(value)); }
+
+function getRecords(){ return loadJSON(LS_KEYS.records, []); }
+function setRecords(arr){ saveJSON(LS_KEYS.records, arr); }
+function getImports(){ return loadJSON(LS_KEYS.imports, []); }
+function setImports(arr){ saveJSON(LS_KEYS.imports, arr); }
+
+async function seedIfEmpty(){
+  let users = loadJSON(LS_KEYS.users, []);
+  if(users.length === 0){
+    users = [
+      { id: crypto.randomUUID(), login:"60078903", passHash: await sha256("123456"), role:"admin", created_at: nowISO() },
+      { id: crypto.randomUUID(), login:"10271019", passHash: await sha256("123456"), role:"manager", created_at: nowISO() }
+    ];
+    saveJSON(LS_KEYS.users, users);
+  }
+  if(!loadJSON(LS_KEYS.records, null)) saveJSON(LS_KEYS.records, []);
+  if(!loadJSON(LS_KEYS.imports, null)) saveJSON(LS_KEYS.imports, []);
+}
+
+/** =========================================================
+ *  AUTH
+ *  ========================================================= */
+function getSession(){ return loadJSON(LS_KEYS.session, null); }
+function setSession(sess){ saveJSON(LS_KEYS.session, sess); }
+function clearSession(){ localStorage.removeItem(LS_KEYS.session); }
+function getCurrentUser(){
+  const sess = getSession();
+  if(!sess) return null;
+  const users = loadJSON(LS_KEYS.users, []);
+  return users.find(u => u.id === sess.userId) || null;
+}
+
+/** =========================================================
+ *  DATE (LOCAL, без UTC сдвига)
+ *  ========================================================= */
+function pad2(n){ return String(n).padStart(2,"0"); }
+function toDateOnlyISO(d){
+  return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+}
+function startOfWeek(d){
+  const x = new Date(d);
+  const day = (x.getDay()+6)%7;
+  x.setDate(x.getDate()-day);
+  x.setHours(0,0,0,0);
+  return x;
+}
+function endOfWeek(d){
+  const s = startOfWeek(d);
+  const e = new Date(s);
+  e.setDate(e.getDate()+6);
+  e.setHours(23,59,59,999);
+  return e;
+}
+function startOfMonth(d){
+  const x = new Date(d.getFullYear(), d.getMonth(), 1);
+  x.setHours(0,0,0,0);
+  return x;
+}
+function endOfMonth(d){
+  const x = new Date(d.getFullYear(), d.getMonth()+1, 0);
+  x.setHours(23,59,59,999);
+  return x;
+}
+function computeRange(mode, customFrom, customTo){
+  const today = new Date(); today.setHours(0,0,0,0);
+  if(mode === "day"){
+    const s = new Date(today); s.setHours(0,0,0,0);
+    const e = new Date(today); e.setHours(23,59,59,999);
+    return {from:s, to:e};
+  }
+  if(mode === "week")  return {from: startOfWeek(today), to: endOfWeek(today)};
+  if(mode === "month") return {from: startOfMonth(today), to: endOfMonth(today)};
+  const f = customFrom ? new Date(customFrom+"T00:00:00") : new Date(today);
+  const t = customTo ? new Date(customTo+"T23:59:59") : new Date(today);
+  return {from:f, to:t};
+}
+function humanRange(from, to){
+  if(!from || !to) return "—";
+  const f = toDateOnlyISO(from);
+  const t = toDateOnlyISO(to);
+  return f === t ? f : `${f} — ${t}`;
+}
+
+function formatWarsawTime(isoLocal){
+  if(!isoLocal) return "";
+  const d = new Date(isoLocal);
+  if(isNaN(d)) return String(isoLocal).replace("T"," ").slice(0,16);
+
+  const fmt = new Intl.DateTimeFormat("pl-PL", {
+    timeZone: "Europe/Warsaw",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false
+  });
+  const parts = fmt.formatToParts(d);
+  const get = (t)=> parts.find(p=>p.type===t)?.value || "";
+  return `${get("year")}-${get("month")}-${get("day")} ${get("hour")}:${get("minute")}`;
+}
+
+/** =========================================================
+ *  FILTER STATE (по вкладкам)
+ *  ========================================================= */
+const dateState = {
+  user: { mode:"day", from:null, to:null, login:"" },
+
+  sp: { mode:"day", from:null, to:null, login:"", page:1 },
+  ap: { mode:"day", from:null, to:null, login:"", result:"all", page:1 },
+  pa: { mode:"day", from:null, to:null, login:"", result:"all", page:1 }
+};
+
+const PAGE_SIZE = 14;
+
+function recordDateObj(r){
+  // r.time хранится как "YYYY-MM-DDTHH:MM:SS" локально
+  return r.time ? new Date(r.time) : (r.date ? new Date(r.date+"T00:00:00") : null);
+}
+
+function norm(s){ return String(s||"").trim().toLowerCase(); }
+
+function filterByCommon(recs, {login, from, to}){
+  return recs.filter(r=>{
+    const dt = recordDateObj(r);
+    const okDate = (!from || (dt && dt >= from)) && (!to || (dt && dt <= to));
+    if(!okDate) return false;
+    if(!login) return true;
+    return String(r.person_login||"").trim() === String(login).trim();
+  });
+}
+
+/** =========================================================
+ *  GROUP + STATS
+ *  ========================================================= */
+function groupByDate(recs){
+  const map = new Map();
+  for(const r of recs){
+    const d = r.date || (r.time ? String(r.time).slice(0,10) : "");
+    if(!d) continue;
+    map.set(d, (map.get(d)||0)+1);
+  }
+  return Array.from(map.entries())
+    .sort((a,b)=> (a[0] < b[0] ? 1 : -1))
+    .map(([date,count])=>({date,count}));
+}
+
+function countAudit(recs, type){
+  const only = recs.filter(r=>r.type===type);
+  const profit = only.filter(r=>norm(r.result)==="profit").length;
+  const loss = only.filter(r=>norm(r.result)==="loss").length;
+  const occupied = only.filter(r=>norm(r.result)==="occupied").length;
+  return { all: only.length, profit, loss, occupied };
+}
+
+/** =========================================================
+ *  UI TAB CONTROL
+ *  ========================================================= */
+function setTab(tabId){
+  document.querySelectorAll(".tab").forEach(t=>{
+    t.classList.toggle("active", t.dataset.tab === tabId);
+  });
+
+  ["userTab","shortpickTab","auditPickTab","auditPATab","usersTab","importsTab"].forEach(id=>{
+    document.getElementById(id).classList.toggle("hidden", id !== tabId);
+  });
+
+  if(tabId==="userTab") renderUserTab();
+  if(tabId==="shortpickTab") renderShortpickTab();
+  if(tabId==="auditPickTab") renderAuditPickTab();
+  if(tabId==="auditPATab") renderAuditPATab();
+  if(tabId==="usersTab") renderUsersTab();
+  if(tabId==="importsTab") renderImportsTab();
+}
+
+function renderDateInputs(containerId, stateKey){
+  const st = dateState[stateKey];
+  const el = document.getElementById(containerId);
+  el.innerHTML = "";
+
+  if(st.mode === "custom"){
+    el.innerHTML = `
+      <div class="row">
+        <div class="col" style="flex:1;">
+          <label>From</label>
+          <input type="date" id="${stateKey}From" />
+        </div>
+        <div class="col" style="flex:1;">
+          <label>To</label>
+          <input type="date" id="${stateKey}To" />
+        </div>
+      </div>
+    `;
+    const f = st.from ? toDateOnlyISO(st.from) : toDateOnlyISO(new Date());
+    const t = st.to ? toDateOnlyISO(st.to) : toDateOnlyISO(new Date());
+    setTimeout(()=>{
+      document.getElementById(`${stateKey}From`).value = f;
+      document.getElementById(`${stateKey}To`).value = t;
+    },0);
+  }else{
+    const {from,to} = computeRange(st.mode);
+    st.from = from; st.to = to;
+    el.innerHTML = `
+      <div class="muted">Текущий период:</div>
+      <div style="font-weight:950; font-size:18px; margin-top:8px;">${humanRange(from,to)}</div>
+    `;
+  }
+}
+
+function applyDate(stateKey){
+  const st = dateState[stateKey];
+  if(st.mode === "custom"){
+    const fromVal = document.getElementById(`${stateKey}From`).value;
+    const toVal   = document.getElementById(`${stateKey}To`).value;
+    const {from,to} = computeRange("custom", fromVal, toVal);
+    st.from = from; st.to = to;
+  }else{
+    const {from,to} = computeRange(st.mode);
+    st.from = from; st.to = to;
+  }
+}
+
+/** =========================================================
+ *  RENDER: USER
+ *  ========================================================= */
+function renderUserTab(){
+  document.getElementById("userSearchLogin").value = dateState.user.login || "";
+
+  const all = getRecords();
+  const recs = filterByCommon(all, dateState.user);
+
+  const grouped = groupByDate(recs);
+
+  const sp = recs.filter(r=>r.type===TYPES.SHORTPICK).length;
+  const ap = countAudit(recs, TYPES.AUDIT_PICK);
+  const pa = countAudit(recs, TYPES.AUDIT_PA);
+
+  document.getElementById("statShortpick").textContent = sp;
+  document.getElementById("statAuditPickAll").textContent = ap.all;
+  document.getElementById("statAuditPAAll").textContent = pa.all;
+  document.getElementById("statPeriod").textContent = humanRange(dateState.user.from, dateState.user.to);
+
+  const wrap = document.getElementById("userByDateTableWrap");
+  if(grouped.length === 0){
+    wrap.innerHTML = `<div class="muted">Нет данных по текущему фильтру.</div>`;
+  }else{
+    const rows = grouped.map(x=>`
+      <tr>
+        <td class="td-muted">${esc(x.date)}</td>
+        <td class="right" style="font-size:18px;color:var(--blue1);">${x.count}</td>
+      </tr>
+    `).join("");
+    wrap.innerHTML = `
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Date</th><th class="right">Count (ALL)</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div class="hr"></div>
+      <div class="muted">
+        Audit pick: Profit <b>${ap.profit}</b> • Loss <b>${ap.loss}</b> • All <b>${ap.all}</b><br>
+        Audit PA: Profit <b>${pa.profit}</b> • Loss <b>${pa.loss}</b> • Occupied <b>${pa.occupied}</b> • All <b>${pa.all}</b>
+      </div>
+    `;
+  }
+}
+
+/** =========================================================
+ *  RENDER: SHORTPICK
+ *  ========================================================= */
+function getShortpickFiltered(){
+  const st = dateState.sp;
+  let recs = getRecords().filter(r=>r.type===TYPES.SHORTPICK);
+  recs = filterByCommon(recs, st);
+  return recs;
+}
+
+function renderShortpickTab(){
+  const st = dateState.sp;
+  document.getElementById("spSearchLogin").value = st.login || "";
+
+  const recs = getShortpickFiltered();
+  const totalPages = Math.max(1, Math.ceil(recs.length / PAGE_SIZE));
+  st.page = Math.min(st.page, totalPages);
+
+  const start = (st.page-1) * PAGE_SIZE;
+  const pageRows = recs.slice(start, start+PAGE_SIZE);
+
+  document.getElementById("spPageInfo").textContent = `Page ${st.page} / ${totalPages} (${recs.length} rows)`;
+
+  const wrap = document.getElementById("shortpickTableWrap");
+  if(pageRows.length === 0){
+    wrap.innerHTML = `<div class="muted">Нет данных по текущему фильтру.</div>`;
+    return;
+  }
+
+  const rows = pageRows.map(r=>`
+    <tr>
+      <td class="td-muted">${esc(r.date||"")}</td>
+      <td>${esc(r.task_order||"")}</td>
+      <td>${esc(r.sku||"")}</td>
+      <td>${esc(r.box_number||"")}</td>
+      <td class="td-muted">${esc(formatWarsawTime(r.time))}</td>
+      <td>${esc(r.person_login||"")}</td>
+    </tr>
+  `).join("");
+
+  wrap.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th style="width:120px;">Date</th>
+          <th>Task order</th>
+          <th style="width:180px;">SKU</th>
+          <th style="width:170px;">Box number</th>
+          <th style="width:170px;">Time (Warsaw)</th>
+          <th style="width:140px;">Login</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+}
+
+/** =========================================================
+ *  RENDER: AUDIT PICK
+ *  ========================================================= */
+function getAuditPickFiltered(){
+  const st = dateState.ap;
+  let recs = getRecords().filter(r=>r.type===TYPES.AUDIT_PICK);
+  recs = filterByCommon(recs, st);
+  if(st.result && st.result!=="all"){
+    recs = recs.filter(r=>norm(r.result)===st.result);
+  }
+  return recs;
+}
+
+function renderAuditPickTab(){
+  const st = dateState.ap;
+  document.getElementById("apSearchLogin").value = st.login || "";
+  document.getElementById("apResult").value = st.result || "all";
+
+  const allInRange = filterByCommon(getRecords().filter(r=>r.type===TYPES.AUDIT_PICK), st);
+  const stats = countAudit(allInRange, TYPES.AUDIT_PICK);
+
+  document.getElementById("apStatProfit").textContent = stats.profit;
+  document.getElementById("apStatLoss").textContent = stats.loss;
+  document.getElementById("apStatAll").textContent = stats.all;
+  document.getElementById("apStatPeriod").textContent = humanRange(st.from, st.to);
+
+  const recs = getAuditPickFiltered();
+  const totalPages = Math.max(1, Math.ceil(recs.length / PAGE_SIZE));
+  st.page = Math.min(st.page, totalPages);
+
+  const start = (st.page-1) * PAGE_SIZE;
+  const pageRows = recs.slice(start, start+PAGE_SIZE);
+
+  document.getElementById("apPageInfo").textContent = `Page ${st.page} / ${totalPages} (${recs.length} rows)`;
+
+  const wrap = document.getElementById("auditPickTableWrap");
+  if(pageRows.length === 0){
+    wrap.innerHTML = `<div class="muted">Нет данных по текущему фильтру.</div>`;
+    return;
+  }
+
+  const rows = pageRows.map(r=>`
+    <tr>
+      <td class="td-muted">${esc(r.date||"")}</td>
+      <td>${esc(r.person_login||"")}</td>
+      <td>${esc(r.container||"")}</td>
+      <td>${esc(r.sku||"")}</td>
+      <td>${esc(r.auditor||"")}</td>
+      <td><b>${esc(r.result||"")}</b></td>
+    </tr>
+  `).join("");
+
+  wrap.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th style="width:120px;">Date</th>
+          <th style="width:140px;">Picker login</th>
+          <th style="width:180px;">Container</th>
+          <th style="width:200px;">SKU</th>
+          <th style="width:160px;">Audytor</th>
+          <th style="width:120px;">Result</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+}
+
+/** =========================================================
+ *  RENDER: AUDIT PA
+ *  ========================================================= */
+function getAuditPAFiltered(){
+  const st = dateState.pa;
+  let recs = getRecords().filter(r=>r.type===TYPES.AUDIT_PA);
+  recs = filterByCommon(recs, st);
+  if(st.result && st.result!=="all"){
+    recs = recs.filter(r=>norm(r.result)===st.result);
+  }
+  return recs;
+}
+
+function renderAuditPATab(){
+  const st = dateState.pa;
+  document.getElementById("paSearchLogin").value = st.login || "";
+  document.getElementById("paResult").value = st.result || "all";
+
+  const allInRange = filterByCommon(getRecords().filter(r=>r.type===TYPES.AUDIT_PA), st);
+  const stats = countAudit(allInRange, TYPES.AUDIT_PA);
+
+  document.getElementById("paStatProfit").textContent = stats.profit;
+  document.getElementById("paStatLoss").textContent = stats.loss;
+  document.getElementById("paStatOcc").textContent = stats.occupied;
+  document.getElementById("paStatAll").textContent = stats.all;
+
+  const recs = getAuditPAFiltered();
+  const totalPages = Math.max(1, Math.ceil(recs.length / PAGE_SIZE));
+  st.page = Math.min(st.page, totalPages);
+
+  const start = (st.page-1) * PAGE_SIZE;
+  const pageRows = recs.slice(start, start+PAGE_SIZE);
+
+  document.getElementById("paPageInfo").textContent = `Page ${st.page} / ${totalPages} (${recs.length} rows)`;
+
+  const wrap = document.getElementById("auditPATableWrap");
+  if(pageRows.length === 0){
+    wrap.innerHTML = `<div class="muted">Нет данных по текущему фильтру.</div>`;
+    return;
+  }
+
+  const rows = pageRows.map(r=>`
+    <tr>
+      <td class="td-muted">${esc(r.date||"")}</td>
+      <td>${esc(r.person_login||"")}</td>
+      <td>${esc(r.container||"")}</td>
+      <td>${esc(r.sku||"")}</td>
+      <td>${esc(r.auditor||"")}</td>
+      <td><b>${esc(r.result||"")}</b></td>
+    </tr>
+  `).join("");
+
+  wrap.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th style="width:120px;">Date</th>
+          <th style="width:140px;">Packer login</th>
+          <th style="width:180px;">Container</th>
+          <th style="width:200px;">SKU</th>
+          <th style="width:160px;">Audytor</th>
+          <th style="width:120px;">Result</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+}
+
+/** =========================================================
+ *  USERS TAB
+ *  ========================================================= */
+function renderUsersTab(){
+  const me = getCurrentUser();
+  const users = loadJSON(LS_KEYS.users, []);
+  const rows = users.map(u=>{
+    const canEdit = me.role === "admin" || me.role === "manager";
+    const canDelete = me.role === "admin" || me.role === "manager";
+    return `
+      <tr>
+        <td style="font-size:18px;font-weight:950;">${esc(u.login)}</td>
+        <td>${esc(u.role)}</td>
+        <td class="right">${canEdit ? `<button class="btn secondary" data-action="editUser" data-id="${u.id}">Edit</button>` : ""}</td>
+        <td class="right">${canDelete ? `<button class="btn danger" data-action="delUser" data-id="${u.id}">Delete</button>` : ""}</td>
+      </tr>
+    `;
+  }).join("");
+
+  document.getElementById("usersTableWrap").innerHTML = `
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>User</th><th>Role</th><th class="right">Edit</th><th class="right">Delete</th></tr></thead>
+        <tbody>${rows || `<tr><td colspan="4" class="td-muted">No users</td></tr>`}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+/** =========================================================
+ *  IMPORTS TAB
+ *  ========================================================= */
+function renderImportsTab(){
+  const imports = getImports().sort((a,b)=> (a.uploaded_at < b.uploaded_at ? 1 : -1));
+  const rows = imports.map(im=>`
+    <tr>
+      <td><a href="#" data-action="downloadImport" data-id="${im.id}">${esc(im.name)}</a></td>
+      <td class="td-muted">${esc(im.date)}</td>
+      <td>${esc(im.creator_login)}</td>
+      <td class="td-muted right">${esc(im.rows_count)}</td>
+      <td class="right"><button class="btn danger" data-action="deleteImport" data-id="${im.id}">Delete</button></td>
+    </tr>
+  `).join("");
+
+  document.getElementById("importsTableWrap").innerHTML = `
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Name</th><th>Date</th><th>Creator</th><th class="right">Rows</th><th class="right">Delete</th></tr></thead>
+        <tbody>${rows || `<tr><td colspan="5" class="td-muted">No imports yet</td></tr>`}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+/** =========================================================
+ *  EXPORT HELPERS
+ *  ========================================================= */
+function downloadBlob(filename, blob){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function exportRowsToExcel(rows, sheetName, filename){
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  const out = XLSX.write(wb, {bookType:"xlsx", type:"array"});
+  downloadBlob(filename, new Blob([out], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));
+}
+
+/** =========================================================
+ *  EXCEL IMPORT (3 блока на 1 листе как в шаблоне)
+ *  ========================================================= */
+function arrayBufferToBase64(buffer){
+  let binary = '';
+  const bytes = new Uint8Array(buffer);
+  for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
+}
+function base64ToArrayBuffer(base64){
+  const binary_string = atob(base64);
+  const bytes = new Uint8Array(binary_string.length);
+  for (let i = 0; i < binary_string.length; i++) bytes[i] = binary_string.charCodeAt(i);
+  return bytes.buffer;
+}
+
+// excel serial -> "YYYY-MM-DDTHH:mm:ss" (без UTC)
+function excelSerialToLocalISO(serial){
+  const dc = XLSX.SSF.parse_date_code(serial);
+  if(!dc) return "";
+  const yyyy = String(dc.y).padStart(4,"0");
+  const mm = pad2(dc.m);
+  const dd = pad2(dc.d);
+  const HH = pad2(dc.H || 0);
+  const MM = pad2(dc.M || 0);
+  const SS = pad2(Math.floor(dc.S || 0));
+  return `${yyyy}-${mm}-${dd}T${HH}:${MM}:${SS}`;
+}
+function asDateOnly(v){
+  if(typeof v === "number"){
+    const iso = excelSerialToLocalISO(v);
+    return iso ? iso.slice(0,10) : "";
+  }
+  const s = String(v||"").trim();
+  if(!s) return "";
+  if(/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0,10);
+  if(/^\d{2}\.\d{2}\.\d{4}/.test(s)){
+    const [dd,mm,yyyy] = s.slice(0,10).split(".");
+    return `${yyyy}-${mm}-${dd}`;
+  }
+  return "";
+}
+function asDateTime(v){
+  if(typeof v === "number") return excelSerialToLocalISO(v);
+  let s = String(v||"").trim();
+  if(!s) return "";
+  if(/^\d{4}-\d{2}-\d{2}\s+\d{1,2}:\d{2}/.test(s)){
+    s = s.replace(/\s+/, "T");
+    if(s.length === 16) s += ":00";
+    return s;
+  }
+  if(/^\d{4}-\d{2}-\d{2}T\d{1,2}:\d{2}/.test(s)){
+    if(s.length === 16) s += ":00";
+    return s;
+  }
+  if(/^\d{2}\.\d{2}\.\d{4}\s+\d{1,2}:\d{2}/.test(s)){
+    const [dpart, tpart] = s.split(/\s+/);
+    const [dd,mm,yyyy] = dpart.split(".");
+    const time = (tpart.length === 5) ? (tpart + ":00") : tpart;
+    const hhmmss = time.length === 7 ? ("0" + time) : time;
+    return `${yyyy}-${mm}-${dd}T${hhmmss}`;
+  }
+  return "";
+}
+
+/**
+ * Ожидаем ваш шаблон (как вы присылали):
+ * Header row (1-я строка) содержит: "Audit pick", "Shortpick", "Audit PA"
+ * Затем рядом в колонках их поля.
+ */
+function parseMultiTablesFromSheet(ws){
+  const data = XLSX.utils.sheet_to_json(ws, { header: 1, defval:"", raw:true });
+  if(!data || data.length < 2) return { shortpick:[], auditPick:[], auditPA:[] };
+
+  const header = (data[0] || []).map(x => String(x||"").trim());
+  const findCol = (title) => header.findIndex(x => x === title);
+
+  const colAP = findCol("Audit pick");
+  const colSP = findCol("Shortpick");
+  const colPA = findCol("Audit PA");
+
+  const out = { shortpick:[], auditPick:[], auditPA:[] };
+
+  for(let r=1; r<data.length; r++){
+    const row = data[r] || [];
+
+    // Audit pick: [Audytor, Date, Container, SKU, Picker, Error]
+    if(colAP >= 0){
+      const Audytor  = row[colAP+1];
+      const Date     = row[colAP+2];
+      const Container= row[colAP+3];
+      const SKU      = row[colAP+4];
+      const Picker   = row[colAP+5];
+      const Error    = row[colAP+6];
+
+      const has = [Date,Container,SKU,Picker,Error].some(v=>String(v||"").trim()!=="");
+      if(has) out.auditPick.push({Audytor, Date, Container, SKU, Picker, Error});
+    }
+
+    // Shortpick: [Date, Task order, SKU, Box number, Time, Picker]
+    if(colSP >= 0){
+      const Date      = row[colSP+1];
+      const TaskOrder = row[colSP+2];
+      const SKU       = row[colSP+3];
+      const BoxNumber = row[colSP+4];
+      const Time      = row[colSP+5];
+      const Picker    = row[colSP+6];
+
+      const has = [Date,TaskOrder,SKU,BoxNumber,Time,Picker].some(v=>String(v||"").trim()!=="");
+      if(has) out.shortpick.push({Date, TaskOrder, SKU, BoxNumber, Time, Picker});
+    }
+
+    // Audit PA: [Audytor, Date, Container, Packer, Eror, SKU]
+    if(colPA >= 0){
+      const Audytor  = row[colPA+1];
+      const Date     = row[colPA+2];
+      const Container= row[colPA+3];
+      const Packer   = row[colPA+4];
+      const Eror     = row[colPA+5];
+      const SKU      = row[colPA+6];
+
+      const has = [Date,Container,Packer,Eror,SKU].some(v=>String(v||"").trim()!=="");
+      if(has) out.auditPA.push({Audytor, Date, Container, Packer, Eror, SKU});
+    }
+  }
+
+  return out;
+}
+
+function normalizeShortpick(o, importId){
+  const date = asDateOnly(o.Date);
+  const time = asDateTime(o.Time);
+  const picker = String(o.Picker ?? "").trim();
+
+  return {
+    id: crypto.randomUUID(),
+    type: TYPES.SHORTPICK,
+    date: date || (time ? time.slice(0,10) : ""),
+    time: String(time || (date ? date+"T00:00:00" : "")),
+    person_login: picker,
+    task_order: String(o.TaskOrder ?? ""),
+    sku: String(o.SKU ?? ""),
+    box_number: String(o.BoxNumber ?? ""),
+    container: "",
+    auditor: "",
+    result: "",
+    created_at: nowISO(),
+    import_id: importId
+  };
+}
+
+function normalizeAuditPick(o, importId){
+  const date = asDateOnly(o.Date);
+  const picker = String(o.Picker ?? "").trim();
+  return {
+    id: crypto.randomUUID(),
+    type: TYPES.AUDIT_PICK,
+    date,
+    time: date ? date+"T00:00:00" : "",
+    person_login: picker, // login человека
+    task_order: "",
+    sku: String(o.SKU ?? ""),
+    box_number: "",
+    container: String(o.Container ?? ""),
+    auditor: String(o.Audytor ?? ""),
+    result: String(o.Error ?? ""), // Profit/Loss
+    created_at: nowISO(),
+    import_id: importId
+  };
+}
+
+function normalizeAuditPA(o, importId){
+  const date = asDateOnly(o.Date);
+  const packer = String(o.Packer ?? "").trim();
+  return {
+    id: crypto.randomUUID(),
+    type: TYPES.AUDIT_PA,
+    date,
+    time: date ? date+"T00:00:00" : "",
+    person_login: packer, // login человека
+    task_order: "",
+    sku: String(o.SKU ?? ""),
+    box_number: "",
+    container: String(o.Container ?? ""),
+    auditor: String(o.Audytor ?? ""),
+    result: String(o.Eror ?? ""), // Profit/Loss/Occupied
+    created_at: nowISO(),
+    import_id: importId
+  };
+}
+
+/** =========================================================
+ *  ROLE UI
+ *  ========================================================= */
+function enforceRoleUI(){
+  const me = getCurrentUser();
+  if(!me) return;
+
+  // imports только admin
+  const importsTab = document.getElementById("tabImports");
+  importsTab.classList.toggle("hidden", me.role !== "admin");
+  if(me.role !== "admin"){
+    const active = document.querySelector(".tab.active");
+    if(active && active.id === "tabImports") setTab("userTab");
+  }
+
+  document.getElementById("whoami").textContent = `${me.login} (${me.role})`;
+}
+
+/** =========================================================
+ *  BIND UI
+ *  ========================================================= */
+function bindTabs(){
+  document.querySelectorAll(".tab").forEach(t=>{
+    t.addEventListener("click", ()=>{
+      const me = getCurrentUser();
+      if(t.id==="tabImports" && me.role !== "admin"){
+        toast("Нет доступа к Imports (только admin)");
+        return;
+      }
+      setTab(t.dataset.tab);
+    });
+  });
+}
+
+function bindChooser(groupId, stateKey, inputsId){
+  document.querySelectorAll(`#${groupId} .chip`).forEach(ch=>{
+    ch.addEventListener("click", ()=>{
+      document.querySelectorAll(`#${groupId} .chip`).forEach(x=>x.classList.remove("active"));
+      ch.classList.add("active");
+      dateState[stateKey].mode = ch.dataset.mode;
+      renderDateInputs(inputsId, stateKey);
+    });
+  });
+}
+
+function bindCoreButtons(){
+  // login
+  document.getElementById("btnLogin").addEventListener("click", async ()=>{
+    const login = document.getElementById("loginInput").value.trim();
+    const pass  = document.getElementById("passwordInput").value;
+    const users = loadJSON(LS_KEYS.users, []);
+    const u = users.find(x=>x.login === login);
+    if(!u){ toast("Неверный login"); return; }
+    const h = await sha256(pass);
+    if(h !== u.passHash){ toast("Неверный password"); return; }
+
+    setSession({ userId: u.id, at: nowISO() });
+    openApp();
+    toast("Успешный вход");
+  });
+
+  // logout
+  document.getElementById("btnLogout").addEventListener("click", ()=>{
+    clearSession();
+    openLogin();
+  });
+
+  // change password
+  document.getElementById("btnChangePwd").addEventListener("click", ()=>{
+    document.getElementById("pwdCurrent").value="";
+    document.getElementById("pwdNew").value="";
+    document.getElementById("pwdNew2").value="";
+    document.getElementById("pwdModal").classList.remove("hidden");
+  });
+  document.getElementById("btnPwdCancel").addEventListener("click", ()=>{
+    document.getElementById("pwdModal").classList.add("hidden");
+  });
+  document.getElementById("btnPwdSave").addEventListener("click", async ()=>{
+    const me = getCurrentUser();
+    const cur = document.getElementById("pwdCurrent").value;
+    const n1  = document.getElementById("pwdNew").value;
+    const n2  = document.getElementById("pwdNew2").value;
+    if(!cur || !n1 || !n2){ toast("Заполни все поля"); return; }
+    if(n1 !== n2){ toast("Пароли не совпадают"); return; }
+
+    const users = loadJSON(LS_KEYS.users, []);
+    const idx = users.findIndex(u=>u.id===me.id);
+    const curHash = await sha256(cur);
+    if(users[idx].passHash !== curHash){ toast("Текущий пароль неверный"); return; }
+
+    users[idx].passHash = await sha256(n1);
+    saveJSON(LS_KEYS.users, users);
+    document.getElementById("pwdModal").classList.add("hidden");
+    toast("Пароль изменён");
+  });
+
+  // USER: search + date + export
+  document.getElementById("btnUserSearch").addEventListener("click", ()=>{
+    dateState.user.login = document.getElementById("userSearchLogin").value.trim();
+    renderUserTab();
+  });
+  document.getElementById("btnApplyDate").addEventListener("click", ()=>{
+    applyDate("user");
+    renderUserTab();
+  });
+  document.getElementById("btnExportFromUser").addEventListener("click", ()=>{
+    const recs = filterByCommon(getRecords(), dateState.user);
+    if(recs.length===0){ toast("Нет данных для экспорта"); return; }
+    const rows = recs.map(r=>({
+      Type: r.type,
+      Date: r.date,
+      Time: (r.time||"").replace("T"," "),
+      Login: r.person_login || "",
+      TaskOrder: r.task_order || "",
+      SKU: r.sku || "",
+      BoxNumber: r.box_number || "",
+      Container: r.container || "",
+      Audytor: r.auditor || "",
+      Result: r.result || ""
+    }));
+    const name = `ALL_${toDateOnlyISO(dateState.user.from)}-${toDateOnlyISO(dateState.user.to)}.xlsx`;
+    exportRowsToExcel(rows, "All", name);
+  });
+
+  // SHORTPICK: search + date + paging + export
+  document.getElementById("btnSpSearch").addEventListener("click", ()=>{
+    dateState.sp.login = document.getElementById("spSearchLogin").value.trim();
+    dateState.sp.page = 1;
+    renderShortpickTab();
+  });
+  document.getElementById("btnApplySpDate").addEventListener("click", ()=>{
+    applyDate("sp");
+    dateState.sp.page = 1;
+    renderShortpickTab();
+  });
+  document.getElementById("spPrev").addEventListener("click", ()=>{
+    dateState.sp.page = Math.max(1, dateState.sp.page-1);
+    renderShortpickTab();
+  });
+  document.getElementById("spNext").addEventListener("click", ()=>{
+    const recs = getShortpickFiltered();
+    const totalPages = Math.max(1, Math.ceil(recs.length / PAGE_SIZE));
+    dateState.sp.page = Math.min(totalPages, dateState.sp.page+1);
+    renderShortpickTab();
+  });
+  document.getElementById("btnExportShortpick").addEventListener("click", ()=>{
+    const recs = getShortpickFiltered();
+    if(recs.length===0){ toast("Нет данных для экспорта"); return; }
+    const rows = recs.map(r=>({
+      Date: r.date,
+      "Task order": r.task_order || "",
+      SKU: r.sku || "",
+      "Box number": r.box_number || "",
+      Time: (r.time||"").replace("T"," "),
+      Picker: r.person_login || ""
+    }));
+    const name = `Shortpick_${toDateOnlyISO(dateState.sp.from)}-${toDateOnlyISO(dateState.sp.to)}.xlsx`;
+    exportRowsToExcel(rows, "Shortpick", name);
+  });
+
+  // AUDIT PICK: search + date + paging + export
+  document.getElementById("btnApSearch").addEventListener("click", ()=>{
+    dateState.ap.login = document.getElementById("apSearchLogin").value.trim();
+    dateState.ap.result = document.getElementById("apResult").value;
+    dateState.ap.page = 1;
+    renderAuditPickTab();
+  });
+  document.getElementById("btnApplyApDate").addEventListener("click", ()=>{
+    applyDate("ap");
+    dateState.ap.page = 1;
+    renderAuditPickTab();
+  });
+  document.getElementById("apPrev").addEventListener("click", ()=>{
+    dateState.ap.page = Math.max(1, dateState.ap.page-1);
+    renderAuditPickTab();
+  });
+  document.getElementById("apNext").addEventListener("click", ()=>{
+    const recs = getAuditPickFiltered();
+    const totalPages = Math.max(1, Math.ceil(recs.length / PAGE_SIZE));
+    dateState.ap.page = Math.min(totalPages, dateState.ap.page+1);
+    renderAuditPickTab();
+  });
+  document.getElementById("btnExportAuditPick").addEventListener("click", ()=>{
+    const recs = getAuditPickFiltered();
+    if(recs.length===0){ toast("Нет данных для экспорта"); return; }
+    const rows = recs.map(r=>({
+      Date: r.date,
+      Picker: r.person_login || "",
+      Container: r.container || "",
+      SKU: r.sku || "",
+      Audytor: r.auditor || "",
+      Result: r.result || ""
+    }));
+    const name = `AuditPick_${toDateOnlyISO(dateState.ap.from)}-${toDateOnlyISO(dateState.ap.to)}.xlsx`;
+    exportRowsToExcel(rows, "Audit pick", name);
+  });
+
+  // AUDIT PA: search + date + paging + export
+  document.getElementById("btnPaSearch").addEventListener("click", ()=>{
+    dateState.pa.login = document.getElementById("paSearchLogin").value.trim();
+    dateState.pa.result = document.getElementById("paResult").value;
+    dateState.pa.page = 1;
+    renderAuditPATab();
+  });
+  document.getElementById("btnApplyPaDate").addEventListener("click", ()=>{
+    applyDate("pa");
+    dateState.pa.page = 1;
+    renderAuditPATab();
+  });
+  document.getElementById("paPrev").addEventListener("click", ()=>{
+    dateState.pa.page = Math.max(1, dateState.pa.page-1);
+    renderAuditPATab();
+  });
+  document.getElementById("paNext").addEventListener("click", ()=>{
+    const recs = getAuditPAFiltered();
+    const totalPages = Math.max(1, Math.ceil(recs.length / PAGE_SIZE));
+    dateState.pa.page = Math.min(totalPages, dateState.pa.page+1);
+    renderAuditPATab();
+  });
+  document.getElementById("btnExportAuditPA").addEventListener("click", ()=>{
+    const recs = getAuditPAFiltered();
+    if(recs.length===0){ toast("Нет данных для экспорта"); return; }
+    const rows = recs.map(r=>({
+      Date: r.date,
+      Packer: r.person_login || "",
+      Container: r.container || "",
+      SKU: r.sku || "",
+      Audytor: r.auditor || "",
+      Result: r.result || ""
+    }));
+    const name = `AuditPA_${toDateOnlyISO(dateState.pa.from)}-${toDateOnlyISO(dateState.pa.to)}.xlsx`;
+    exportRowsToExcel(rows, "Audit PA", name);
+  });
+
+  // IMPORT (admin only)
+  document.getElementById("btnAddImport").addEventListener("click", ()=>{
+    const me = getCurrentUser();
+    if(me.role !== "admin"){ toast("Только admin может загружать файлы"); return; }
+    document.getElementById("fileInput").click();
+  });
+
+  document.getElementById("fileInput").addEventListener("change", async (e)=>{
+    const file = e.target.files[0];
+    e.target.value = "";
+    if(!file) return;
+
+    try{
+      const ab = await file.arrayBuffer();
+      const wb = XLSX.read(ab, { type: "array", cellDates: false });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+
+      const parsed = parseMultiTablesFromSheet(ws);
+      const importId = crypto.randomUUID();
+
+      const rowsSP = parsed.shortpick.map(o=>normalizeShortpick(o, importId));
+      const rowsAP = parsed.auditPick.map(o=>normalizeAuditPick(o, importId));
+      const rowsPA = parsed.auditPA.map(o=>normalizeAuditPA(o, importId));
+      const allNew = [...rowsSP, ...rowsAP, ...rowsPA];
+
+      if(allNew.length === 0){
+        toast("Не нашёл данных в файле (проверь шаблон)");
+        return;
+      }
+
+      setRecords(getRecords().concat(allNew));
+
+      const me = getCurrentUser();
+      const b64 = arrayBufferToBase64(ab);
+      const imports = getImports();
+      imports.push({
+        id: importId,
+        name: file.name,
+        date: toDateOnlyISO(new Date()),
+        creator_login: me.login,
+        uploaded_at: nowISO(),
+        bytes_b64: b64,
+        mime: file.type || "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        rows_count: allNew.length
+      });
+      setImports(imports);
+
+      toast(`Импорт: ${allNew.length} (SP ${rowsSP.length}, AP ${rowsAP.length}, PA ${rowsPA.length})`);
+
+      // обновим всё
+      renderUserTab();
+      renderShortpickTab();
+      renderAuditPickTab();
+      renderAuditPATab();
+      renderImportsTab();
+    }catch(err){
+      console.error(err);
+      toast("Ошибка импорта Excel (см. Console)");
+    }
+  });
+
+  // USERS
+  document.getElementById("btnAddUser").addEventListener("click", ()=> openUserModal({mode:"add"}) );
+  document.getElementById("btnUserCancel").addEventListener("click", ()=> document.getElementById("userModal").classList.add("hidden") );
+  document.getElementById("btnUserSave").addEventListener("click", saveUserFromModal);
+
+  // delegation
+  document.body.addEventListener("click", async (e)=>{
+    const a = e.target.closest("[data-action]");
+    if(!a) return;
+    const action = a.dataset.action;
+    const id = a.dataset.id;
+
+    if(action === "editUser"){
+      const users = loadJSON(LS_KEYS.users, []);
+      const u = users.find(x=>x.id===id);
+      openUserModal({mode:"edit", user:u});
+    }
+
+    if(action === "delUser"){
+      if(!confirm("Удалить пользователя?")) return;
+      const me = getCurrentUser();
+      const users = loadJSON(LS_KEYS.users, []);
+      const target = users.find(u=>u.id===id);
+      if(!target) return;
+
+      if(me.role === "manager" && target.role === "admin"){
+        toast("manager не может удалять admin");
+        return;
+      }
+      if(me.id === id){
+        toast("Нельзя удалить себя");
+        return;
+      }
+
+      saveJSON(LS_KEYS.users, users.filter(u=>u.id!==id));
+      toast("Пользователь удалён");
+      renderUsersTab();
+    }
+
+    if(action === "deleteImport"){
+      const me = getCurrentUser();
+      if(me.role !== "admin"){ toast("Только admin"); return; }
+      if(!confirm("Удалить импорт и все строки из этого файла?")) return;
+
+      const imports = getImports();
+      const im = imports.find(x=>x.id===id);
+      if(!im) return;
+
+      setRecords(getRecords().filter(r=>r.import_id !== id));
+      setImports(imports.filter(x=>x.id!==id));
+
+      toast("Импорт удалён");
+      renderImportsTab();
+      renderUserTab();
+      renderShortpickTab();
+      renderAuditPickTab();
+      renderAuditPATab();
+    }
+
+    if(action === "downloadImport"){
+      e.preventDefault();
+      const imports = getImports();
+      const im = imports.find(x=>x.id===id);
+      if(!im){ toast("Файл не найден"); return; }
+      const ab = base64ToArrayBuffer(im.bytes_b64);
+      downloadBlob(im.name, new Blob([ab], {type: im.mime}));
+    }
+  });
+}
+
+/** =========================================================
+ *  USER MODAL
+ *  ========================================================= */
+let userModalState = { mode:"add", userId:null };
+
+function openUserModal({mode, user}){
+  const me = getCurrentUser();
+  userModalState.mode = mode;
+  userModalState.userId = user ? user.id : null;
+
+  document.getElementById("userModalTitle").textContent = (mode==="add") ? "Add User" : "Edit User";
+  document.getElementById("umLogin").value = user ? user.login : "";
+  document.getElementById("umLogin").disabled = (mode==="edit");
+  document.getElementById("umPassword").value = "";
+
+  const roleSelect = document.getElementById("umRole");
+  roleSelect.innerHTML = "";
+  const opts = (me.role === "admin") ? ["manager","admin"] : ["manager"];
+  for(const r of opts){
+    const o = document.createElement("option");
+    o.value = r; o.textContent = r;
+    roleSelect.appendChild(o);
+  }
+  roleSelect.value = user ? (opts.includes(user.role) ? user.role : "manager") : "manager";
+
+  document.getElementById("userModal").classList.remove("hidden");
+}
+
+async function saveUserFromModal(){
+  const me = getCurrentUser();
+  const login = document.getElementById("umLogin").value.trim();
+  const pwd = document.getElementById("umPassword").value;
+  const role = document.getElementById("umRole").value;
+
+  if(!login){ toast("Login обязателен"); return; }
+  if(userModalState.mode === "add" && !pwd){ toast("Password обязателен"); return; }
+
+  const users = loadJSON(LS_KEYS.users, []);
+
+  if(userModalState.mode === "add"){
+    if(users.some(u=>u.login===login)){ toast("Такой login уже есть"); return; }
+    const passHash = await sha256(pwd);
+    users.push({ id: crypto.randomUUID(), login, passHash, role, created_at: nowISO() });
+    saveJSON(LS_KEYS.users, users);
+    toast("Пользователь добавлен");
+  }else{
+    const idx = users.findIndex(u=>u.id===userModalState.userId);
+    if(idx<0){ toast("Пользователь не найден"); return; }
+    if(me.role === "manager" && role === "admin"){ toast("manager не может назначать admin"); return; }
+    users[idx].role = role;
+    if(pwd) users[idx].passHash = await sha256(pwd);
+    saveJSON(LS_KEYS.users, users);
+    toast("Пользователь обновлён");
+  }
+
+  document.getElementById("userModal").classList.add("hidden");
+  renderUsersTab();
+  enforceRoleUI();
+}
+
+/** =========================================================
+ *  HELPERS
+ *  ========================================================= */
+function esc(s){
+  return String(s ?? "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
+/** =========================================================
+ *  APP BOOT
+ *  ========================================================= */
+function openLogin(){
+  document.getElementById("topbar").classList.add("hidden");
+  document.getElementById("loginView").classList.remove("hidden");
+  document.getElementById("appView").classList.add("hidden");
+}
+
+function openApp(){
+  document.getElementById("topbar").classList.remove("hidden");
+  document.getElementById("loginView").classList.add("hidden");
+  document.getElementById("appView").classList.remove("hidden");
+
+  enforceRoleUI();
+
+  // init date inputs
+  renderDateInputs("dateInputs","user");
+  renderDateInputs("spDateInputs","sp");
+  renderDateInputs("apDateInputs","ap");
+  renderDateInputs("paDateInputs","pa");
+
+  applyDate("user");
+  applyDate("sp");
+  applyDate("ap");
+  applyDate("pa");
+
+  setTab("userTab");
+}
+
+(async function main(){
+  await seedIfEmpty();
+
+  // tabs
+  bindTabs();
+
+  // choosers
+  bindChooser("userChooser","user","dateInputs");
+  bindChooser("spChooser","sp","spDateInputs");
+  bindChooser("apChooser","ap","apDateInputs");
+  bindChooser("paChooser","pa","paDateInputs");
+
+  // core buttons
+  bindCoreButtons();
+
+  const sess = getSession();
+  if(sess && getCurrentUser()) openApp();
+  else openLogin();
+})();
+</script>
+</body>
+</html>
