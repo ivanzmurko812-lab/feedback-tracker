@@ -16,7 +16,61 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
 });
+const initDatabase = async () => {
+  await pool.query(`
+    CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
+    CREATE TABLE IF NOT EXISTS users (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      login text UNIQUE NOT NULL,
+      password_hash text NOT NULL,
+      role text NOT NULL CHECK (role IN ('admin','manager')),
+      created_at timestamptz DEFAULT now()
+    );
+
+    CREATE TABLE IF NOT EXISTS imports (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      name text NOT NULL,
+      date date DEFAULT CURRENT_DATE,
+      creator_login text NOT NULL,
+      uploaded_at timestamptz DEFAULT now(),
+      bytes_b64 text NOT NULL,
+      mime text NOT NULL,
+      rows_count integer DEFAULT 0
+    );
+
+    CREATE TABLE IF NOT EXISTS records (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      type text NOT NULL,
+      date date,
+      time timestamp,
+      person_login text,
+      task_order text,
+      sku text,
+      box_number text,
+      container text,
+      auditor text,
+      result text,
+      import_id uuid REFERENCES imports(id) ON DELETE SET NULL,
+      created_at timestamptz DEFAULT now()
+    );
+  `);
+
+  await pool.query(`
+    INSERT INTO users (login, password_hash, role)
+    VALUES (
+      '60078903',
+      crypt('123456', gen_salt('bf')),
+      'admin'
+    )
+    ON CONFLICT (login)
+    DO UPDATE SET role='admin';
+  `);
+
+  console.log("Database initialized");
+};
+
+initDatabase();
 const JWT_SECRET = process.env.JWT_SECRET || "CHANGE_ME_IN_RENDER_ENV";
 const TOKEN_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days
 
