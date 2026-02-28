@@ -12,7 +12,6 @@ app.use(express.json({ limit: "10mb" }));
 const upload = multer({ limits: { fileSize: 50 * 1024 * 1024 } });
 const { Pool } = pg;
 
-// IMPORTANT: Render Postgres обычно требует SSL
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
@@ -94,10 +93,7 @@ function roleRequired(...roles) {
 /** =========================================================
  *  Excel date/time helpers
  *  ========================================================= */
-
-// Excel serial date/time -> JS Date (UTC-ish)
 function excelSerialToJsDate(serial) {
-  // XLSX умеет разбирать серийные даты
   const d = XLSX.SSF.parse_date_code(serial);
   if (!d || !d.y || !d.m || !d.d) return null;
 
@@ -112,18 +108,15 @@ function excelSerialToJsDate(serial) {
   return new Date(ms);
 }
 
-// Любое значение даты из Excel -> 'YYYY-MM-DD' или null
 function toPgDate(value) {
   if (value === null || value === undefined) return null;
 
-  // Если это число (как 45811) — это Excel serial date
   if (typeof value === "number" && isFinite(value)) {
     const jsd = excelSerialToJsDate(value);
     if (!jsd) return null;
     return jsd.toISOString().slice(0, 10);
   }
 
-  // Если JS Date (иногда XLSX может дать Date при raw:false)
   if (value instanceof Date && !isNaN(value)) {
     return value.toISOString().slice(0, 10);
   }
@@ -131,11 +124,9 @@ function toPgDate(value) {
   const s = String(value).trim();
   if (!s) return null;
 
-  // Уже ISO 'YYYY-MM-DD...'
   const m1 = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (m1) return `${m1[1]}-${m1[2]}-${m1[3]}`;
 
-  // Формат 'DD.MM.YYYY'
   const m2 = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
   if (m2) {
     const dd = m2[1].padStart(2, "0");
@@ -144,19 +135,16 @@ function toPgDate(value) {
     return `${yy}-${mm}-${dd}`;
   }
 
-  // Пробуем Date.parse
   const t = Date.parse(s);
   if (!isNaN(t)) return new Date(t).toISOString().slice(0, 10);
 
   return null;
 }
 
-// Любое значение времени/даты из Excel -> ISO string для timestamptz или null
 function toPgTimestamp(value) {
   if (value === null || value === undefined) return null;
 
   if (typeof value === "number" && isFinite(value)) {
-    // Может быть "дата+время" или просто "время"
     const jsd = excelSerialToJsDate(value);
     if (!jsd) return null;
     return jsd.toISOString();
@@ -169,7 +157,6 @@ function toPgTimestamp(value) {
   const s = String(value).trim();
   if (!s) return null;
 
-  // Если уже ISO
   const t = Date.parse(s);
   if (!isNaN(t)) return new Date(t).toISOString();
 
@@ -353,12 +340,12 @@ app.delete("/api/users/:id", authRequired, roleRequired("admin", "manager"), asy
   res.json({ ok: true });
 });
 
-// RECORDS
+// RECORDS (details)
 app.get("/api/records", authRequired, async (req, res) => {
   const { type, login, from, to, result, page = "1", pageSize = "14" } = req.query;
 
   const p = Math.max(1, parseInt(page, 10));
-  const ps = Math.min(500, Math.max(1, parseInt(pageSize, 10)));
+  const ps = Math.min(5000, Math.max(1, parseInt(pageSize, 10)));
   const offset = (p - 1) * ps;
 
   const where = [];
@@ -387,6 +374,7 @@ app.get("/api/records", authRequired, async (req, res) => {
   res.json({ page: p, pageSize: ps, total: total.rows[0].c, rows: rows.rows });
 });
 
+// USER SUMMARY (for top stats)
 app.get("/api/user-summary", authRequired, async (req, res) => {
   const { login, from, to } = req.query;
 
@@ -443,6 +431,110 @@ app.get("/api/user-summary", authRequired, async (req, res) => {
   });
 });
 
+/**
+ * NEW: /api/user-stats
+ * агрегирование по людям (для Audit pick / Audit PA)
+ */
+app.get("/api/user-stats", authRequired, async (req, res) => {
+  const {
+    type,
+    login,
+    from,
+    to,
+    result,
+    page = "1",
+    pageSize = "25",
+    sortBy = "all",
+    sortDir = "desc",
+  } = req.query;
+
+  const allowedType = new Set(["audit_pick", "audit_pa", "shortpick"]);
+  const t = String(type || "");
+  if (!allowedType.has(t)) return res.status(400).json({ error: "bad type" });
+
+  const p = Math.max(1, parseInt(page, 10));
+  const ps = Math.min(500, Math.max(1, parseInt(pageSize, 10)));
+  const offset = (p - 1) * ps;
+
+  const where = [`type = $1`];
+  const vals = [t];
+  const add = (sql, v) => {
+    vals.push(v);
+    where.push(sql.replace("?", `$${vals.length}`));
+  };
+
+  if (login) add(`person_login = ?`, String(login).trim());
+  if (from) add(`date >= ?`, String(from));
+  if (to) add(`date <= ?`, String(to));
+  if (result && result !== "all") add(`LOWER(result) = ?`, String(result).toLowerCase());
+
+  const whereSql = `WHERE ${where.join(" AND ")}`;
+
+  const allowedSort = new Set(["login", "profit", "loss", "occupied", "all"]);
+  const sb = allowedSort.has(String(sortBy)) ? String(sortBy) : "all";
+  const sd = String(sortDir).toLowerCase() === "asc" ? "ASC" : "DESC";
+
+  const orderExpr =
+    sb === "login" ? "login" :
+    sb === "profit" ? "profit" :
+    sb === "loss" ? "loss" :
+    sb === "occupied" ? "occupied" :
+    "all";
+
+  // totals for the whole filter
+  const totalsQ = await pool.query(
+    `
+    SELECT
+      COUNT(*)::int AS all,
+      SUM(CASE WHEN LOWER(result)='profit' THEN 1 ELSE 0 END)::int AS profit,
+      SUM(CASE WHEN LOWER(result)='loss' THEN 1 ELSE 0 END)::int AS loss,
+      SUM(CASE WHEN LOWER(result)='occupied' THEN 1 ELSE 0 END)::int AS occupied
+    FROM records
+    ${whereSql}
+    `,
+    vals
+  );
+
+  // count distinct users
+  const totalUsersQ = await pool.query(
+    `
+    SELECT COUNT(*)::int AS c
+    FROM (
+      SELECT COALESCE(NULLIF(TRIM(person_login), ''), '—') AS login
+      FROM records
+      ${whereSql}
+      GROUP BY 1
+    ) s
+    `,
+    vals
+  );
+
+  const rowsQ = await pool.query(
+    `
+    SELECT
+      COALESCE(NULLIF(TRIM(person_login), ''), '—') AS login,
+      COUNT(*)::int AS all,
+      SUM(CASE WHEN LOWER(result)='profit' THEN 1 ELSE 0 END)::int AS profit,
+      SUM(CASE WHEN LOWER(result)='loss' THEN 1 ELSE 0 END)::int AS loss,
+      SUM(CASE WHEN LOWER(result)='occupied' THEN 1 ELSE 0 END)::int AS occupied
+    FROM records
+    ${whereSql}
+    GROUP BY 1
+    ORDER BY ${orderExpr} ${sd}, login ASC
+    LIMIT ${ps} OFFSET ${offset}
+    `,
+    vals
+  );
+
+  res.json({
+    page: p,
+    pageSize: ps,
+    total: totalUsersQ.rows[0].c,
+    totals: totalsQ.rows[0],
+    rows: rowsQ.rows,
+  });
+});
+
 // IMPORTS
 app.get("/api/imports", authRequired, roleRequired("admin"), async (req, res) => {
   const q = await pool.query(
@@ -488,7 +580,6 @@ app.post("/api/import", authRequired, roleRequired("admin"), upload.single("file
   try {
     const wb = XLSX.read(req.file.buffer, { type: "buffer" });
     const ws = wb.Sheets[wb.SheetNames[0]];
-    // raw:true => получаем числа (45811) — мы их теперь умеем
     data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", raw: true });
   } catch (e) {
     console.error(e);
@@ -516,7 +607,7 @@ app.post("/api/import", authRequired, roleRequired("admin"), upload.single("file
       const Picker = row[colSP + 6];
 
       const has = [DateV, TaskOrder, SKU, BoxNumber, TimeV, Picker].some(
-        (v) => String(v || "").trim() !== ""
+        (v) => String(v ?? "").trim() !== ""
       );
 
       if (has) {
@@ -547,7 +638,7 @@ app.post("/api/import", authRequired, roleRequired("admin"), upload.single("file
       const Error = row[colAP + 6];
 
       const has = [DateV, Container, SKU, Picker, Error].some(
-        (v) => String(v || "").trim() !== ""
+        (v) => String(v ?? "").trim() !== ""
       );
 
       if (has) {
@@ -578,7 +669,7 @@ app.post("/api/import", authRequired, roleRequired("admin"), upload.single("file
       const SKU = row[colPA + 6];
 
       const has = [DateV, Container, Packer, Eror, SKU].some(
-        (v) => String(v || "").trim() !== ""
+        (v) => String(v ?? "").trim() !== ""
       );
 
       if (has) {
@@ -668,8 +759,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 app.use(express.static(__dirname));
-
-// чтобы / всегда открывал index.html
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
