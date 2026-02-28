@@ -806,13 +806,11 @@
 
 <script>
 /** =========================================================
- *  STORAGE
+ *  SERVER AUTH + API (общая база)
  *  ========================================================= */
 const LS_KEYS = {
-  users:   "ft_users_v1",
-  session: "ft_session_v1",
-  records: "ft_records_v2",      // <-- общий storage для всех типов
-  imports: "ft_imports_v1"
+  token: "ft_token_v1",
+  me:    "ft_me_v1"
 };
 
 const TYPES = {
@@ -821,7 +819,8 @@ const TYPES = {
   AUDIT_PA: "audit_pa"
 };
 
-function nowISO(){ return new Date().toISOString(); }
+const PAGE_SIZE = 14;
+
 function toast(msg){
   const t = document.getElementById("toast");
   t.textContent = msg;
@@ -830,53 +829,50 @@ function toast(msg){
   window.__toastTimer = setTimeout(()=> t.style.display="none", 2400);
 }
 
-async function sha256(str){
-  const enc = new TextEncoder().encode(str);
-  const buf = await crypto.subtle.digest("SHA-256", enc);
-  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
+function saveJSON(key, v){ localStorage.setItem(key, JSON.stringify(v)); }
+function loadJSON(key, fb){
+  try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : fb; }
+  catch{ return fb; }
 }
 
-function loadJSON(key, fallback){
+function getToken(){ return localStorage.getItem(LS_KEYS.token) || ""; }
+function setToken(t){ localStorage.setItem(LS_KEYS.token, t); }
+function clearToken(){
+  localStorage.removeItem(LS_KEYS.token);
+  localStorage.removeItem(LS_KEYS.me);
+}
+function getMe(){ return loadJSON(LS_KEYS.me, null); }
+function setMe(me){ saveJSON(LS_KEYS.me, me); }
+
+async function apiFetch(path, { method="GET", headers={}, body=null } = {}){
+  const h = { ...headers };
+  const token = getToken();
+  if(token) h["Authorization"] = "Bearer " + token;
+
+  const res = await fetch(path, { method, headers:h, body });
+  const ct = res.headers.get("content-type") || "";
+  let data = null;
   try{
-    const v = localStorage.getItem(key);
-    return v ? JSON.parse(v) : fallback;
-  }catch{ return fallback; }
-}
-function saveJSON(key, value){ localStorage.setItem(key, JSON.stringify(value)); }
-
-function getRecords(){ return loadJSON(LS_KEYS.records, []); }
-function setRecords(arr){ saveJSON(LS_KEYS.records, arr); }
-function getImports(){ return loadJSON(LS_KEYS.imports, []); }
-function setImports(arr){ saveJSON(LS_KEYS.imports, arr); }
-
-async function seedIfEmpty(){
-  let users = loadJSON(LS_KEYS.users, []);
-  if(users.length === 0){
-    users = [
-      { id: crypto.randomUUID(), login:"60078903", passHash: await sha256("123456"), role:"admin", created_at: nowISO() },
-      { id: crypto.randomUUID(), login:"10271019", passHash: await sha256("123456"), role:"manager", created_at: nowISO() }
-    ];
-    saveJSON(LS_KEYS.users, users);
+    data = ct.includes("application/json") ? await res.json() : await res.text();
+  }catch{}
+  if(!res.ok){
+    const msg = (data && data.error) ? data.error : ("HTTP " + res.status);
+    throw new Error(msg);
   }
-  if(!loadJSON(LS_KEYS.records, null)) saveJSON(LS_KEYS.records, []);
-  if(!loadJSON(LS_KEYS.imports, null)) saveJSON(LS_KEYS.imports, []);
+  return data;
+}
+
+function esc(s){
+  return String(s ?? "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
 }
 
 /** =========================================================
- *  AUTH
- *  ========================================================= */
-function getSession(){ return loadJSON(LS_KEYS.session, null); }
-function setSession(sess){ saveJSON(LS_KEYS.session, sess); }
-function clearSession(){ localStorage.removeItem(LS_KEYS.session); }
-function getCurrentUser(){
-  const sess = getSession();
-  if(!sess) return null;
-  const users = loadJSON(LS_KEYS.users, []);
-  return users.find(u => u.id === sess.userId) || null;
-}
-
-/** =========================================================
- *  DATE (LOCAL, без UTC сдвига)
+ *  DATE
  *  ========================================================= */
 function pad2(n){ return String(n).padStart(2,"0"); }
 function toDateOnlyISO(d){
@@ -946,77 +942,14 @@ function formatWarsawTime(isoLocal){
 }
 
 /** =========================================================
- *  FILTER STATE (по вкладкам)
+ *  FILTER STATE
  *  ========================================================= */
 const dateState = {
   user: { mode:"day", from:null, to:null, login:"" },
-
   sp: { mode:"day", from:null, to:null, login:"", page:1 },
   ap: { mode:"day", from:null, to:null, login:"", result:"all", page:1 },
   pa: { mode:"day", from:null, to:null, login:"", result:"all", page:1 }
 };
-
-const PAGE_SIZE = 14;
-
-function recordDateObj(r){
-  // r.time хранится как "YYYY-MM-DDTHH:MM:SS" локально
-  return r.time ? new Date(r.time) : (r.date ? new Date(r.date+"T00:00:00") : null);
-}
-
-function norm(s){ return String(s||"").trim().toLowerCase(); }
-
-function filterByCommon(recs, {login, from, to}){
-  return recs.filter(r=>{
-    const dt = recordDateObj(r);
-    const okDate = (!from || (dt && dt >= from)) && (!to || (dt && dt <= to));
-    if(!okDate) return false;
-    if(!login) return true;
-    return String(r.person_login||"").trim() === String(login).trim();
-  });
-}
-
-/** =========================================================
- *  GROUP + STATS
- *  ========================================================= */
-function groupByDate(recs){
-  const map = new Map();
-  for(const r of recs){
-    const d = r.date || (r.time ? String(r.time).slice(0,10) : "");
-    if(!d) continue;
-    map.set(d, (map.get(d)||0)+1);
-  }
-  return Array.from(map.entries())
-    .sort((a,b)=> (a[0] < b[0] ? 1 : -1))
-    .map(([date,count])=>({date,count}));
-}
-
-function countAudit(recs, type){
-  const only = recs.filter(r=>r.type===type);
-  const profit = only.filter(r=>norm(r.result)==="profit").length;
-  const loss = only.filter(r=>norm(r.result)==="loss").length;
-  const occupied = only.filter(r=>norm(r.result)==="occupied").length;
-  return { all: only.length, profit, loss, occupied };
-}
-
-/** =========================================================
- *  UI TAB CONTROL
- *  ========================================================= */
-function setTab(tabId){
-  document.querySelectorAll(".tab").forEach(t=>{
-    t.classList.toggle("active", t.dataset.tab === tabId);
-  });
-
-  ["userTab","shortpickTab","auditPickTab","auditPATab","usersTab","importsTab"].forEach(id=>{
-    document.getElementById(id).classList.toggle("hidden", id !== tabId);
-  });
-
-  if(tabId==="userTab") renderUserTab();
-  if(tabId==="shortpickTab") renderShortpickTab();
-  if(tabId==="auditPickTab") renderAuditPickTab();
-  if(tabId==="auditPATab") renderAuditPATab();
-  if(tabId==="usersTab") renderUsersTab();
-  if(tabId==="importsTab") renderImportsTab();
-}
 
 function renderDateInputs(containerId, stateKey){
   const st = dateState[stateKey];
@@ -1051,7 +984,6 @@ function renderDateInputs(containerId, stateKey){
     `;
   }
 }
-
 function applyDate(stateKey){
   const st = dateState[stateKey];
   if(st.mode === "custom"){
@@ -1066,81 +998,143 @@ function applyDate(stateKey){
 }
 
 /** =========================================================
- *  RENDER: USER
+ *  ROLE UI
  *  ========================================================= */
-function renderUserTab(){
+function enforceRoleUI(){
+  const me = getMe();
+  if(!me) return;
+
+  const importsTab = document.getElementById("tabImports");
+  importsTab.classList.toggle("hidden", me.role !== "admin");
+  if(me.role !== "admin"){
+    const active = document.querySelector(".tab.active");
+    if(active && active.id === "tabImports") setTab("userTab");
+  }
+  document.getElementById("whoami").textContent = `${me.login} (${me.role})`;
+}
+
+/** =========================================================
+ *  TAB CONTROL
+ *  ========================================================= */
+function setTab(tabId){
+  document.querySelectorAll(".tab").forEach(t=>{
+    t.classList.toggle("active", t.dataset.tab === tabId);
+  });
+
+  ["userTab","shortpickTab","auditPickTab","auditPATab","usersTab","importsTab"].forEach(id=>{
+    document.getElementById(id).classList.toggle("hidden", id !== tabId);
+  });
+
+  if(tabId==="userTab") renderUserTab().catch(console.error);
+  if(tabId==="shortpickTab") renderShortpickTab().catch(console.error);
+  if(tabId==="auditPickTab") renderAuditPickTab().catch(console.error);
+  if(tabId==="auditPATab") renderAuditPATab().catch(console.error);
+  if(tabId==="usersTab") renderUsersTab().catch(console.error);
+  if(tabId==="importsTab") renderImportsTab().catch(console.error);
+}
+
+/** =========================================================
+ *  API HELPERS
+ *  ========================================================= */
+async function apiRecords({type, login, from, to, result, page, pageSize}){
+  const qs = new URLSearchParams();
+  if(type) qs.set("type", type);
+  if(login) qs.set("login", login);
+  if(from) qs.set("from", from);
+  if(to) qs.set("to", to);
+  if(result) qs.set("result", result);
+  qs.set("page", String(page||1));
+  qs.set("pageSize", String(pageSize||PAGE_SIZE));
+  return apiFetch("/api/records?" + qs.toString());
+}
+
+/** =========================================================
+ *  RENDER: USER TAB (summary)
+ *  ========================================================= */
+async function renderUserTab(){
   document.getElementById("userSearchLogin").value = dateState.user.login || "";
 
-  const all = getRecords();
-  const recs = filterByCommon(all, dateState.user);
+  const st = dateState.user;
+  const from = toDateOnlyISO(st.from);
+  const to = toDateOnlyISO(st.to);
 
-  const grouped = groupByDate(recs);
+  const qs = new URLSearchParams();
+  if(st.login) qs.set("login", st.login.trim());
+  qs.set("from", from);
+  qs.set("to", to);
 
-  const sp = recs.filter(r=>r.type===TYPES.SHORTPICK).length;
-  const ap = countAudit(recs, TYPES.AUDIT_PICK);
-  const pa = countAudit(recs, TYPES.AUDIT_PA);
+  const summary = await apiFetch("/api/user-summary?" + qs.toString());
 
-  document.getElementById("statShortpick").textContent = sp;
-  document.getElementById("statAuditPickAll").textContent = ap.all;
-  document.getElementById("statAuditPAAll").textContent = pa.all;
-  document.getElementById("statPeriod").textContent = humanRange(dateState.user.from, dateState.user.to);
+  document.getElementById("statShortpick").textContent = summary.shortpick || 0;
+  document.getElementById("statAuditPickAll").textContent = summary.audit_pick?.all || 0;
+  document.getElementById("statAuditPAAll").textContent = summary.audit_pa?.all || 0;
+  document.getElementById("statPeriod").textContent = humanRange(st.from, st.to);
 
   const wrap = document.getElementById("userByDateTableWrap");
+  const grouped = summary.grouped || [];
+
   if(grouped.length === 0){
     wrap.innerHTML = `<div class="muted">Нет данных по текущему фильтру.</div>`;
-  }else{
-    const rows = grouped.map(x=>`
-      <tr>
-        <td class="td-muted">${esc(x.date)}</td>
-        <td class="right" style="font-size:18px;color:var(--blue1);">${x.count}</td>
-      </tr>
-    `).join("");
-    wrap.innerHTML = `
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Date</th><th class="right">Count (ALL)</th></tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>
-      <div class="hr"></div>
-      <div class="muted">
-        Audit pick: Profit <b>${ap.profit}</b> • Loss <b>${ap.loss}</b> • All <b>${ap.all}</b><br>
-        Audit PA: Profit <b>${pa.profit}</b> • Loss <b>${pa.loss}</b> • Occupied <b>${pa.occupied}</b> • All <b>${pa.all}</b>
-      </div>
-    `;
+    return;
   }
+
+  const rows = grouped.map(x=>`
+    <tr>
+      <td class="td-muted">${esc(x.date)}</td>
+      <td class="right" style="font-size:18px;color:var(--blue1);">${esc(x.count)}</td>
+    </tr>
+  `).join("");
+
+  const ap = summary.audit_pick || {profit:0,loss:0,all:0};
+  const pa = summary.audit_pa || {profit:0,loss:0,occupied:0,all:0};
+
+  wrap.innerHTML = `
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Date</th><th class="right">Count (ALL)</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <div class="hr"></div>
+    <div class="muted">
+      Audit pick: Profit <b>${ap.profit||0}</b> • Loss <b>${ap.loss||0}</b> • All <b>${ap.all||0}</b><br>
+      Audit PA: Profit <b>${pa.profit||0}</b> • Loss <b>${pa.loss||0}</b> • Occupied <b>${pa.occupied||0}</b> • All <b>${pa.all||0}</b>
+    </div>
+  `;
 }
 
 /** =========================================================
  *  RENDER: SHORTPICK
  *  ========================================================= */
-function getShortpickFiltered(){
-  const st = dateState.sp;
-  let recs = getRecords().filter(r=>r.type===TYPES.SHORTPICK);
-  recs = filterByCommon(recs, st);
-  return recs;
-}
-
-function renderShortpickTab(){
+async function renderShortpickTab(){
   const st = dateState.sp;
   document.getElementById("spSearchLogin").value = st.login || "";
 
-  const recs = getShortpickFiltered();
-  const totalPages = Math.max(1, Math.ceil(recs.length / PAGE_SIZE));
+  const from = toDateOnlyISO(st.from);
+  const to = toDateOnlyISO(st.to);
+
+  const data = await apiRecords({
+    type: TYPES.SHORTPICK,
+    login: st.login || "",
+    from, to,
+    page: st.page,
+    pageSize: PAGE_SIZE
+  });
+
+  const totalPages = Math.max(1, Math.ceil((data.total||0) / PAGE_SIZE));
   st.page = Math.min(st.page, totalPages);
 
-  const start = (st.page-1) * PAGE_SIZE;
-  const pageRows = recs.slice(start, start+PAGE_SIZE);
-
-  document.getElementById("spPageInfo").textContent = `Page ${st.page} / ${totalPages} (${recs.length} rows)`;
+  document.getElementById("spPageInfo").textContent =
+    `Page ${st.page} / ${totalPages} (${data.total||0} rows)`;
 
   const wrap = document.getElementById("shortpickTableWrap");
-  if(pageRows.length === 0){
+  const rowsArr = data.rows || [];
+  if(rowsArr.length === 0){
     wrap.innerHTML = `<div class="muted">Нет данных по текущему фильтру.</div>`;
     return;
   }
 
-  const rows = pageRows.map(r=>`
+  const rows = rowsArr.map(r=>`
     <tr>
       <td class="td-muted">${esc(r.date||"")}</td>
       <td>${esc(r.task_order||"")}</td>
@@ -1171,45 +1165,53 @@ function renderShortpickTab(){
 /** =========================================================
  *  RENDER: AUDIT PICK
  *  ========================================================= */
-function getAuditPickFiltered(){
-  const st = dateState.ap;
-  let recs = getRecords().filter(r=>r.type===TYPES.AUDIT_PICK);
-  recs = filterByCommon(recs, st);
-  if(st.result && st.result!=="all"){
-    recs = recs.filter(r=>norm(r.result)===st.result);
-  }
-  return recs;
-}
-
-function renderAuditPickTab(){
+async function renderAuditPickTab(){
   const st = dateState.ap;
   document.getElementById("apSearchLogin").value = st.login || "";
   document.getElementById("apResult").value = st.result || "all";
 
-  const allInRange = filterByCommon(getRecords().filter(r=>r.type===TYPES.AUDIT_PICK), st);
-  const stats = countAudit(allInRange, TYPES.AUDIT_PICK);
+  const from = toDateOnlyISO(st.from);
+  const to = toDateOnlyISO(st.to);
 
-  document.getElementById("apStatProfit").textContent = stats.profit;
-  document.getElementById("apStatLoss").textContent = stats.loss;
-  document.getElementById("apStatAll").textContent = stats.all;
+  // stats берём через user-summary? (тут проще: запросим user-summary без type)
+  // чтобы не плодить эндпоинты — оставим только period текстом.
   document.getElementById("apStatPeriod").textContent = humanRange(st.from, st.to);
 
-  const recs = getAuditPickFiltered();
-  const totalPages = Math.max(1, Math.ceil(recs.length / PAGE_SIZE));
+  const data = await apiRecords({
+    type: TYPES.AUDIT_PICK,
+    login: st.login || "",
+    from, to,
+    result: st.result || "all",
+    page: st.page,
+    pageSize: PAGE_SIZE
+  });
+
+  // Счётчики profit/loss/all считаем по странице? — не идеально.
+  // Поэтому показываем "All" как total фильтра + другие — по отдельному запросу /api/user-summary (включает общий all, profit/loss).
+  const sumQS = new URLSearchParams();
+  if(st.login) sumQS.set("login", st.login);
+  sumQS.set("from", from); sumQS.set("to", to);
+  const summary = await apiFetch("/api/user-summary?" + sumQS.toString());
+  const ap = summary.audit_pick || {profit:0,loss:0,all:0};
+
+  document.getElementById("apStatProfit").textContent = ap.profit || 0;
+  document.getElementById("apStatLoss").textContent = ap.loss || 0;
+  document.getElementById("apStatAll").textContent = ap.all || 0;
+
+  const totalPages = Math.max(1, Math.ceil((data.total||0) / PAGE_SIZE));
   st.page = Math.min(st.page, totalPages);
 
-  const start = (st.page-1) * PAGE_SIZE;
-  const pageRows = recs.slice(start, start+PAGE_SIZE);
-
-  document.getElementById("apPageInfo").textContent = `Page ${st.page} / ${totalPages} (${recs.length} rows)`;
+  document.getElementById("apPageInfo").textContent =
+    `Page ${st.page} / ${totalPages} (${data.total||0} rows)`;
 
   const wrap = document.getElementById("auditPickTableWrap");
-  if(pageRows.length === 0){
+  const rowsArr = data.rows || [];
+  if(rowsArr.length === 0){
     wrap.innerHTML = `<div class="muted">Нет данных по текущему фильтру.</div>`;
     return;
   }
 
-  const rows = pageRows.map(r=>`
+  const rows = rowsArr.map(r=>`
     <tr>
       <td class="td-muted">${esc(r.date||"")}</td>
       <td>${esc(r.person_login||"")}</td>
@@ -1240,45 +1242,48 @@ function renderAuditPickTab(){
 /** =========================================================
  *  RENDER: AUDIT PA
  *  ========================================================= */
-function getAuditPAFiltered(){
-  const st = dateState.pa;
-  let recs = getRecords().filter(r=>r.type===TYPES.AUDIT_PA);
-  recs = filterByCommon(recs, st);
-  if(st.result && st.result!=="all"){
-    recs = recs.filter(r=>norm(r.result)===st.result);
-  }
-  return recs;
-}
-
-function renderAuditPATab(){
+async function renderAuditPATab(){
   const st = dateState.pa;
   document.getElementById("paSearchLogin").value = st.login || "";
   document.getElementById("paResult").value = st.result || "all";
 
-  const allInRange = filterByCommon(getRecords().filter(r=>r.type===TYPES.AUDIT_PA), st);
-  const stats = countAudit(allInRange, TYPES.AUDIT_PA);
+  const from = toDateOnlyISO(st.from);
+  const to = toDateOnlyISO(st.to);
 
-  document.getElementById("paStatProfit").textContent = stats.profit;
-  document.getElementById("paStatLoss").textContent = stats.loss;
-  document.getElementById("paStatOcc").textContent = stats.occupied;
-  document.getElementById("paStatAll").textContent = stats.all;
+  const data = await apiRecords({
+    type: TYPES.AUDIT_PA,
+    login: st.login || "",
+    from, to,
+    result: st.result || "all",
+    page: st.page,
+    pageSize: PAGE_SIZE
+  });
 
-  const recs = getAuditPAFiltered();
-  const totalPages = Math.max(1, Math.ceil(recs.length / PAGE_SIZE));
+  const sumQS = new URLSearchParams();
+  if(st.login) sumQS.set("login", st.login);
+  sumQS.set("from", from); sumQS.set("to", to);
+  const summary = await apiFetch("/api/user-summary?" + sumQS.toString());
+  const pa = summary.audit_pa || {profit:0,loss:0,occupied:0,all:0};
+
+  document.getElementById("paStatProfit").textContent = pa.profit || 0;
+  document.getElementById("paStatLoss").textContent = pa.loss || 0;
+  document.getElementById("paStatOcc").textContent = pa.occupied || 0;
+  document.getElementById("paStatAll").textContent = pa.all || 0;
+
+  const totalPages = Math.max(1, Math.ceil((data.total||0) / PAGE_SIZE));
   st.page = Math.min(st.page, totalPages);
 
-  const start = (st.page-1) * PAGE_SIZE;
-  const pageRows = recs.slice(start, start+PAGE_SIZE);
-
-  document.getElementById("paPageInfo").textContent = `Page ${st.page} / ${totalPages} (${recs.length} rows)`;
+  document.getElementById("paPageInfo").textContent =
+    `Page ${st.page} / ${totalPages} (${data.total||0} rows)`;
 
   const wrap = document.getElementById("auditPATableWrap");
-  if(pageRows.length === 0){
+  const rowsArr = data.rows || [];
+  if(rowsArr.length === 0){
     wrap.innerHTML = `<div class="muted">Нет данных по текущему фильтру.</div>`;
     return;
   }
 
-  const rows = pageRows.map(r=>`
+  const rows = rowsArr.map(r=>`
     <tr>
       <td class="td-muted">${esc(r.date||"")}</td>
       <td>${esc(r.person_login||"")}</td>
@@ -1307,14 +1312,18 @@ function renderAuditPATab(){
 }
 
 /** =========================================================
- *  USERS TAB
+ *  USERS TAB (server)
  *  ========================================================= */
-function renderUsersTab(){
-  const me = getCurrentUser();
-  const users = loadJSON(LS_KEYS.users, []);
+async function renderUsersTab(){
+  const me = getMe();
+  if(!me) return;
+
+  const data = await apiFetch("/api/users");
+  const users = data.rows || [];
+
   const rows = users.map(u=>{
-    const canEdit = me.role === "admin" || me.role === "manager";
-    const canDelete = me.role === "admin" || me.role === "manager";
+    const canEdit = (me.role === "admin" || me.role === "manager");
+    const canDelete = (me.role === "admin" || me.role === "manager");
     return `
       <tr>
         <td style="font-size:18px;font-weight:950;">${esc(u.login)}</td>
@@ -1336,16 +1345,26 @@ function renderUsersTab(){
 }
 
 /** =========================================================
- *  IMPORTS TAB
+ *  IMPORTS TAB (server admin only)
  *  ========================================================= */
-function renderImportsTab(){
-  const imports = getImports().sort((a,b)=> (a.uploaded_at < b.uploaded_at ? 1 : -1));
+async function renderImportsTab(){
+  const me = getMe();
+  if(!me) return;
+  if(me.role !== "admin"){
+    document.getElementById("importsTableWrap").innerHTML =
+      `<div class="muted">Нет доступа (только admin).</div>`;
+    return;
+  }
+
+  const data = await apiFetch("/api/imports");
+  const imports = data.rows || [];
+
   const rows = imports.map(im=>`
     <tr>
       <td><a href="#" data-action="downloadImport" data-id="${im.id}">${esc(im.name)}</a></td>
-      <td class="td-muted">${esc(im.date)}</td>
-      <td>${esc(im.creator_login)}</td>
-      <td class="td-muted right">${esc(im.rows_count)}</td>
+      <td class="td-muted">${esc((im.uploaded_at||"").slice(0,10))}</td>
+      <td>${esc(im.creator_login||"")}</td>
+      <td class="td-muted right">${esc(im.rows_count||0)}</td>
       <td class="right"><button class="btn danger" data-action="deleteImport" data-id="${im.id}">Delete</button></td>
     </tr>
   `).join("");
@@ -1361,7 +1380,7 @@ function renderImportsTab(){
 }
 
 /** =========================================================
- *  EXPORT HELPERS
+ *  EXPORT (берём данные с сервера и пишем в Excel)
  *  ========================================================= */
 function downloadBlob(filename, blob){
   const url = URL.createObjectURL(blob);
@@ -1372,7 +1391,6 @@ function downloadBlob(filename, blob){
   a.remove();
   URL.revokeObjectURL(url);
 }
-
 function exportRowsToExcel(rows, sheetName, filename){
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
@@ -1382,570 +1400,14 @@ function exportRowsToExcel(rows, sheetName, filename){
 }
 
 /** =========================================================
- *  EXCEL IMPORT (3 блока на 1 листе как в шаблоне)
+ *  MODALS (User management UI) - локальная форма, сохранение на сервер
  *  ========================================================= */
-function arrayBufferToBase64(buffer){
-  let binary = '';
-  const bytes = new Uint8Array(buffer);
-  for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
-  return btoa(binary);
-}
-function base64ToArrayBuffer(base64){
-  const binary_string = atob(base64);
-  const bytes = new Uint8Array(binary_string.length);
-  for (let i = 0; i < binary_string.length; i++) bytes[i] = binary_string.charCodeAt(i);
-  return bytes.buffer;
-}
-
-// excel serial -> "YYYY-MM-DDTHH:mm:ss" (без UTC)
-function excelSerialToLocalISO(serial){
-  const dc = XLSX.SSF.parse_date_code(serial);
-  if(!dc) return "";
-  const yyyy = String(dc.y).padStart(4,"0");
-  const mm = pad2(dc.m);
-  const dd = pad2(dc.d);
-  const HH = pad2(dc.H || 0);
-  const MM = pad2(dc.M || 0);
-  const SS = pad2(Math.floor(dc.S || 0));
-  return `${yyyy}-${mm}-${dd}T${HH}:${MM}:${SS}`;
-}
-function asDateOnly(v){
-  if(typeof v === "number"){
-    const iso = excelSerialToLocalISO(v);
-    return iso ? iso.slice(0,10) : "";
-  }
-  const s = String(v||"").trim();
-  if(!s) return "";
-  if(/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0,10);
-  if(/^\d{2}\.\d{2}\.\d{4}/.test(s)){
-    const [dd,mm,yyyy] = s.slice(0,10).split(".");
-    return `${yyyy}-${mm}-${dd}`;
-  }
-  return "";
-}
-function asDateTime(v){
-  if(typeof v === "number") return excelSerialToLocalISO(v);
-  let s = String(v||"").trim();
-  if(!s) return "";
-  if(/^\d{4}-\d{2}-\d{2}\s+\d{1,2}:\d{2}/.test(s)){
-    s = s.replace(/\s+/, "T");
-    if(s.length === 16) s += ":00";
-    return s;
-  }
-  if(/^\d{4}-\d{2}-\d{2}T\d{1,2}:\d{2}/.test(s)){
-    if(s.length === 16) s += ":00";
-    return s;
-  }
-  if(/^\d{2}\.\d{2}\.\d{4}\s+\d{1,2}:\d{2}/.test(s)){
-    const [dpart, tpart] = s.split(/\s+/);
-    const [dd,mm,yyyy] = dpart.split(".");
-    const time = (tpart.length === 5) ? (tpart + ":00") : tpart;
-    const hhmmss = time.length === 7 ? ("0" + time) : time;
-    return `${yyyy}-${mm}-${dd}T${hhmmss}`;
-  }
-  return "";
-}
-
-/**
- * Ожидаем ваш шаблон (как вы присылали):
- * Header row (1-я строка) содержит: "Audit pick", "Shortpick", "Audit PA"
- * Затем рядом в колонках их поля.
- */
-function parseMultiTablesFromSheet(ws){
-  const data = XLSX.utils.sheet_to_json(ws, { header: 1, defval:"", raw:true });
-  if(!data || data.length < 2) return { shortpick:[], auditPick:[], auditPA:[] };
-
-  const header = (data[0] || []).map(x => String(x||"").trim());
-  const findCol = (title) => header.findIndex(x => x === title);
-
-  const colAP = findCol("Audit pick");
-  const colSP = findCol("Shortpick");
-  const colPA = findCol("Audit PA");
-
-  const out = { shortpick:[], auditPick:[], auditPA:[] };
-
-  for(let r=1; r<data.length; r++){
-    const row = data[r] || [];
-
-    // Audit pick: [Audytor, Date, Container, SKU, Picker, Error]
-    if(colAP >= 0){
-      const Audytor  = row[colAP+1];
-      const Date     = row[colAP+2];
-      const Container= row[colAP+3];
-      const SKU      = row[colAP+4];
-      const Picker   = row[colAP+5];
-      const Error    = row[colAP+6];
-
-      const has = [Date,Container,SKU,Picker,Error].some(v=>String(v||"").trim()!=="");
-      if(has) out.auditPick.push({Audytor, Date, Container, SKU, Picker, Error});
-    }
-
-    // Shortpick: [Date, Task order, SKU, Box number, Time, Picker]
-    if(colSP >= 0){
-      const Date      = row[colSP+1];
-      const TaskOrder = row[colSP+2];
-      const SKU       = row[colSP+3];
-      const BoxNumber = row[colSP+4];
-      const Time      = row[colSP+5];
-      const Picker    = row[colSP+6];
-
-      const has = [Date,TaskOrder,SKU,BoxNumber,Time,Picker].some(v=>String(v||"").trim()!=="");
-      if(has) out.shortpick.push({Date, TaskOrder, SKU, BoxNumber, Time, Picker});
-    }
-
-    // Audit PA: [Audytor, Date, Container, Packer, Eror, SKU]
-    if(colPA >= 0){
-      const Audytor  = row[colPA+1];
-      const Date     = row[colPA+2];
-      const Container= row[colPA+3];
-      const Packer   = row[colPA+4];
-      const Eror     = row[colPA+5];
-      const SKU      = row[colPA+6];
-
-      const has = [Date,Container,Packer,Eror,SKU].some(v=>String(v||"").trim()!=="");
-      if(has) out.auditPA.push({Audytor, Date, Container, Packer, Eror, SKU});
-    }
-  }
-
-  return out;
-}
-
-function normalizeShortpick(o, importId){
-  const date = asDateOnly(o.Date);
-  const time = asDateTime(o.Time);
-  const picker = String(o.Picker ?? "").trim();
-
-  return {
-    id: crypto.randomUUID(),
-    type: TYPES.SHORTPICK,
-    date: date || (time ? time.slice(0,10) : ""),
-    time: String(time || (date ? date+"T00:00:00" : "")),
-    person_login: picker,
-    task_order: String(o.TaskOrder ?? ""),
-    sku: String(o.SKU ?? ""),
-    box_number: String(o.BoxNumber ?? ""),
-    container: "",
-    auditor: "",
-    result: "",
-    created_at: nowISO(),
-    import_id: importId
-  };
-}
-
-function normalizeAuditPick(o, importId){
-  const date = asDateOnly(o.Date);
-  const picker = String(o.Picker ?? "").trim();
-  return {
-    id: crypto.randomUUID(),
-    type: TYPES.AUDIT_PICK,
-    date,
-    time: date ? date+"T00:00:00" : "",
-    person_login: picker, // login человека
-    task_order: "",
-    sku: String(o.SKU ?? ""),
-    box_number: "",
-    container: String(o.Container ?? ""),
-    auditor: String(o.Audytor ?? ""),
-    result: String(o.Error ?? ""), // Profit/Loss
-    created_at: nowISO(),
-    import_id: importId
-  };
-}
-
-function normalizeAuditPA(o, importId){
-  const date = asDateOnly(o.Date);
-  const packer = String(o.Packer ?? "").trim();
-  return {
-    id: crypto.randomUUID(),
-    type: TYPES.AUDIT_PA,
-    date,
-    time: date ? date+"T00:00:00" : "",
-    person_login: packer, // login человека
-    task_order: "",
-    sku: String(o.SKU ?? ""),
-    box_number: "",
-    container: String(o.Container ?? ""),
-    auditor: String(o.Audytor ?? ""),
-    result: String(o.Eror ?? ""), // Profit/Loss/Occupied
-    created_at: nowISO(),
-    import_id: importId
-  };
-}
-
-/** =========================================================
- *  ROLE UI
- *  ========================================================= */
-function enforceRoleUI(){
-  const me = getCurrentUser();
-  if(!me) return;
-
-  // imports только admin
-  const importsTab = document.getElementById("tabImports");
-  importsTab.classList.toggle("hidden", me.role !== "admin");
-  if(me.role !== "admin"){
-    const active = document.querySelector(".tab.active");
-    if(active && active.id === "tabImports") setTab("userTab");
-  }
-
-  document.getElementById("whoami").textContent = `${me.login} (${me.role})`;
-}
-
-/** =========================================================
- *  BIND UI
- *  ========================================================= */
-function bindTabs(){
-  document.querySelectorAll(".tab").forEach(t=>{
-    t.addEventListener("click", ()=>{
-      const me = getCurrentUser();
-      if(t.id==="tabImports" && me.role !== "admin"){
-        toast("Нет доступа к Imports (только admin)");
-        return;
-      }
-      setTab(t.dataset.tab);
-    });
-  });
-}
-
-function bindChooser(groupId, stateKey, inputsId){
-  document.querySelectorAll(`#${groupId} .chip`).forEach(ch=>{
-    ch.addEventListener("click", ()=>{
-      document.querySelectorAll(`#${groupId} .chip`).forEach(x=>x.classList.remove("active"));
-      ch.classList.add("active");
-      dateState[stateKey].mode = ch.dataset.mode;
-      renderDateInputs(inputsId, stateKey);
-    });
-  });
-}
-
-function bindCoreButtons(){
-  // login
-  document.getElementById("btnLogin").addEventListener("click", async ()=>{
-    const login = document.getElementById("loginInput").value.trim();
-    const pass  = document.getElementById("passwordInput").value;
-    const users = loadJSON(LS_KEYS.users, []);
-    const u = users.find(x=>x.login === login);
-    if(!u){ toast("Неверный login"); return; }
-    const h = await sha256(pass);
-    if(h !== u.passHash){ toast("Неверный password"); return; }
-
-    setSession({ userId: u.id, at: nowISO() });
-    openApp();
-    toast("Успешный вход");
-  });
-
-  // logout
-  document.getElementById("btnLogout").addEventListener("click", ()=>{
-    clearSession();
-    openLogin();
-  });
-
-  // change password
-  document.getElementById("btnChangePwd").addEventListener("click", ()=>{
-    document.getElementById("pwdCurrent").value="";
-    document.getElementById("pwdNew").value="";
-    document.getElementById("pwdNew2").value="";
-    document.getElementById("pwdModal").classList.remove("hidden");
-  });
-  document.getElementById("btnPwdCancel").addEventListener("click", ()=>{
-    document.getElementById("pwdModal").classList.add("hidden");
-  });
-  document.getElementById("btnPwdSave").addEventListener("click", async ()=>{
-    const me = getCurrentUser();
-    const cur = document.getElementById("pwdCurrent").value;
-    const n1  = document.getElementById("pwdNew").value;
-    const n2  = document.getElementById("pwdNew2").value;
-    if(!cur || !n1 || !n2){ toast("Заполни все поля"); return; }
-    if(n1 !== n2){ toast("Пароли не совпадают"); return; }
-
-    const users = loadJSON(LS_KEYS.users, []);
-    const idx = users.findIndex(u=>u.id===me.id);
-    const curHash = await sha256(cur);
-    if(users[idx].passHash !== curHash){ toast("Текущий пароль неверный"); return; }
-
-    users[idx].passHash = await sha256(n1);
-    saveJSON(LS_KEYS.users, users);
-    document.getElementById("pwdModal").classList.add("hidden");
-    toast("Пароль изменён");
-  });
-
-  // USER: search + date + export
-  document.getElementById("btnUserSearch").addEventListener("click", ()=>{
-    dateState.user.login = document.getElementById("userSearchLogin").value.trim();
-    renderUserTab();
-  });
-  document.getElementById("btnApplyDate").addEventListener("click", ()=>{
-    applyDate("user");
-    renderUserTab();
-  });
-  document.getElementById("btnExportFromUser").addEventListener("click", ()=>{
-    const recs = filterByCommon(getRecords(), dateState.user);
-    if(recs.length===0){ toast("Нет данных для экспорта"); return; }
-    const rows = recs.map(r=>({
-      Type: r.type,
-      Date: r.date,
-      Time: (r.time||"").replace("T"," "),
-      Login: r.person_login || "",
-      TaskOrder: r.task_order || "",
-      SKU: r.sku || "",
-      BoxNumber: r.box_number || "",
-      Container: r.container || "",
-      Audytor: r.auditor || "",
-      Result: r.result || ""
-    }));
-    const name = `ALL_${toDateOnlyISO(dateState.user.from)}-${toDateOnlyISO(dateState.user.to)}.xlsx`;
-    exportRowsToExcel(rows, "All", name);
-  });
-
-  // SHORTPICK: search + date + paging + export
-  document.getElementById("btnSpSearch").addEventListener("click", ()=>{
-    dateState.sp.login = document.getElementById("spSearchLogin").value.trim();
-    dateState.sp.page = 1;
-    renderShortpickTab();
-  });
-  document.getElementById("btnApplySpDate").addEventListener("click", ()=>{
-    applyDate("sp");
-    dateState.sp.page = 1;
-    renderShortpickTab();
-  });
-  document.getElementById("spPrev").addEventListener("click", ()=>{
-    dateState.sp.page = Math.max(1, dateState.sp.page-1);
-    renderShortpickTab();
-  });
-  document.getElementById("spNext").addEventListener("click", ()=>{
-    const recs = getShortpickFiltered();
-    const totalPages = Math.max(1, Math.ceil(recs.length / PAGE_SIZE));
-    dateState.sp.page = Math.min(totalPages, dateState.sp.page+1);
-    renderShortpickTab();
-  });
-  document.getElementById("btnExportShortpick").addEventListener("click", ()=>{
-    const recs = getShortpickFiltered();
-    if(recs.length===0){ toast("Нет данных для экспорта"); return; }
-    const rows = recs.map(r=>({
-      Date: r.date,
-      "Task order": r.task_order || "",
-      SKU: r.sku || "",
-      "Box number": r.box_number || "",
-      Time: (r.time||"").replace("T"," "),
-      Picker: r.person_login || ""
-    }));
-    const name = `Shortpick_${toDateOnlyISO(dateState.sp.from)}-${toDateOnlyISO(dateState.sp.to)}.xlsx`;
-    exportRowsToExcel(rows, "Shortpick", name);
-  });
-
-  // AUDIT PICK: search + date + paging + export
-  document.getElementById("btnApSearch").addEventListener("click", ()=>{
-    dateState.ap.login = document.getElementById("apSearchLogin").value.trim();
-    dateState.ap.result = document.getElementById("apResult").value;
-    dateState.ap.page = 1;
-    renderAuditPickTab();
-  });
-  document.getElementById("btnApplyApDate").addEventListener("click", ()=>{
-    applyDate("ap");
-    dateState.ap.page = 1;
-    renderAuditPickTab();
-  });
-  document.getElementById("apPrev").addEventListener("click", ()=>{
-    dateState.ap.page = Math.max(1, dateState.ap.page-1);
-    renderAuditPickTab();
-  });
-  document.getElementById("apNext").addEventListener("click", ()=>{
-    const recs = getAuditPickFiltered();
-    const totalPages = Math.max(1, Math.ceil(recs.length / PAGE_SIZE));
-    dateState.ap.page = Math.min(totalPages, dateState.ap.page+1);
-    renderAuditPickTab();
-  });
-  document.getElementById("btnExportAuditPick").addEventListener("click", ()=>{
-    const recs = getAuditPickFiltered();
-    if(recs.length===0){ toast("Нет данных для экспорта"); return; }
-    const rows = recs.map(r=>({
-      Date: r.date,
-      Picker: r.person_login || "",
-      Container: r.container || "",
-      SKU: r.sku || "",
-      Audytor: r.auditor || "",
-      Result: r.result || ""
-    }));
-    const name = `AuditPick_${toDateOnlyISO(dateState.ap.from)}-${toDateOnlyISO(dateState.ap.to)}.xlsx`;
-    exportRowsToExcel(rows, "Audit pick", name);
-  });
-
-  // AUDIT PA: search + date + paging + export
-  document.getElementById("btnPaSearch").addEventListener("click", ()=>{
-    dateState.pa.login = document.getElementById("paSearchLogin").value.trim();
-    dateState.pa.result = document.getElementById("paResult").value;
-    dateState.pa.page = 1;
-    renderAuditPATab();
-  });
-  document.getElementById("btnApplyPaDate").addEventListener("click", ()=>{
-    applyDate("pa");
-    dateState.pa.page = 1;
-    renderAuditPATab();
-  });
-  document.getElementById("paPrev").addEventListener("click", ()=>{
-    dateState.pa.page = Math.max(1, dateState.pa.page-1);
-    renderAuditPATab();
-  });
-  document.getElementById("paNext").addEventListener("click", ()=>{
-    const recs = getAuditPAFiltered();
-    const totalPages = Math.max(1, Math.ceil(recs.length / PAGE_SIZE));
-    dateState.pa.page = Math.min(totalPages, dateState.pa.page+1);
-    renderAuditPATab();
-  });
-  document.getElementById("btnExportAuditPA").addEventListener("click", ()=>{
-    const recs = getAuditPAFiltered();
-    if(recs.length===0){ toast("Нет данных для экспорта"); return; }
-    const rows = recs.map(r=>({
-      Date: r.date,
-      Packer: r.person_login || "",
-      Container: r.container || "",
-      SKU: r.sku || "",
-      Audytor: r.auditor || "",
-      Result: r.result || ""
-    }));
-    const name = `AuditPA_${toDateOnlyISO(dateState.pa.from)}-${toDateOnlyISO(dateState.pa.to)}.xlsx`;
-    exportRowsToExcel(rows, "Audit PA", name);
-  });
-
-  // IMPORT (admin only)
-  document.getElementById("btnAddImport").addEventListener("click", ()=>{
-    const me = getCurrentUser();
-    if(me.role !== "admin"){ toast("Только admin может загружать файлы"); return; }
-    document.getElementById("fileInput").click();
-  });
-
-  document.getElementById("fileInput").addEventListener("change", async (e)=>{
-    const file = e.target.files[0];
-    e.target.value = "";
-    if(!file) return;
-
-    try{
-      const ab = await file.arrayBuffer();
-      const wb = XLSX.read(ab, { type: "array", cellDates: false });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-
-      const parsed = parseMultiTablesFromSheet(ws);
-      const importId = crypto.randomUUID();
-
-      const rowsSP = parsed.shortpick.map(o=>normalizeShortpick(o, importId));
-      const rowsAP = parsed.auditPick.map(o=>normalizeAuditPick(o, importId));
-      const rowsPA = parsed.auditPA.map(o=>normalizeAuditPA(o, importId));
-      const allNew = [...rowsSP, ...rowsAP, ...rowsPA];
-
-      if(allNew.length === 0){
-        toast("Не нашёл данных в файле (проверь шаблон)");
-        return;
-      }
-
-      setRecords(getRecords().concat(allNew));
-
-      const me = getCurrentUser();
-      const b64 = arrayBufferToBase64(ab);
-      const imports = getImports();
-      imports.push({
-        id: importId,
-        name: file.name,
-        date: toDateOnlyISO(new Date()),
-        creator_login: me.login,
-        uploaded_at: nowISO(),
-        bytes_b64: b64,
-        mime: file.type || "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        rows_count: allNew.length
-      });
-      setImports(imports);
-
-      toast(`Импорт: ${allNew.length} (SP ${rowsSP.length}, AP ${rowsAP.length}, PA ${rowsPA.length})`);
-
-      // обновим всё
-      renderUserTab();
-      renderShortpickTab();
-      renderAuditPickTab();
-      renderAuditPATab();
-      renderImportsTab();
-    }catch(err){
-      console.error(err);
-      toast("Ошибка импорта Excel (см. Console)");
-    }
-  });
-
-  // USERS
-  document.getElementById("btnAddUser").addEventListener("click", ()=> openUserModal({mode:"add"}) );
-  document.getElementById("btnUserCancel").addEventListener("click", ()=> document.getElementById("userModal").classList.add("hidden") );
-  document.getElementById("btnUserSave").addEventListener("click", saveUserFromModal);
-
-  // delegation
-  document.body.addEventListener("click", async (e)=>{
-    const a = e.target.closest("[data-action]");
-    if(!a) return;
-    const action = a.dataset.action;
-    const id = a.dataset.id;
-
-    if(action === "editUser"){
-      const users = loadJSON(LS_KEYS.users, []);
-      const u = users.find(x=>x.id===id);
-      openUserModal({mode:"edit", user:u});
-    }
-
-    if(action === "delUser"){
-      if(!confirm("Удалить пользователя?")) return;
-      const me = getCurrentUser();
-      const users = loadJSON(LS_KEYS.users, []);
-      const target = users.find(u=>u.id===id);
-      if(!target) return;
-
-      if(me.role === "manager" && target.role === "admin"){
-        toast("manager не может удалять admin");
-        return;
-      }
-      if(me.id === id){
-        toast("Нельзя удалить себя");
-        return;
-      }
-
-      saveJSON(LS_KEYS.users, users.filter(u=>u.id!==id));
-      toast("Пользователь удалён");
-      renderUsersTab();
-    }
-
-    if(action === "deleteImport"){
-      const me = getCurrentUser();
-      if(me.role !== "admin"){ toast("Только admin"); return; }
-      if(!confirm("Удалить импорт и все строки из этого файла?")) return;
-
-      const imports = getImports();
-      const im = imports.find(x=>x.id===id);
-      if(!im) return;
-
-      setRecords(getRecords().filter(r=>r.import_id !== id));
-      setImports(imports.filter(x=>x.id!==id));
-
-      toast("Импорт удалён");
-      renderImportsTab();
-      renderUserTab();
-      renderShortpickTab();
-      renderAuditPickTab();
-      renderAuditPATab();
-    }
-
-    if(action === "downloadImport"){
-      e.preventDefault();
-      const imports = getImports();
-      const im = imports.find(x=>x.id===id);
-      if(!im){ toast("Файл не найден"); return; }
-      const ab = base64ToArrayBuffer(im.bytes_b64);
-      downloadBlob(im.name, new Blob([ab], {type: im.mime}));
-    }
-  });
-}
-
-/** =========================================================
- *  USER MODAL
- *  ========================================================= */
-let userModalState = { mode:"add", userId:null };
+let userModalState = { mode:"add", user:null };
 
 function openUserModal({mode, user}){
-  const me = getCurrentUser();
+  const me = getMe();
   userModalState.mode = mode;
-  userModalState.userId = user ? user.id : null;
+  userModalState.user = user || null;
 
   document.getElementById("userModalTitle").textContent = (mode==="add") ? "Add User" : "Edit User";
   document.getElementById("umLogin").value = user ? user.login : "";
@@ -1966,7 +1428,7 @@ function openUserModal({mode, user}){
 }
 
 async function saveUserFromModal(){
-  const me = getCurrentUser();
+  const me = getMe();
   const login = document.getElementById("umLogin").value.trim();
   const pwd = document.getElementById("umPassword").value;
   const role = document.getElementById("umRole").value;
@@ -1974,39 +1436,366 @@ async function saveUserFromModal(){
   if(!login){ toast("Login обязателен"); return; }
   if(userModalState.mode === "add" && !pwd){ toast("Password обязателен"); return; }
 
-  const users = loadJSON(LS_KEYS.users, []);
+  try{
+    if(userModalState.mode === "add"){
+      await apiFetch("/api/users", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ login, password: pwd, role })
+      });
+      toast("Пользователь добавлен");
+    }else{
+      await apiFetch("/api/users/" + userModalState.user.id, {
+        method:"PUT",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ role, password: pwd || undefined })
+      });
+      toast("Пользователь обновлён");
+    }
 
-  if(userModalState.mode === "add"){
-    if(users.some(u=>u.login===login)){ toast("Такой login уже есть"); return; }
-    const passHash = await sha256(pwd);
-    users.push({ id: crypto.randomUUID(), login, passHash, role, created_at: nowISO() });
-    saveJSON(LS_KEYS.users, users);
-    toast("Пользователь добавлен");
-  }else{
-    const idx = users.findIndex(u=>u.id===userModalState.userId);
-    if(idx<0){ toast("Пользователь не найден"); return; }
-    if(me.role === "manager" && role === "admin"){ toast("manager не может назначать admin"); return; }
-    users[idx].role = role;
-    if(pwd) users[idx].passHash = await sha256(pwd);
-    saveJSON(LS_KEYS.users, users);
-    toast("Пользователь обновлён");
+    document.getElementById("userModal").classList.add("hidden");
+    await renderUsersTab();
+    enforceRoleUI();
+  }catch(e){
+    toast("Ошибка: " + e.message);
   }
-
-  document.getElementById("userModal").classList.add("hidden");
-  renderUsersTab();
-  enforceRoleUI();
 }
 
 /** =========================================================
- *  HELPERS
+ *  BIND UI
  *  ========================================================= */
-function esc(s){
-  return String(s ?? "")
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
+function bindTabs(){
+  document.querySelectorAll(".tab").forEach(t=>{
+    t.addEventListener("click", ()=>{
+      const me = getMe();
+      if(t.id==="tabImports" && me?.role !== "admin"){
+        toast("Нет доступа к Imports (только admin)");
+        return;
+      }
+      setTab(t.dataset.tab);
+    });
+  });
+}
+
+function bindChooser(groupId, stateKey, inputsId){
+  document.querySelectorAll(`#${groupId} .chip`).forEach(ch=>{
+    ch.addEventListener("click", ()=>{
+      document.querySelectorAll(`#${groupId} .chip`).forEach(x=>x.classList.remove("active"));
+      ch.classList.add("active");
+      dateState[stateKey].mode = ch.dataset.mode;
+      renderDateInputs(inputsId, stateKey);
+    });
+  });
+}
+
+function bindCoreButtons(){
+  // LOGIN (server)
+  document.getElementById("btnLogin").addEventListener("click", async ()=>{
+    const login = document.getElementById("loginInput").value.trim();
+    const password  = document.getElementById("passwordInput").value;
+    try{
+      const r = await apiFetch("/api/auth/login", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ login, password })
+      });
+      setToken(r.token);
+      setMe(r.user);
+      openApp();
+      toast("Успешный вход");
+    }catch(e){
+      toast("Неверный login/password");
+    }
+  });
+
+  // LOGOUT
+  document.getElementById("btnLogout").addEventListener("click", ()=>{
+    clearToken();
+    openLogin();
+  });
+
+  // CHANGE PASSWORD (server)
+  document.getElementById("btnChangePwd").addEventListener("click", ()=>{
+    document.getElementById("pwdCurrent").value="";
+    document.getElementById("pwdNew").value="";
+    document.getElementById("pwdNew2").value="";
+    document.getElementById("pwdModal").classList.remove("hidden");
+  });
+  document.getElementById("btnPwdCancel").addEventListener("click", ()=>{
+    document.getElementById("pwdModal").classList.add("hidden");
+  });
+  document.getElementById("btnPwdSave").addEventListener("click", async ()=>{
+    const cur = document.getElementById("pwdCurrent").value;
+    const n1  = document.getElementById("pwdNew").value;
+    const n2  = document.getElementById("pwdNew2").value;
+    if(!cur || !n1 || !n2){ toast("Заполни все поля"); return; }
+    if(n1 !== n2){ toast("Пароли не совпадают"); return; }
+
+    try{
+      await apiFetch("/api/auth/change-password", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ currentPassword: cur, newPassword: n1 })
+      });
+      document.getElementById("pwdModal").classList.add("hidden");
+      toast("Пароль изменён");
+    }catch(e){
+      toast("Ошибка: " + e.message);
+    }
+  });
+
+  // USER: search + date + export
+  document.getElementById("btnUserSearch").addEventListener("click", ()=>{
+    dateState.user.login = document.getElementById("userSearchLogin").value.trim();
+    renderUserTab().catch(console.error);
+  });
+  document.getElementById("btnApplyDate").addEventListener("click", ()=>{
+    applyDate("user");
+    renderUserTab().catch(console.error);
+  });
+
+  document.getElementById("btnExportFromUser").addEventListener("click", async ()=>{
+    try{
+      const st = dateState.user;
+      const from = toDateOnlyISO(st.from);
+      const to = toDateOnlyISO(st.to);
+      // забираем побольше
+      const data = await apiRecords({
+        type:"",
+        login: st.login || "",
+        from, to,
+        page:1,
+        pageSize:500
+      });
+      const rows = (data.rows||[]).map(r=>({
+        Type: r.type,
+        Date: r.date,
+        Time: (r.time||"").replace("T"," "),
+        Login: r.person_login || "",
+        TaskOrder: r.task_order || "",
+        SKU: r.sku || "",
+        BoxNumber: r.box_number || "",
+        Container: r.container || "",
+        Audytor: r.auditor || "",
+        Result: r.result || ""
+      }));
+      if(!rows.length){ toast("Нет данных для экспорта"); return; }
+      const name = `ALL_${from}-${to}.xlsx`;
+      exportRowsToExcel(rows, "All", name);
+    }catch(e){
+      toast("Ошибка экспорта: " + e.message);
+    }
+  });
+
+  // SHORTPICK: search + date + paging + export
+  document.getElementById("btnSpSearch").addEventListener("click", ()=>{
+    dateState.sp.login = document.getElementById("spSearchLogin").value.trim();
+    dateState.sp.page = 1;
+    renderShortpickTab().catch(console.error);
+  });
+  document.getElementById("btnApplySpDate").addEventListener("click", ()=>{
+    applyDate("sp");
+    dateState.sp.page = 1;
+    renderShortpickTab().catch(console.error);
+  });
+  document.getElementById("spPrev").addEventListener("click", ()=>{
+    dateState.sp.page = Math.max(1, dateState.sp.page-1);
+    renderShortpickTab().catch(console.error);
+  });
+  document.getElementById("spNext").addEventListener("click", async ()=>{
+    // просто листаем, render сам покажет
+    dateState.sp.page += 1;
+    renderShortpickTab().catch(console.error);
+  });
+  document.getElementById("btnExportShortpick").addEventListener("click", async ()=>{
+    try{
+      const st = dateState.sp;
+      const from = toDateOnlyISO(st.from);
+      const to = toDateOnlyISO(st.to);
+      const data = await apiRecords({ type:TYPES.SHORTPICK, login: st.login||"", from, to, page:1, pageSize:500 });
+      const rows = (data.rows||[]).map(r=>({
+        Date: r.date,
+        "Task order": r.task_order || "",
+        SKU: r.sku || "",
+        "Box number": r.box_number || "",
+        Time: (r.time||"").replace("T"," "),
+        Picker: r.person_login || ""
+      }));
+      if(!rows.length){ toast("Нет данных для экспорта"); return; }
+      exportRowsToExcel(rows, "Shortpick", `Shortpick_${from}-${to}.xlsx`);
+    }catch(e){ toast("Ошибка экспорта: " + e.message); }
+  });
+
+  // AUDIT PICK: search + date + paging + export
+  document.getElementById("btnApSearch").addEventListener("click", ()=>{
+    dateState.ap.login = document.getElementById("apSearchLogin").value.trim();
+    dateState.ap.result = document.getElementById("apResult").value;
+    dateState.ap.page = 1;
+    renderAuditPickTab().catch(console.error);
+  });
+  document.getElementById("btnApplyApDate").addEventListener("click", ()=>{
+    applyDate("ap");
+    dateState.ap.page = 1;
+    renderAuditPickTab().catch(console.error);
+  });
+  document.getElementById("apPrev").addEventListener("click", ()=>{
+    dateState.ap.page = Math.max(1, dateState.ap.page-1);
+    renderAuditPickTab().catch(console.error);
+  });
+  document.getElementById("apNext").addEventListener("click", ()=>{
+    dateState.ap.page += 1;
+    renderAuditPickTab().catch(console.error);
+  });
+  document.getElementById("btnExportAuditPick").addEventListener("click", async ()=>{
+    try{
+      const st = dateState.ap;
+      const from = toDateOnlyISO(st.from);
+      const to = toDateOnlyISO(st.to);
+      const data = await apiRecords({
+        type:TYPES.AUDIT_PICK,
+        login: st.login||"",
+        from, to,
+        result: st.result||"all",
+        page:1, pageSize:500
+      });
+      const rows = (data.rows||[]).map(r=>({
+        Date: r.date,
+        Picker: r.person_login || "",
+        Container: r.container || "",
+        SKU: r.sku || "",
+        Audytor: r.auditor || "",
+        Result: r.result || ""
+      }));
+      if(!rows.length){ toast("Нет данных для экспорта"); return; }
+      exportRowsToExcel(rows, "Audit pick", `AuditPick_${from}-${to}.xlsx`);
+    }catch(e){ toast("Ошибка экспорта: " + e.message); }
+  });
+
+  // AUDIT PA: search + date + paging + export
+  document.getElementById("btnPaSearch").addEventListener("click", ()=>{
+    dateState.pa.login = document.getElementById("paSearchLogin").value.trim();
+    dateState.pa.result = document.getElementById("paResult").value;
+    dateState.pa.page = 1;
+    renderAuditPATab().catch(console.error);
+  });
+  document.getElementById("btnApplyPaDate").addEventListener("click", ()=>{
+    applyDate("pa");
+    dateState.pa.page = 1;
+    renderAuditPATab().catch(console.error);
+  });
+  document.getElementById("paPrev").addEventListener("click", ()=>{
+    dateState.pa.page = Math.max(1, dateState.pa.page-1);
+    renderAuditPATab().catch(console.error);
+  });
+  document.getElementById("paNext").addEventListener("click", ()=>{
+    dateState.pa.page += 1;
+    renderAuditPATab().catch(console.error);
+  });
+  document.getElementById("btnExportAuditPA").addEventListener("click", async ()=>{
+    try{
+      const st = dateState.pa;
+      const from = toDateOnlyISO(st.from);
+      const to = toDateOnlyISO(st.to);
+      const data = await apiRecords({
+        type:TYPES.AUDIT_PA,
+        login: st.login||"",
+        from, to,
+        result: st.result||"all",
+        page:1, pageSize:500
+      });
+      const rows = (data.rows||[]).map(r=>({
+        Date: r.date,
+        Packer: r.person_login || "",
+        Container: r.container || "",
+        SKU: r.sku || "",
+        Audytor: r.auditor || "",
+        Result: r.result || ""
+      }));
+      if(!rows.length){ toast("Нет данных для экспорта"); return; }
+      exportRowsToExcel(rows, "Audit PA", `AuditPA_${from}-${to}.xlsx`);
+    }catch(e){ toast("Ошибка экспорта: " + e.message); }
+  });
+
+  // IMPORT (admin only) -> server
+  document.getElementById("btnAddImport").addEventListener("click", ()=>{
+    const me = getMe();
+    if(me?.role !== "admin"){ toast("Только admin может загружать файлы"); return; }
+    document.getElementById("fileInput").click();
+  });
+
+  document.getElementById("fileInput").addEventListener("change", async (e)=>{
+    const file = e.target.files[0];
+    e.target.value = "";
+    if(!file) return;
+
+    try{
+      const fd = new FormData();
+      fd.append("file", file);
+      const r = await apiFetch("/api/import", { method:"POST", body: fd });
+      toast(`Импорт: ${r.rowsAdded} строк`);
+
+      await renderUserTab();
+      await renderShortpickTab();
+      await renderAuditPickTab();
+      await renderAuditPATab();
+      await renderImportsTab();
+    }catch(err){
+      console.error(err);
+      toast("Ошибка импорта: " + err.message);
+    }
+  });
+
+  // USERS modal
+  document.getElementById("btnAddUser").addEventListener("click", ()=> openUserModal({mode:"add"}) );
+  document.getElementById("btnUserCancel").addEventListener("click", ()=> document.getElementById("userModal").classList.add("hidden") );
+  document.getElementById("btnUserSave").addEventListener("click", saveUserFromModal);
+
+  // delegation (edit/delete users, delete/download imports)
+  document.body.addEventListener("click", async (e)=>{
+    const a = e.target.closest("[data-action]");
+    if(!a) return;
+    const action = a.dataset.action;
+    const id = a.dataset.id;
+
+    if(action === "editUser"){
+      const data = await apiFetch("/api/users");
+      const u = (data.rows||[]).find(x=>x.id===id);
+      if(u) openUserModal({mode:"edit", user:u});
+    }
+
+    if(action === "delUser"){
+      if(!confirm("Удалить пользователя?")) return;
+      try{
+        await apiFetch("/api/users/" + id, { method:"DELETE" });
+        toast("Пользователь удалён");
+        await renderUsersTab();
+      }catch(err){
+        toast("Ошибка: " + err.message);
+      }
+    }
+
+    if(action === "deleteImport"){
+      if(!confirm("Удалить импорт и все строки из этого файла?")) return;
+      try{
+        await apiFetch("/api/imports/" + id, { method:"DELETE" });
+        toast("Импорт удалён");
+        await renderImportsTab();
+        await renderUserTab();
+      }catch(err){
+        toast("Ошибка: " + err.message);
+      }
+    }
+
+    if(action === "downloadImport"){
+      e.preventDefault();
+      try{
+        // скачивание файла: просто открываем endpoint
+        window.location.href = "/api/imports/" + id + "/file";
+      }catch(err){
+        toast("Ошибка: " + err.message);
+      }
+    }
+  });
 }
 
 /** =========================================================
@@ -2017,7 +1806,6 @@ function openLogin(){
   document.getElementById("loginView").classList.remove("hidden");
   document.getElementById("appView").classList.add("hidden");
 }
-
 function openApp(){
   document.getElementById("topbar").classList.remove("hidden");
   document.getElementById("loginView").classList.add("hidden");
@@ -2025,7 +1813,6 @@ function openApp(){
 
   enforceRoleUI();
 
-  // init date inputs
   renderDateInputs("dateInputs","user");
   renderDateInputs("spDateInputs","sp");
   renderDateInputs("apDateInputs","ap");
@@ -2040,24 +1827,31 @@ function openApp(){
 }
 
 (async function main(){
-  await seedIfEmpty();
-
-  // tabs
   bindTabs();
 
-  // choosers
   bindChooser("userChooser","user","dateInputs");
   bindChooser("spChooser","sp","spDateInputs");
   bindChooser("apChooser","ap","apDateInputs");
   bindChooser("paChooser","pa","paDateInputs");
 
-  // core buttons
   bindCoreButtons();
 
-  const sess = getSession();
-  if(sess && getCurrentUser()) openApp();
-  else openLogin();
+  // если токен валиден — откроем app
+  const token = getToken();
+  const me = getMe();
+  if(token && me){
+    try{
+      await apiFetch("/api/health");
+      openApp();
+    }catch{
+      clearToken();
+      openLogin();
+    }
+  }else{
+    openLogin();
+  }
 })();
 </script>
 </body>
 </html>
+
