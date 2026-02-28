@@ -10,10 +10,9 @@ const app = express();
 app.use(express.json({ limit: "10mb" }));
 
 const upload = multer({ limits: { fileSize: 50 * 1024 * 1024 } });
-
 const { Pool } = pg;
 
-// IMPORTANT: на Render обычно нужен ssl rejectUnauthorized:false
+// Render Postgres обычно требует SSL
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
@@ -22,9 +21,6 @@ const pool = new Pool({
 const JWT_SECRET = process.env.JWT_SECRET || "CHANGE_ME_IN_RENDER_ENV";
 const TOKEN_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days
 
-function nowISO() {
-  return new Date().toISOString();
-}
 function uuid() {
   return crypto.randomUUID();
 }
@@ -99,7 +95,6 @@ function roleRequired(...roles) {
 }
 
 async function initDatabase() {
-  // Одна схема. Никаких дублей CREATE TABLE.
   await pool.query(`
     CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
@@ -158,10 +153,14 @@ async function initDatabase() {
   console.log("Database initialized");
 }
 
-// ====== health ======
+/* ======================
+   HEALTH
+====================== */
 app.get("/api/health", (req, res) => res.json({ ok: true }));
 
-// ====== AUTH ======
+/* ======================
+   AUTH
+====================== */
 app.post("/api/auth/login", async (req, res) => {
   const { login, password } = req.body || {};
   if (!login || !password)
@@ -203,93 +202,118 @@ app.post("/api/auth/change-password", authRequired, async (req, res) => {
   res.json({ ok: true });
 });
 
-// ====== USERS (admin/manager) ======
-app.get("/api/users", authRequired, roleRequired("admin", "manager"), async (req, res) => {
-  const q = await pool.query(
-    `SELECT id,login,role,created_at FROM users ORDER BY created_at DESC`
-  );
-  res.json({ rows: q.rows });
-});
-
-app.post("/api/users", authRequired, roleRequired("admin", "manager"), async (req, res) => {
-  const me = req.user;
-  const { login, password, role } = req.body || {};
-  if (!login || !password)
-    return res.status(400).json({ error: "missing login/password" });
-
-  const r = String(role || "manager");
-  if (me.role === "manager" && r === "admin")
-    return res.status(403).json({ error: "manager cannot create admin" });
-
-  try {
-    const ins = await pool.query(
-      `INSERT INTO users(login,pass_hash,role) VALUES($1,$2,$3) RETURNING id`,
-      [String(login).trim(), sha256Hex(password), r]
+/* ======================
+   USERS
+====================== */
+app.get(
+  "/api/users",
+  authRequired,
+  roleRequired("admin", "manager"),
+  async (req, res) => {
+    const q = await pool.query(
+      `SELECT id,login,role,created_at FROM users ORDER BY created_at DESC`
     );
-    res.json({ ok: true, id: ins.rows[0].id });
-  } catch (e) {
-    if (String(e?.message || "").toLowerCase().includes("unique"))
-      return res.status(409).json({ error: "login exists" });
-    console.error(e);
-    return res.status(500).json({ error: "server error" });
+    res.json({ rows: q.rows });
   }
-});
+);
 
-app.put("/api/users/:id", authRequired, roleRequired("admin", "manager"), async (req, res) => {
-  const me = req.user;
-  const id = req.params.id;
-  const { role, password } = req.body || {};
+app.post(
+  "/api/users",
+  authRequired,
+  roleRequired("admin", "manager"),
+  async (req, res) => {
+    const me = req.user;
+    const { login, password, role } = req.body || {};
+    if (!login || !password)
+      return res.status(400).json({ error: "missing login/password" });
 
-  const q = await pool.query(`SELECT id,role FROM users WHERE id=$1`, [id]);
-  const target = q.rows[0];
-  if (!target) return res.status(404).json({ error: "not found" });
+    const r = String(role || "manager");
+    if (me.role === "manager" && r === "admin")
+      return res.status(403).json({ error: "manager cannot create admin" });
 
-  if (me.role === "manager" && target.role === "admin")
-    return res.status(403).json({ error: "manager cannot edit admin" });
-  if (me.role === "manager" && role === "admin")
-    return res.status(403).json({ error: "manager cannot set admin" });
+    try {
+      const ins = await pool.query(
+        `INSERT INTO users(login,pass_hash,role) VALUES($1,$2,$3) RETURNING id`,
+        [String(login).trim(), sha256Hex(password), r]
+      );
+      res.json({ ok: true, id: ins.rows[0].id });
+    } catch (e) {
+      if (String(e?.message || "").toLowerCase().includes("unique"))
+        return res.status(409).json({ error: "login exists" });
+      console.error(e);
+      return res.status(500).json({ error: "server error" });
+    }
+  }
+);
 
-  const sets = [];
-  const vals = [];
-  const add = (sql, v) => {
-    vals.push(v);
-    sets.push(sql.replace("?", `$${vals.length}`));
-  };
+app.put(
+  "/api/users/:id",
+  authRequired,
+  roleRequired("admin", "manager"),
+  async (req, res) => {
+    const me = req.user;
+    const id = req.params.id;
+    const { role, password } = req.body || {};
 
-  if (role) add(`role = ?`, String(role));
-  if (password) add(`pass_hash = ?`, sha256Hex(password));
+    const q = await pool.query(`SELECT id,role FROM users WHERE id=$1`, [id]);
+    const target = q.rows[0];
+    if (!target) return res.status(404).json({ error: "not found" });
 
-  if (!sets.length) return res.json({ ok: true });
+    if (me.role === "manager" && target.role === "admin")
+      return res.status(403).json({ error: "manager cannot edit admin" });
+    if (me.role === "manager" && role === "admin")
+      return res.status(403).json({ error: "manager cannot set admin" });
 
-  vals.push(id);
-  await pool.query(
-    `UPDATE users SET ${sets.join(", ")} WHERE id=$${vals.length}`,
-    vals
-  );
-  res.json({ ok: true });
-});
+    const sets = [];
+    const vals = [];
+    const add = (sql, v) => {
+      vals.push(v);
+      sets.push(sql.replace("?", `$${vals.length}`));
+    };
 
-app.delete("/api/users/:id", authRequired, roleRequired("admin", "manager"), async (req, res) => {
-  const me = req.user;
-  const id = req.params.id;
+    if (role) add(`role = ?`, String(role));
+    if (password) add(`pass_hash = ?`, sha256Hex(password));
 
-  if (String(me.userId) === String(id))
-    return res.status(400).json({ error: "cannot delete self" });
+    if (!sets.length) return res.json({ ok: true });
 
-  const q = await pool.query(`SELECT role FROM users WHERE id=$1`, [id]);
-  const target = q.rows[0];
-  if (!target) return res.status(404).json({ error: "not found" });
+    vals.push(id);
+    await pool.query(
+      `UPDATE users SET ${sets.join(", ")} WHERE id=$${vals.length}`,
+      vals
+    );
+    res.json({ ok: true });
+  }
+);
 
-  if (me.role === "manager" && target.role === "admin")
-    return res.status(403).json({ error: "manager cannot delete admin" });
+app.delete(
+  "/api/users/:id",
+  authRequired,
+  roleRequired("admin", "manager"),
+  async (req, res) => {
+    const me = req.user;
+    const id = req.params.id;
 
-  await pool.query(`DELETE FROM users WHERE id=$1`, [id]);
-  res.json({ ok: true });
-});
+    if (String(me.userId) === String(id))
+      return res.status(400).json({ error: "cannot delete self" });
 
-// ====== RECORDS ======
+    const q = await pool.query(`SELECT role FROM users WHERE id=$1`, [id]);
+    const target = q.rows[0];
+    if (!target) return res.status(404).json({ error: "not found" });
+
+    if (me.role === "manager" && target.role === "admin")
+      return res.status(403).json({ error: "manager cannot delete admin" });
+
+    await pool.query(`DELETE FROM users WHERE id=$1`, [id]);
+    res.json({ ok: true });
+  }
+);
+
+/* ======================
+   RECORDS
+====================== */
 app.get("/api/records", authRequired, async (req, res) => {
-  const { type, login, from, to, result, page = "1", pageSize = "14" } = req.query;
+  const { type, login, from, to, result, page = "1", pageSize = "14" } =
+    req.query;
 
   const p = Math.max(1, parseInt(page, 10));
   const ps = Math.min(500, Math.max(1, parseInt(pageSize, 10)));
@@ -306,11 +330,15 @@ app.get("/api/records", authRequired, async (req, res) => {
   if (login) add(`person_login = ?`, String(login).trim());
   if (from) add(`date >= ?`, String(from));
   if (to) add(`date <= ?`, String(to));
-  if (result && result !== "all") add(`LOWER(result) = ?`, String(result).toLowerCase());
+  if (result && result !== "all")
+    add(`LOWER(result) = ?`, String(result).toLowerCase());
 
   const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
 
-  const total = await pool.query(`SELECT COUNT(*)::int AS c FROM records ${whereSql}`, vals);
+  const total = await pool.query(
+    `SELECT COUNT(*)::int AS c FROM records ${whereSql}`,
+    vals
+  );
   const rows = await pool.query(
     `SELECT * FROM records ${whereSql}
      ORDER BY date DESC NULLS LAST, time DESC NULLS LAST, created_at DESC
@@ -345,7 +373,9 @@ app.get("/api/user-summary", authRequired, async (req, res) => {
   );
 
   const sp = await pool.query(
-    `SELECT COUNT(*)::int AS c FROM records ${whereSql} ${whereSql ? "AND" : "WHERE"} type='shortpick'`,
+    `SELECT COUNT(*)::int AS c FROM records ${whereSql} ${
+      whereSql ? "AND" : "WHERE"
+    } type='shortpick'`,
     vals
   );
 
@@ -355,7 +385,9 @@ app.get("/api/user-summary", authRequired, async (req, res) => {
       SUM(CASE WHEN LOWER(result)='profit' THEN 1 ELSE 0 END)::int AS profit,
       SUM(CASE WHEN LOWER(result)='loss' THEN 1 ELSE 0 END)::int AS loss,
       0::int AS occupied
-     FROM records ${whereSql} ${whereSql ? "AND" : "WHERE"} type='audit_pick'`,
+     FROM records ${whereSql} ${
+      whereSql ? "AND" : "WHERE"
+    } type='audit_pick'`,
     vals
   );
 
@@ -365,7 +397,9 @@ app.get("/api/user-summary", authRequired, async (req, res) => {
       SUM(CASE WHEN LOWER(result)='profit' THEN 1 ELSE 0 END)::int AS profit,
       SUM(CASE WHEN LOWER(result)='loss' THEN 1 ELSE 0 END)::int AS loss,
       SUM(CASE WHEN LOWER(result)='occupied' THEN 1 ELSE 0 END)::int AS occupied
-     FROM records ${whereSql} ${whereSql ? "AND" : "WHERE"} type='audit_pa'`,
+     FROM records ${whereSql} ${
+      whereSql ? "AND" : "WHERE"
+    } type='audit_pa'`,
     vals
   );
 
@@ -377,7 +411,9 @@ app.get("/api/user-summary", authRequired, async (req, res) => {
   });
 });
 
-// ====== IMPORTS (admin only) ======
+/* ======================
+   IMPORTS (admin only)
+====================== */
 app.get("/api/imports", authRequired, roleRequired("admin"), async (req, res) => {
   const q = await pool.query(
     `SELECT id,name,creator_login,uploaded_at,rows_count
@@ -386,36 +422,48 @@ app.get("/api/imports", authRequired, roleRequired("admin"), async (req, res) =>
   res.json({ rows: q.rows });
 });
 
-app.get("/api/imports/:id/file", authRequired, roleRequired("admin"), async (req, res) => {
-  const id = req.params.id;
-  const q = await pool.query(`SELECT name,mime,bytes FROM imports WHERE id=$1`, [id]);
-  const im = q.rows[0];
-  if (!im) return res.status(404).json({ error: "not found" });
-  res.setHeader("Content-Type", im.mime || "application/octet-stream");
-  res.setHeader(
-    "Content-Disposition",
-    `attachment; filename="${im.name || "import.xlsx"}"`
-  );
-  res.send(im.bytes);
-});
-
-app.delete("/api/imports/:id", authRequired, roleRequired("admin"), async (req, res) => {
-  const id = req.params.id;
-  const client = await pool.connect();
-  try {
-    await client.query("BEGIN");
-    await client.query(`DELETE FROM records WHERE import_id=$1`, [id]);
-    await client.query(`DELETE FROM imports WHERE id=$1`, [id]);
-    await client.query("COMMIT");
-  } catch (e) {
-    await client.query("ROLLBACK");
-    console.error(e);
-    return res.status(500).json({ error: "delete failed" });
-  } finally {
-    client.release();
+app.get(
+  "/api/imports/:id/file",
+  authRequired,
+  roleRequired("admin"),
+  async (req, res) => {
+    const id = req.params.id;
+    const q = await pool.query(`SELECT name,mime,bytes FROM imports WHERE id=$1`, [
+      id,
+    ]);
+    const im = q.rows[0];
+    if (!im) return res.status(404).json({ error: "not found" });
+    res.setHeader("Content-Type", im.mime || "application/octet-stream");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${im.name || "import.xlsx"}"`
+    );
+    res.send(im.bytes);
   }
-  res.json({ ok: true });
-});
+);
+
+app.delete(
+  "/api/imports/:id",
+  authRequired,
+  roleRequired("admin"),
+  async (req, res) => {
+    const id = req.params.id;
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query(`DELETE FROM records WHERE import_id=$1`, [id]);
+      await client.query(`DELETE FROM imports WHERE id=$1`, [id]);
+      await client.query("COMMIT");
+    } catch (e) {
+      await client.query("ROLLBACK");
+      console.error(e);
+      return res.status(500).json({ error: "delete failed" });
+    } finally {
+      client.release();
+    }
+    res.json({ ok: true });
+  }
+);
 
 app.post(
   "/api/import",
@@ -446,23 +494,31 @@ app.post(
     for (let r = 1; r < data.length; r++) {
       const row = data[r] || [];
 
+      // ---- Shortpick ----
       if (colSP >= 0) {
-        const Date = row[colSP + 1],
+        const dateVal = row[colSP + 1],
           TaskOrder = row[colSP + 2],
           SKU = row[colSP + 3],
           BoxNumber = row[colSP + 4],
           Time = row[colSP + 5],
           Picker = row[colSP + 6];
 
-        const has = [Date, TaskOrder, SKU, BoxNumber, Time, Picker].some(
+        const has = [dateVal, TaskOrder, SKU, BoxNumber, Time, Picker].some(
           (v) => String(v || "").trim() !== ""
         );
+
         if (has) {
+          let timeISO = null;
+          if (Time) {
+            const d = new globalThis.Date(Time);
+            if (!isNaN(d.getTime())) timeISO = d.toISOString();
+          }
+
           recs.push({
             id: uuid(),
             type: "shortpick",
-            date: String(Date || "").slice(0, 10) || null,
-            time: Time ? new Date(String(Time)).toISOString() : null, // если Time уже ISO/дата
+            date: String(dateVal || "").slice(0, 10) || null,
+            time: timeISO,
             person_login: String(Picker || "").trim() || null,
             task_order: String(TaskOrder || "") || null,
             sku: String(SKU || "") || null,
@@ -475,22 +531,24 @@ app.post(
         }
       }
 
+      // ---- Audit pick ----
       if (colAP >= 0) {
         const Audytor = row[colAP + 1],
-          Date = row[colAP + 2],
+          dateVal = row[colAP + 2],
           Container = row[colAP + 3],
           SKU = row[colAP + 4],
           Picker = row[colAP + 5],
           Error = row[colAP + 6];
 
-        const has = [Date, Container, SKU, Picker, Error].some(
+        const has = [dateVal, Container, SKU, Picker, Error].some(
           (v) => String(v || "").trim() !== ""
         );
+
         if (has) {
           recs.push({
             id: uuid(),
             type: "audit_pick",
-            date: String(Date || "").slice(0, 10) || null,
+            date: String(dateVal || "").slice(0, 10) || null,
             time: null,
             person_login: String(Picker || "").trim() || null,
             task_order: null,
@@ -504,22 +562,24 @@ app.post(
         }
       }
 
+      // ---- Audit PA ----
       if (colPA >= 0) {
         const Audytor = row[colPA + 1],
-          Date = row[colPA + 2],
+          dateVal = row[colPA + 2],
           Container = row[colPA + 3],
           Packer = row[colPA + 4],
           Eror = row[colPA + 5],
           SKU = row[colPA + 6];
 
-        const has = [Date, Container, Packer, Eror, SKU].some(
+        const has = [dateVal, Container, Packer, Eror, SKU].some(
           (v) => String(v || "").trim() !== ""
         );
+
         if (has) {
           recs.push({
             id: uuid(),
             type: "audit_pa",
-            date: String(Date || "").slice(0, 10) || null,
+            date: String(dateVal || "").slice(0, 10) || null,
             time: null,
             person_login: String(Packer || "").trim() || null,
             task_order: null,
@@ -554,7 +614,6 @@ app.post(
         ]
       );
 
-      // пакетная вставка
       const values = [];
       const params = [];
       let i = 1;
@@ -598,20 +657,26 @@ app.post(
   }
 );
 
-// ====== serve frontend ======
+/* ======================
+   FRONTEND
+====================== */
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// раздаём статические файлы (index.html рядом с server.js)
+// раздача статических файлов (index.html рядом с server.js)
 app.use(express.static(__dirname));
 
-// главная страница
-app.get("/", (req, res) => {
+// fallback для всех НЕ-API путей (SPA)
+app.get("*", (req, res) => {
+  if (req.path.startsWith("/api/")) {
+    return res.status(404).json({ error: "not found" });
+  }
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
-// fallback: чтобы любые не-API пути тоже отдавали index.html
-app.get("*", (req, res) => {
-  if (req.path.startsWith("/api/")) return res.status(404).json({ error: "not found" });
-  res.sendFile(path.join(__dirname, "index.html"));
-});
+const port = process.env.PORT || 3000;
+
+(async () => {
+  await initDatabase();
+  app.listen(port, () => console.log("Listening on", port));
+})();
