@@ -602,15 +602,16 @@ app.post(
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// раздаём статические файлы (index.html рядом с server.js)
 app.use(express.static(__dirname));
 
+// главная страница
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
-const port = process.env.PORT || 3000;
-
-(async () => {
-  await initDatabase();
-  app.listen(port, () => console.log("Listening on", port));
-})();
+// fallback: чтобы любые не-API пути тоже отдавали index.html
+app.get("*", (req, res) => {
+  if (req.path.startsWith("/api/")) return res.status(404).json({ error: "not found" });
+  res.sendFile(path.join(__dirname, "index.html"));
+});
