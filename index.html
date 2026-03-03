@@ -1260,7 +1260,7 @@ async function renderUserTab(){
   const summary = await apiFetch("/api/user-summary?" + qs.toString());
 
   document.getElementById("statShortpick").textContent = summary.shortpick || 0;
-  document.getElementById("statAuditPickAll").textContent = summary.audit_pick?.all || 0;
+  document.getElementById("statAuditPickAll").textContent = summary.audit_pick?.total || 0;
   document.getElementById("statAuditPAAll").textContent = summary.audit_pa?.all || 0;
   document.getElementById("statPeriod").textContent = humanRange(st.from, st.to);
 
@@ -2236,6 +2236,7 @@ document.body.addEventListener("click", async (e)=>{
 </script>
 </body>
 </html>
+
 
 
 
