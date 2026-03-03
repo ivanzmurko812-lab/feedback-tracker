@@ -12,7 +12,6 @@ app.use(express.json({ limit: "10mb" }));
 const upload = multer({ limits: { fileSize: 50 * 1024 * 1024 } });
 const { Pool } = pg;
 
-// IMPORTANT: Render Postgres обычно требует SSL
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
@@ -114,11 +113,14 @@ function createRateLimiter({ windowMs, max }) {
   };
 }
 
-const apiLimiter = createRateLimiter({ windowMs: 60_000, max: 120 });      // 120 req/min per IP
+const apiLimiter = createRateLimiter({ windowMs: 60_000, max: 120 });       // 120 req/min per IP
 const loginLimiter = createRateLimiter({ windowMs: 10 * 60_000, max: 12 }); // 12 attempts / 10 min per IP
 
 app.use("/api", (req, res, next) => {
-  const ip = req.headers["x-forwarded-for"]?.toString().split(",")[0]?.trim() || req.socket.remoteAddress || "ip";
+  const ip =
+    req.headers["x-forwarded-for"]?.toString().split(",")[0]?.trim() ||
+    req.socket.remoteAddress ||
+    "ip";
   const r = apiLimiter(ip);
   if (!r.ok) return res.status(429).json({ error: "rate limit" });
   next();
@@ -127,24 +129,14 @@ app.use("/api", (req, res, next) => {
 /** =========================================================
  *  Excel date/time helpers
  *  ========================================================= */
-
-// Excel serial date/time -> JS Date (UTC-ish)
 function excelSerialToJsDate(serial) {
   const d = XLSX.SSF.parse_date_code(serial);
   if (!d || !d.y || !d.m || !d.d) return null;
 
-  const ms = Date.UTC(
-    d.y,
-    d.m - 1,
-    d.d,
-    d.H || 0,
-    d.M || 0,
-    Math.floor(d.S || 0)
-  );
+  const ms = Date.UTC(d.y, d.m - 1, d.d, d.H || 0, d.M || 0, Math.floor(d.S || 0));
   return new Date(ms);
 }
 
-// Любое значение даты из Excel -> 'YYYY-MM-DD' или null
 function toPgDate(value) {
   if (value === null || value === undefined) return null;
 
@@ -178,7 +170,6 @@ function toPgDate(value) {
   return null;
 }
 
-// Любое значение времени/даты из Excel -> ISO string для timestamptz или null
 function toPgTimestamp(value) {
   if (value === null || value === undefined) return null;
 
@@ -277,7 +268,11 @@ app.get("/api/health", (req, res) => res.json({ ok: true }));
 
 // AUTH
 app.post("/api/auth/login", async (req, res) => {
-  const ip = req.headers["x-forwarded-for"]?.toString().split(",")[0]?.trim() || req.socket.remoteAddress || "ip";
+  const ip =
+    req.headers["x-forwarded-for"]?.toString().split(",")[0]?.trim() ||
+    req.socket.remoteAddress ||
+    "ip";
+
   const rl = loginLimiter(ip);
   if (!rl.ok) return res.status(429).json({ error: "too many login attempts" });
 
@@ -442,7 +437,6 @@ app.get("/api/records-export", authRequired, async (req, res) => {
 
   const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
 
-  // fetch +1 to detect truncation
   const rowsQ = await pool.query(
     `SELECT * FROM records ${whereSql}
      ORDER BY date DESC NULLS LAST, time DESC NULLS LAST, created_at DESC
@@ -456,7 +450,7 @@ app.get("/api/records-export", authRequired, async (req, res) => {
   res.json({ rows, truncated, limit: MAX_EXPORT_ROWS });
 });
 
-// USER SUMMARY
+// USER SUMMARY (!!! total вместо all)
 app.get("/api/user-summary", authRequired, async (req, res) => {
   const { login, from, to } = req.query;
 
@@ -486,11 +480,10 @@ app.get("/api/user-summary", authRequired, async (req, res) => {
   );
 
   const ap = await pool.query(
-    SELECT
-  COUNT(*)::int AS total,
-  SUM(CASE WHEN LOWER(result)='profit' THEN 1 ELSE 0 END)::int AS profit,
-  SUM(CASE WHEN LOWER(result)='loss' THEN 1 ELSE 0 END)::int AS loss,
-  
+    `SELECT
+      COUNT(*)::int AS total,
+      SUM(CASE WHEN LOWER(result)='profit' THEN 1 ELSE 0 END)::int AS profit,
+      SUM(CASE WHEN LOWER(result)='loss' THEN 1 ELSE 0 END)::int AS loss,
       0::int AS occupied
      FROM records ${whereSql} ${whereSql ? "AND" : "WHERE"} type='audit_pick'`,
     vals
@@ -514,17 +507,25 @@ app.get("/api/user-summary", authRequired, async (req, res) => {
   });
 });
 
-// LEADERBOARD: audit_pick / audit_pa grouped by login
+// LEADERBOARD (!!! total вместо all + безопасный ORDER BY)
 app.get("/api/audit-leaderboard", authRequired, async (req, res) => {
-  const { type, from, to, result = "all", orderBy = "all", orderDir = "desc", limit = "200" } = req.query;
+  const {
+    type,
+    from,
+    to,
+    result = "all",
+    orderBy = "total",
+    orderDir = "desc",
+    limit = "200",
+  } = req.query;
 
   const t = String(type || "");
   if (!["audit_pick", "audit_pa"].includes(t)) return res.status(400).json({ error: "bad type" });
 
   const lim = clampInt(limit, 1, MAX_LEADERBOARD, 200);
 
-  const allowedOrder = new Set(["login", "profit", "loss", "occupied", "all"]);
-  const ob = allowedOrder.has(String(orderBy)) ? String(orderBy) : "all";
+  const allowedOrder = new Set(["login", "profit", "loss", "occupied", "total"]);
+  const ob = allowedOrder.has(String(orderBy)) ? String(orderBy) : "total";
   const od = String(orderDir).toLowerCase() === "asc" ? "asc" : "desc";
 
   const where = [`type = $1`];
@@ -537,29 +538,32 @@ app.get("/api/audit-leaderboard", authRequired, async (req, res) => {
 
   const whereSql = `WHERE ${where.join(" AND ")}`;
 
-  // login, profit, loss, occupied, all
-  // for audit_pick occupied always 0
-  const q = await pool.query(
-    `
+  const occupiedExpr = (t === "audit_pa")
+    ? `SUM(CASE WHEN LOWER(result)='occupied' THEN 1 ELSE 0 END)::int`
+    : `0::int`;
+
+  // ORDER BY безопасный: только whitelist, логин отдельно
+  const orderSql =
+    ob === "login"
+      ? `login ${od}, total DESC`
+      : `${ob} ${od}, total DESC`;
+
+  const sql = `
     SELECT
       COALESCE(person_login,'') AS login,
-      COUNT(*):int AS total,
+      COUNT(*)::int AS total,
       SUM(CASE WHEN LOWER(result)='profit' THEN 1 ELSE 0 END)::int AS profit,
       SUM(CASE WHEN LOWER(result)='loss' THEN 1 ELSE 0 END)::int AS loss,
-      ${t === "audit_pa"
-        ? `SUM(CASE WHEN LOWER(result)='occupied' THEN 1 ELSE 0 END)::int`
-        : `0::int`
-      } AS occupied
+      ${occupiedExpr} AS occupied
     FROM records
     ${whereSql}
     GROUP BY person_login
     HAVING COALESCE(person_login,'') <> ''
-    ORDER BY ${ob === "login" ? "login" : ob} ${od}, all DESC
+    ORDER BY ${orderSql}
     LIMIT ${lim}
-    `,
-    vals
-  );
+  `;
 
+  const q = await pool.query(sql, vals);
   res.json({ rows: q.rows });
 });
 
@@ -788,7 +792,6 @@ const __dirname = path.dirname(__filename);
 
 app.use(express.static(__dirname));
 
-// чтобы / всегда открывал index.html
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
