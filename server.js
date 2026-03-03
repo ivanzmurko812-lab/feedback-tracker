@@ -849,3 +849,4 @@ const port = process.env.PORT || 3000;
   await initDatabase();
   app.listen(port, () => console.log("Listening on", port));
 })();
+
