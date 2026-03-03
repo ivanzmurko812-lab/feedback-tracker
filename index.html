@@ -58,7 +58,8 @@
     .topbar{
       position:sticky; top:0; z-index:50;
       padding: 14px 18px;
-      background: linear-gradient(180deg, rgba(28,40,80,.45), rgba(28,40,80,.18));
+      background:
+        linear-gradient(180deg, rgba(28,40,80,.45), rgba(28,40,80,.18));
       backdrop-filter: blur(12px);
       border-bottom: 1px solid rgba(255,255,255,.35);
     }
@@ -80,7 +81,7 @@
       text-shadow: 0 12px 26px rgba(0,0,0,.25);
     }
     .actions{
-      width: 420px;
+      width: 360px;
       display:flex;
       justify-content:flex-end;
       align-items:center;
@@ -240,7 +241,7 @@
     /* ===== Stats ===== */
     .stats{
       display:grid;
-      grid-template-columns: repeat(5, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       gap: 14px;
     }
     @media (max-width: 1200px){
@@ -268,16 +269,10 @@
     }
     .stat .sub{
       margin-top: 8px;
-      font-size: 14px;
+      font-size: 15px;
       font-weight: 900;
       color: var(--muted);
       line-height:1.25;
-    }
-    .stat .tiny{
-      margin-top: 10px;
-      font-size: 18px;
-      font-weight: 950;
-      line-height:1.1;
     }
 
     /* ===== Tables ===== */
@@ -314,27 +309,23 @@
       z-index: 2;
     }
     tr:last-child td{ border-bottom:none; }
-    .td-muted{ color: var(--muted); font-weight: 850; }
+    
+th.sortable{
+  cursor:pointer;
+  user-select:none;
+  white-space:nowrap;
+}
+th.sortable .ar{
+  margin-left:6px;
+  opacity:.8;
+  font-weight:900;
+}
+th.sortable.active{
+  color: var(--blue1);
+}
+.td-muted{ color: var(--muted); font-weight: 850; }
     .right{ text-align:right; }
     .table-scroll{ max-height: 56vh; overflow:auto; }
-
-    .sortable{
-      cursor:pointer;
-      user-select:none;
-      white-space:nowrap;
-    }
-    .sort-arrow{
-      display:inline-block;
-      margin-left:6px;
-      opacity:.85;
-      font-weight:950;
-    }
-    .clickable{
-      cursor:pointer;
-      color: var(--blue1);
-      font-weight: 950;
-    }
-    .clickable:hover{ text-decoration: underline; }
 
     /* ===== Date chooser ===== */
     .chooser{
@@ -513,23 +504,26 @@
               <div class="col">
                 <label>Login</label>
                 <input id="userSearchLogin" type="text" placeholder="введите логин (или пусто для всех)" />
-                <button class="btn wide" id="btnUserSearch">Search</button>
+                
+<div class="row">
+  <div class="col" style="flex:1;">
+    <label>Top</label>
+    <select id="userTopLimit">
+      <option value="10">10</option>
+      <option value="25" selected>25</option>
+      <option value="50">50</option>
+    </select>
+  </div>
+</div>
+<button class="btn wide" id="btnUserSearch">Search</button>
               </div>
               <div class="hr"></div>
               <div class="muted">
                 • если логин пустой — покажет всех<br>
-                • фильтр дат справа<br>
-                • тренд сравнивает текущий период с предыдущим таким же
+                • фильтр дат справа
               </div>
               <div class="hr"></div>
-
-              <div class="row">
-                <button class="btn wide" id="btnExportFromUserXlsx">⬇ Export Excel (current view)</button>
-              </div>
-              <div style="height:10px"></div>
-              <div class="row">
-                <button class="btn secondary wide" id="btnExportFromUserCsv">⬇ Export CSV (current view)</button>
-              </div>
+              <button class="btn wide" id="btnExportFromUser">⬇ Export current view</button>
             </div>
 
             <div class="col" style="gap:16px;">
@@ -551,19 +545,14 @@
                 </div>
                 <div class="stat">
                   <div class="k">Period</div>
-                  <div class="tiny" id="statPeriod">—</div>
+                  <div class="v" style="font-size:18px; margin-top:14px;" id="statPeriod">—</div>
                   <div class="sub">range</div>
-                </div>
-                <div class="stat">
-                  <div class="k">Trend</div>
-                  <div class="tiny" id="statTrend">—</div>
-                  <div class="sub" id="statTrendSub">vs prev</div>
                 </div>
               </div>
 
               <div class="card">
-                <h3>All feedback (by Date)</h3>
-                <div id="userByDateTableWrap"></div>
+                <h3>All feedback (Top by user)</h3>
+                <div id="userLeaderboardWrap"></div>
               </div>
             </div>
 
@@ -593,9 +582,7 @@
                 <button class="btn wide" id="btnSpSearch">Search</button>
               </div>
               <div class="hr"></div>
-              <button class="btn wide" id="btnExportShortpickXlsx">⬇ Export Excel</button>
-              <div style="height:10px"></div>
-              <button class="btn secondary wide" id="btnExportShortpickCsv">⬇ Export CSV</button>
+              <button class="btn wide" id="btnExportShortpick">⬇ Export Shortpick</button>
             </div>
 
             <div class="card">
@@ -636,50 +623,28 @@
               <div class="col">
                 <label>Login (Picker)</label>
                 <input id="apSearchLogin" type="text" placeholder="введите логин (или пусто для всех)" />
-
                 <label>Result</label>
                 <select id="apResult">
                   <option value="all">All</option>
                   <option value="profit">Profit</option>
                   <option value="loss">Loss</option>
                 </select>
-
-                <label>Rows per page</label>
-                <select id="apPageSize">
-                  <option value="10">10</option>
-                  <option value="25">25</option>
-                  <option value="50">50</option>
-                </select>
-
                 <button class="btn wide" id="btnApSearch">Search</button>
               </div>
               <div class="hr"></div>
-
-              <button class="btn wide" id="btnExportAuditPickXlsx">⬇ Export Excel</button>
-              <div style="height:10px"></div>
-              <button class="btn secondary wide" id="btnExportAuditPickCsv">⬇ Export CSV</button>
-
+              <button class="btn wide" id="btnExportAuditPick">⬇ Export Audit pick</button>
               <div class="hr"></div>
-              <div class="muted">Leaderboard: сортируй по стрелкам, клик по логину = открыть детали</div>
+              <div class="muted">
+                Stats: Profit / Loss / All
+              </div>
             </div>
 
             <div class="col" style="gap:16px;">
-              <div class="stats" style="grid-template-columns: repeat(4, 1fr);">
+              <div class="stats">
                 <div class="stat"><div class="k">Profit</div><div class="v" id="apStatProfit">0</div><div class="sub">rows</div></div>
                 <div class="stat"><div class="k">Loss</div><div class="v" id="apStatLoss">0</div><div class="sub">rows</div></div>
                 <div class="stat"><div class="k">All</div><div class="v" id="apStatAll">0</div><div class="sub">rows</div></div>
-                <div class="stat"><div class="k">Period</div><div class="tiny" id="apStatPeriod">—</div><div class="sub">range</div></div>
-              </div>
-
-              <div class="card">
-                <div class="row" style="justify-content:space-between; align-items:flex-end; gap:14px;">
-                  <div>
-                    <h3 style="margin:0">Audit pick leaderboard (by login)</h3>
-                    <div class="muted" id="apLbInfo" style="margin-top:6px;">—</div>
-                  </div>
-                </div>
-                <div class="hr"></div>
-                <div class="table-wrap table-scroll" id="auditPickLeaderboardWrap"></div>
+                <div class="stat"><div class="k">Period</div><div class="v" style="font-size:18px; margin-top:14px;" id="apStatPeriod">—</div><div class="sub">range</div></div>
               </div>
 
               <div class="card">
@@ -721,7 +686,6 @@
               <div class="col">
                 <label>Login (Packer)</label>
                 <input id="paSearchLogin" type="text" placeholder="введите логин (или пусто для всех)" />
-
                 <label>Result</label>
                 <select id="paResult">
                   <option value="all">All</option>
@@ -729,43 +693,22 @@
                   <option value="loss">Loss</option>
                   <option value="occupied">Occupied</option>
                 </select>
-
-                <label>Rows per page</label>
-                <select id="paPageSize">
-                  <option value="10">10</option>
-                  <option value="25">25</option>
-                  <option value="50">50</option>
-                </select>
-
                 <button class="btn wide" id="btnPaSearch">Search</button>
               </div>
               <div class="hr"></div>
-
-              <button class="btn wide" id="btnExportAuditPAXlsx">⬇ Export Excel</button>
-              <div style="height:10px"></div>
-              <button class="btn secondary wide" id="btnExportAuditPACsv">⬇ Export CSV</button>
-
+              <button class="btn wide" id="btnExportAuditPA">⬇ Export Audit PA</button>
               <div class="hr"></div>
-              <div class="muted">Leaderboard: сортируй по стрелкам, клик по логину = открыть детали</div>
+              <div class="muted">
+                Stats: Profit / Loss / Occupied / All
+              </div>
             </div>
 
             <div class="col" style="gap:16px;">
-              <div class="stats" style="grid-template-columns: repeat(4, 1fr);">
+              <div class="stats">
                 <div class="stat"><div class="k">Profit</div><div class="v" id="paStatProfit">0</div><div class="sub">rows</div></div>
                 <div class="stat"><div class="k">Loss</div><div class="v" id="paStatLoss">0</div><div class="sub">rows</div></div>
                 <div class="stat"><div class="k">Occupied</div><div class="v" id="paStatOcc">0</div><div class="sub">rows</div></div>
                 <div class="stat"><div class="k">All</div><div class="v" id="paStatAll">0</div><div class="sub">rows</div></div>
-              </div>
-
-              <div class="card">
-                <div class="row" style="justify-content:space-between; align-items:flex-end; gap:14px;">
-                  <div>
-                    <h3 style="margin:0">Audit PA leaderboard (by login)</h3>
-                    <div class="muted" id="paLbInfo" style="margin-top:6px;">—</div>
-                  </div>
-                </div>
-                <div class="hr"></div>
-                <div class="table-wrap table-scroll" id="auditPALeaderboardWrap"></div>
               </div>
 
               <div class="card">
@@ -888,15 +831,20 @@
 
 <script>
 /** =========================================================
- *  AUTH + API helpers
+ *  SERVER AUTH + API (общая база)
  *  ========================================================= */
-const LS_KEYS = { token: "ft_token_v1", me: "ft_me_v1" };
+const LS_KEYS = {
+  token: "ft_token_v1",
+  me:    "ft_me_v1"
+};
 
 const TYPES = {
   SHORTPICK: "shortpick",
   AUDIT_PICK: "audit_pick",
   AUDIT_PA: "audit_pa"
 };
+
+const PAGE_SIZE = 14;
 
 function toast(msg){
   const t = document.getElementById("toast");
@@ -998,17 +946,7 @@ function humanRange(from, to){
   const t = toDateOnlyISO(to);
   return f === t ? f : `${f} — ${t}`;
 }
-function daysInclusive(from, to){
-  const a = new Date(from); a.setHours(0,0,0,0);
-  const b = new Date(to); b.setHours(0,0,0,0);
-  const ms = (b - a);
-  return Math.max(1, Math.floor(ms / (24*3600*1000)) + 1);
-}
-function shiftDays(d, delta){
-  const x = new Date(d);
-  x.setDate(x.getDate()+delta);
-  return x;
-}
+
 function formatWarsawTime(isoLocal){
   if(!isoLocal) return "";
   const d = new Date(isoLocal);
@@ -1032,10 +970,10 @@ function formatWarsawTime(isoLocal){
  *  FILTER STATE
  *  ========================================================= */
 const dateState = {
-  user: { mode:"day", from:null, to:null, login:"" },
+  user: { mode:"day", from:null, to:null, login:"", sortKey:"total", sortDir:"desc", top:25 },
   sp: { mode:"day", from:null, to:null, login:"", page:1 },
-  ap: { mode:"day", from:null, to:null, login:"", result:"all", page:1, pageSize:25, sortKey:"all", sortDir:"desc" },
-  pa: { mode:"day", from:null, to:null, login:"", result:"all", page:1, pageSize:25, sortKey:"all", sortDir:"desc" }
+  ap: { mode:"day", from:null, to:null, login:"", result:"all", page:1 },
+  pa: { mode:"day", from:null, to:null, login:"", result:"all", page:1 }
 };
 
 function renderDateInputs(containerId, stateKey){
@@ -1131,206 +1069,104 @@ async function apiRecords({type, login, from, to, result, page, pageSize}){
   if(to) qs.set("to", to);
   if(result) qs.set("result", result);
   qs.set("page", String(page||1));
-  qs.set("pageSize", String(pageSize||25));
+  qs.set("pageSize", String(pageSize||PAGE_SIZE));
   return apiFetch("/api/records?" + qs.toString());
 }
 
-async function apiExport({type, login, from, to, result}){
+async function apiUserLeaderboard({ login, from, to, orderBy, orderDir, limit }){
   const qs = new URLSearchParams();
-  if(type) qs.set("type", type);
   if(login) qs.set("login", login);
   if(from) qs.set("from", from);
   if(to) qs.set("to", to);
-  if(result) qs.set("result", result);
-  return apiFetch("/api/records-export?" + qs.toString());
-}
-
-async function apiLeaderboard({type, from, to, result, orderBy, orderDir, limit=200}){
-  const qs = new URLSearchParams();
-  qs.set("type", type);
-  qs.set("from", from);
-  qs.set("to", to);
-  if(result) qs.set("result", result);
   if(orderBy) qs.set("orderBy", orderBy);
   if(orderDir) qs.set("orderDir", orderDir);
-  qs.set("limit", String(limit));
-  return apiFetch("/api/audit-leaderboard?" + qs.toString());
+  if(limit) qs.set("limit", String(limit));
+  return apiFetch("/api/user-leaderboard?" + qs.toString());
 }
+
+
 
 /** =========================================================
- *  EXPORT helpers (CSV + Excel)
- *  ========================================================= */
-function downloadBlob(filename, blob){
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url; a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
-function exportRowsToExcel(rows, sheetName, filename){
-  const ws = XLSX.utils.json_to_sheet(rows);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, sheetName);
-  const out = XLSX.write(wb, {bookType:"xlsx", type:"array"});
-  downloadBlob(filename, new Blob([out], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));
-}
-function csvEscape(v){
-  const s = String(v ?? "");
-  if(/[",\n\r;]/.test(s)) return `"${s.replaceAll('"','""')}"`;
-  return s;
-}
-function exportRowsToCSV(rows, filename){
-  if(!rows.length){ toast("Нет данных для экспорта"); return; }
-  const headers = Object.keys(rows[0]);
-  const lines = [];
-  lines.push(headers.map(csvEscape).join(";"));
-  for(const r of rows){
-    lines.push(headers.map(h=>csvEscape(r[h])).join(";"));
-  }
-  const csv = lines.join("\n");
-  downloadBlob(filename, new Blob([csv], {type:"text/csv;charset=utf-8"}));
-}
-
-/** =========================================================
- *  Leaderboard UI helpers
- *  ========================================================= */
-function sortArrow(active, dir){
-  if(!active) return `<span class="sort-arrow">⇅</span>`;
-  return dir === "asc" ? `<span class="sort-arrow">↑</span>` : `<span class="sort-arrow">↓</span>`;
-}
-function renderLeaderboard({wrapId, rows, type, sortKey, sortDir}){
-  const wrap = document.getElementById(wrapId);
-
-  if(!rows.length){
-    wrap.innerHTML = `<div class="muted">Нет данных по текущему фильтру.</div>`;
-    return;
-  }
-
-  const hasOcc = (type === TYPES.AUDIT_PA);
-  const cols = [
-    { key:"login", label:"Login", right:false },
-    { key:"profit", label:"Profit", right:true },
-    { key:"loss", label:"Loss", right:true },
-    ...(hasOcc ? [{ key:"occupied", label:"Occupied", right:true }] : []),
-    { key:"all", label:"All", right:true }
-  ];
-
-  const thead = cols.map(c=>{
-    const active = (sortKey === c.key);
-    return `<th class="sortable ${c.right ? "right":""}" data-lb-sort="${c.key}">
-      ${esc(c.label)} ${sortArrow(active, sortDir)}
-    </th>`;
-  }).join("");
-
-  const tbody = rows.map(r=>{
-    return `<tr>
-      <td><span class="clickable" data-lb-login="${esc(r.login)}">${esc(r.login)}</span></td>
-      <td class="right">${esc(r.profit||0)}</td>
-      <td class="right">${esc(r.loss||0)}</td>
-      ${hasOcc ? `<td class="right">${esc(r.occupied||0)}</td>` : ``}
-      <td class="right" style="font-size:16px;color:var(--blue1);">${esc(r.all||0)}</td>
-    </tr>`;
-  }).join("");
-
-  wrap.innerHTML = `
-    <table>
-      <thead><tr>${thead}</tr></thead>
-      <tbody>${tbody}</tbody>
-    </table>
-  `;
-}
-
-/** =========================================================
- *  RENDER: USER TAB (summary + trend)
+ *  RENDER: USER TAB (summary + leaderboard)
  *  ========================================================= */
 async function renderUserTab(){
-  document.getElementById("userSearchLogin").value = dateState.user.login || "";
-
   const st = dateState.user;
+
+  // inputs
+  document.getElementById("userSearchLogin").value = st.login || "";
+  const topSel = document.getElementById("userTopLimit");
+  if(topSel) topSel.value = String(st.top || 25);
+
   const from = toDateOnlyISO(st.from);
   const to = toDateOnlyISO(st.to);
 
-  const qs = new URLSearchParams();
-  if(st.login) qs.set("login", st.login.trim());
-  qs.set("from", from);
-  qs.set("to", to);
-
-  const summary = await apiFetch("/api/user-summary?" + qs.toString());
+  // summary cards
+  const sumQS = new URLSearchParams();
+  if(st.login) sumQS.set("login", st.login.trim());
+  sumQS.set("from", from);
+  sumQS.set("to", to);
+  const summary = await apiFetch("/api/user-summary?" + sumQS.toString());
 
   document.getElementById("statShortpick").textContent = summary.shortpick || 0;
-  document.getElementById("statAuditPickAll").textContent = summary.audit_pick?.total || 0;
+  document.getElementById("statAuditPickAll").textContent = summary.audit_pick?.all || 0;
   document.getElementById("statAuditPAAll").textContent = summary.audit_pa?.all || 0;
   document.getElementById("statPeriod").textContent = humanRange(st.from, st.to);
 
-  // trend: compare total all (current range) vs previous same-length range
-  const curTotalAll = (summary.grouped || []).reduce((a,x)=>a+(x.count||0),0);
-  const len = daysInclusive(st.from, st.to);
-  const prevFrom = toDateOnlyISO(shiftDays(st.from, -len));
-  const prevTo   = toDateOnlyISO(shiftDays(st.to, -len));
+  // leaderboard
+  const lb = await apiUserLeaderboard({
+    login: st.login || "",
+    from,
+    to,
+    orderBy: st.sortKey || "total",
+    orderDir: st.sortDir || "desc",
+    limit: st.top || 25
+  });
 
-  const prevQS = new URLSearchParams();
-  if(st.login) prevQS.set("login", st.login.trim());
-  prevQS.set("from", prevFrom);
-  prevQS.set("to", prevTo);
+  const rowsArr = lb.rows || [];
+  const wrap = document.getElementById("userLeaderboardWrap");
 
-  let prevTotalAll = 0;
-  try{
-    const prev = await apiFetch("/api/user-summary?" + prevQS.toString());
-    prevTotalAll = (prev.grouped || []).reduce((a,x)=>a+(x.count||0),0);
-  }catch{
-    prevTotalAll = 0;
-  }
-
-  const trendEl = document.getElementById("statTrend");
-  const trendSub = document.getElementById("statTrendSub");
-  if(prevTotalAll === 0 && curTotalAll === 0){
-    trendEl.textContent = "—";
-    trendSub.textContent = "vs prev";
-  }else if(prevTotalAll === 0 && curTotalAll > 0){
-    trendEl.textContent = "↑ new";
-    trendSub.textContent = `prev ${prevTotalAll}, now ${curTotalAll}`;
-  }else{
-    const diff = curTotalAll - prevTotalAll;
-    const pct = (diff / prevTotalAll) * 100;
-    const arrow = diff > 0 ? "↑" : (diff < 0 ? "↓" : "→");
-    trendEl.textContent = `${arrow} ${pct.toFixed(1)}%`;
-    trendSub.textContent = `prev ${prevTotalAll} → now ${curTotalAll}`;
-  }
-
-  const wrap = document.getElementById("userByDateTableWrap");
-  const grouped = summary.grouped || [];
-
-  if(grouped.length === 0){
+  if(!rowsArr.length){
     wrap.innerHTML = `<div class="muted">Нет данных по текущему фильтру.</div>`;
     return;
   }
 
-  const rows = grouped.map(x=>`
+  const sortIcon = (key)=>{
+    if((st.sortKey||"total") !== key) return `<span class="ar">⇅</span>`;
+    return `<span class="ar">${(st.sortDir||"desc")==="asc" ? "↑" : "↓"}</span>`;
+  };
+  const thClass = (key)=> ((st.sortKey||"total")===key ? "sortable active" : "sortable");
+
+  const body = rowsArr.map(r=>`
     <tr>
-      <td class="td-muted">${esc(x.date)}</td>
-      <td class="right" style="font-size:18px;color:var(--blue1);">${esc(x.count)}</td>
+      <td><a href="#" class="user-link" data-login="${esc(r.login||"")}">${esc(r.login||"")}</a></td>
+      <td class="right">${esc(r.shortpick||0)}</td>
+      <td class="right">${esc(r.audit_pick||0)}</td>
+      <td class="right">${esc(r.audit_pa||0)}</td>
+      <td class="right" style="color:var(--blue1); font-weight:950;">${esc(r.total||0)}</td>
     </tr>
   `).join("");
 
-  const ap = summary.audit_pick || {profit:0,loss:0,all:0};
-  const pa = summary.audit_pa || {profit:0,loss:0,occupied:0,all:0};
-
   wrap.innerHTML = `
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Date</th><th class="right">Count (ALL)</th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
+    <div class="muted" style="margin-bottom:10px;">
+      Top ${rowsArr.length} (sorted by <b>${esc(st.sortKey||"total")}</b> ${(st.sortDir||"desc")==="asc"?"↑":"↓"})
     </div>
-    <div class="hr"></div>
-    <div class="muted">
-      Audit pick: Profit <b>${ap.profit||0}</b> • Loss <b>${ap.loss||0}</b> • All <b>${ap.all||0}</b><br>
-      Audit PA: Profit <b>${pa.profit||0}</b> • Loss <b>${pa.loss||0}</b> • Occupied <b>${pa.occupied||0}</b> • All <b>${pa.all||0}</b>
+    <div class="table-wrap table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th class="${thClass("login")}" data-sort="login">user ${sortIcon("login")}</th>
+            <th class="${thClass("shortpick")}" data-sort="shortpick">shortpick ${sortIcon("shortpick")}</th>
+            <th class="${thClass("audit_pick")}" data-sort="audit_pick">audit pick ${sortIcon("audit_pick")}</th>
+            <th class="${thClass("audit_pa")}" data-sort="audit_pa">audit pa ${sortIcon("audit_pa")}</th>
+            <th class="${thClass("total")}" data-sort="total">total ${sortIcon("total")}</th>
+          </tr>
+        </thead>
+        <tbody>${body}</tbody>
+      </table>
     </div>
   `;
 }
+
 
 /** =========================================================
  *  RENDER: SHORTPICK
@@ -1347,10 +1183,10 @@ async function renderShortpickTab(){
     login: st.login || "",
     from, to,
     page: st.page,
-    pageSize: 25
+    pageSize: PAGE_SIZE
   });
 
-  const totalPages = Math.max(1, Math.ceil((data.total||0) / 25));
+  const totalPages = Math.max(1, Math.ceil((data.total||0) / PAGE_SIZE));
   st.page = Math.min(st.page, totalPages);
 
   document.getElementById("spPageInfo").textContent =
@@ -1392,21 +1228,31 @@ async function renderShortpickTab(){
 }
 
 /** =========================================================
- *  RENDER: AUDIT PICK (leaderboard + details)
+ *  RENDER: AUDIT PICK
  *  ========================================================= */
 async function renderAuditPickTab(){
   const st = dateState.ap;
-
   document.getElementById("apSearchLogin").value = st.login || "";
   document.getElementById("apResult").value = st.result || "all";
-  document.getElementById("apPageSize").value = String(st.pageSize || 25);
 
   const from = toDateOnlyISO(st.from);
   const to = toDateOnlyISO(st.to);
 
+  // stats берём через user-summary? (тут проще: запросим user-summary без type)
+  // чтобы не плодить эндпоинты — оставим только period текстом.
   document.getElementById("apStatPeriod").textContent = humanRange(st.from, st.to);
 
-  // stats (global)
+  const data = await apiRecords({
+    type: TYPES.AUDIT_PICK,
+    login: st.login || "",
+    from, to,
+    result: st.result || "all",
+    page: st.page,
+    pageSize: PAGE_SIZE
+  });
+
+  // Счётчики profit/loss/all считаем по странице? — не идеально.
+  // Поэтому показываем "All" как total фильтра + другие — по отдельному запросу /api/user-summary (включает общий all, profit/loss).
   const sumQS = new URLSearchParams();
   if(st.login) sumQS.set("login", st.login);
   sumQS.set("from", from); sumQS.set("to", to);
@@ -1417,38 +1263,7 @@ async function renderAuditPickTab(){
   document.getElementById("apStatLoss").textContent = ap.loss || 0;
   document.getElementById("apStatAll").textContent = ap.all || 0;
 
-  // leaderboard
-  const lb = await apiLeaderboard({
-    type: TYPES.AUDIT_PICK,
-    from, to,
-    result: (st.result || "all"),
-    orderBy: st.sortKey || "all",
-    orderDir: st.sortDir || "desc",
-    limit: 200
-  });
-
-  document.getElementById("apLbInfo").textContent =
-    `Top ${lb.rows?.length || 0} (sorted by ${st.sortKey} ${st.sortDir})`;
-
-  renderLeaderboard({
-    wrapId: "auditPickLeaderboardWrap",
-    rows: lb.rows || [],
-    type: TYPES.AUDIT_PICK,
-    sortKey: st.sortKey,
-    sortDir: st.sortDir
-  });
-
-  // details (paged)
-  const data = await apiRecords({
-    type: TYPES.AUDIT_PICK,
-    login: st.login || "",
-    from, to,
-    result: st.result || "all",
-    page: st.page,
-    pageSize: st.pageSize || 25
-  });
-
-  const totalPages = Math.max(1, Math.ceil((data.total||0) / (st.pageSize||25)));
+  const totalPages = Math.max(1, Math.ceil((data.total||0) / PAGE_SIZE));
   st.page = Math.min(st.page, totalPages);
 
   document.getElementById("apPageInfo").textContent =
@@ -1490,19 +1305,25 @@ async function renderAuditPickTab(){
 }
 
 /** =========================================================
- *  RENDER: AUDIT PA (leaderboard + details)
+ *  RENDER: AUDIT PA
  *  ========================================================= */
 async function renderAuditPATab(){
   const st = dateState.pa;
-
   document.getElementById("paSearchLogin").value = st.login || "";
   document.getElementById("paResult").value = st.result || "all";
-  document.getElementById("paPageSize").value = String(st.pageSize || 25);
 
   const from = toDateOnlyISO(st.from);
   const to = toDateOnlyISO(st.to);
 
-  // stats (global)
+  const data = await apiRecords({
+    type: TYPES.AUDIT_PA,
+    login: st.login || "",
+    from, to,
+    result: st.result || "all",
+    page: st.page,
+    pageSize: PAGE_SIZE
+  });
+
   const sumQS = new URLSearchParams();
   if(st.login) sumQS.set("login", st.login);
   sumQS.set("from", from); sumQS.set("to", to);
@@ -1514,38 +1335,7 @@ async function renderAuditPATab(){
   document.getElementById("paStatOcc").textContent = pa.occupied || 0;
   document.getElementById("paStatAll").textContent = pa.all || 0;
 
-  // leaderboard
-  const lb = await apiLeaderboard({
-    type: TYPES.AUDIT_PA,
-    from, to,
-    result: (st.result || "all"),
-    orderBy: st.sortKey || "all",
-    orderDir: st.sortDir || "desc",
-    limit: 200
-  });
-
-  document.getElementById("paLbInfo").textContent =
-    `Top ${lb.rows?.length || 0} (sorted by ${st.sortKey} ${st.sortDir})`;
-
-  renderLeaderboard({
-    wrapId: "auditPALeaderboardWrap",
-    rows: lb.rows || [],
-    type: TYPES.AUDIT_PA,
-    sortKey: st.sortKey,
-    sortDir: st.sortDir
-  });
-
-  // details (paged)
-  const data = await apiRecords({
-    type: TYPES.AUDIT_PA,
-    login: st.login || "",
-    from, to,
-    result: st.result || "all",
-    page: st.page,
-    pageSize: st.pageSize || 25
-  });
-
-  const totalPages = Math.max(1, Math.ceil((data.total||0) / (st.pageSize||25)));
+  const totalPages = Math.max(1, Math.ceil((data.total||0) / PAGE_SIZE));
   st.page = Math.min(st.page, totalPages);
 
   document.getElementById("paPageInfo").textContent =
@@ -1612,7 +1402,7 @@ async function renderUsersTab(){
   document.getElementById("usersTableWrap").innerHTML = `
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Login</th><th>Role</th><th class="right">Edit</th><th class="right">Delete</th></tr></thead>
+        <thead><tr><th>User</th><th>Role</th><th class="right">Edit</th><th class="right">Delete</th></tr></thead>
         <tbody>${rows || `<tr><td colspan="4" class="td-muted">No users</td></tr>`}</tbody>
       </table>
     </div>
@@ -1620,50 +1410,62 @@ async function renderUsersTab(){
 }
 
 /** =========================================================
- *  IMPORTS TAB (server)
+ *  IMPORTS TAB (server admin only)
  *  ========================================================= */
 async function renderImportsTab(){
   const me = getMe();
   if(!me) return;
-
   if(me.role !== "admin"){
-    document.getElementById("importsTableWrap").innerHTML = `<div class="muted">Only admin can view imports.</div>`;
+    document.getElementById("importsTableWrap").innerHTML =
+      `<div class="muted">Нет доступа (только admin).</div>`;
     return;
   }
 
   const data = await apiFetch("/api/imports");
   const imports = data.rows || [];
 
-  const rows = imports.map(x=>`
+  const rows = imports.map(im=>`
     <tr>
-      <td style="font-weight:950;">${esc(x.name)}</td>
-      <td class="td-muted">${esc(formatWarsawTime(x.uploaded_at))}</td>
-      <td>${esc(x.creator_login)}</td>
-      <td class="right">${esc(x.rows_count||0)}</td>
-      <td class="right">
-        <button class="btn secondary" data-action="downloadImport" data-id="${x.id}">Download</button>
-      </td>
-      <td class="right">
-        <button class="btn danger" data-action="deleteImport" data-id="${x.id}">Delete</button>
-      </td>
+      <td><a href="#" data-action="downloadImport" data-id="${im.id}">${esc(im.name)}</a></td>
+      <td class="td-muted">${esc((im.uploaded_at||"").slice(0,10))}</td>
+      <td>${esc(im.creator_login||"")}</td>
+      <td class="td-muted right">${esc(im.rows_count||0)}</td>
+      <td class="right"><button class="btn danger" data-action="deleteImport" data-id="${im.id}">Delete</button></td>
     </tr>
   `).join("");
 
   document.getElementById("importsTableWrap").innerHTML = `
     <div class="table-wrap">
       <table>
-        <thead><tr>
-          <th>Name</th><th>Uploaded</th><th>Creator</th><th class="right">Rows</th>
-          <th class="right">File</th><th class="right">Delete</th>
-        </tr></thead>
-        <tbody>${rows || `<tr><td colspan="6" class="td-muted">No imports</td></tr>`}</tbody>
+        <thead><tr><th>Name</th><th>Date</th><th>Creator</th><th class="right">Rows</th><th class="right">Delete</th></tr></thead>
+        <tbody>${rows || `<tr><td colspan="5" class="td-muted">No imports yet</td></tr>`}</tbody>
       </table>
     </div>
   `;
 }
 
 /** =========================================================
- *  MODALS: user management
+ *  EXPORT (берём данные с сервера и пишем в Excel)
+ *  ========================================================= */
+function downloadBlob(filename, blob){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+function exportRowsToExcel(rows, sheetName, filename){
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  const out = XLSX.write(wb, {bookType:"xlsx", type:"array"});
+  downloadBlob(filename, new Blob([out], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));
+}
+
+/** =========================================================
+ *  MODALS (User management UI) - локальная форма, сохранение на сервер
  *  ========================================================= */
 let userModalState = { mode:"add", user:null };
 
@@ -1691,6 +1493,7 @@ function openUserModal({mode, user}){
 }
 
 async function saveUserFromModal(){
+  const me = getMe();
   const login = document.getElementById("umLogin").value.trim();
   const pwd = document.getElementById("umPassword").value;
   const role = document.getElementById("umRole").value;
@@ -1724,402 +1527,329 @@ async function saveUserFromModal(){
 }
 
 /** =========================================================
- *  BOOT
+ *  BIND UI
  *  ========================================================= */
-function initDateChoosers(){
-  const map = [
-    ["userChooser","dateInputs","user","btnApplyDate"],
-    ["spChooser","spDateInputs","sp","btnApplySpDate"],
-    ["apChooser","apDateInputs","ap","btnApplyApDate"],
-    ["paChooser","paDateInputs","pa","btnApplyPaDate"],
-  ];
-  for(const [chooserId, inputsId, key] of map){
-    const chooser = document.getElementById(chooserId);
-    chooser.querySelectorAll(".chip").forEach(ch=>{
-      ch.addEventListener("click", ()=>{
-        chooser.querySelectorAll(".chip").forEach(x=>x.classList.remove("active"));
-        ch.classList.add("active");
-        dateState[key].mode = ch.dataset.mode;
-        renderDateInputs(inputsId, key);
-      });
-    });
-    renderDateInputs(inputsId, key);
-  }
-}
-
-function wireTabs(){
+function bindTabs(){
   document.querySelectorAll(".tab").forEach(t=>{
-    t.addEventListener("click", ()=> setTab(t.dataset.tab));
-  });
-}
-
-async function doLogin(){
-  const login = document.getElementById("loginInput").value.trim();
-  const password = document.getElementById("passwordInput").value;
-
-  if(!login || !password){ toast("Введите login и password"); return; }
-
-  const r = await apiFetch("/api/auth/login", {
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify({ login, password })
-  });
-
-  setToken(r.token);
-  setMe(r.user);
-
-  document.getElementById("loginView").classList.add("hidden");
-  document.getElementById("appView").classList.remove("hidden");
-  document.getElementById("topbar").classList.remove("hidden");
-
-  enforceRoleUI();
-  setTab("userTab");
-}
-
-function doLogout(){
-  clearToken();
-  document.getElementById("loginView").classList.remove("hidden");
-  document.getElementById("appView").classList.add("hidden");
-  document.getElementById("topbar").classList.add("hidden");
-  toast("Logged out");
-}
-
-/** =========================================================
- *  EVENTS
- *  ========================================================= */
-document.getElementById("btnLogin").addEventListener("click", ()=> doLogin().catch(e=>toast(e.message)));
-document.getElementById("passwordInput").addEventListener("keydown", (e)=>{ if(e.key==="Enter") doLogin().catch(err=>toast(err.message)); });
-
-document.getElementById("btnLogout").addEventListener("click", doLogout);
-
-document.getElementById("btnChangePwd").addEventListener("click", ()=>{
-  document.getElementById("pwdCurrent").value="";
-  document.getElementById("pwdNew").value="";
-  document.getElementById("pwdNew2").value="";
-  document.getElementById("pwdModal").classList.remove("hidden");
-});
-document.getElementById("btnPwdCancel").addEventListener("click", ()=>{
-  document.getElementById("pwdModal").classList.add("hidden");
-});
-document.getElementById("btnPwdSave").addEventListener("click", async ()=>{
-  const cur = document.getElementById("pwdCurrent").value;
-  const n1  = document.getElementById("pwdNew").value;
-  const n2  = document.getElementById("pwdNew2").value;
-  if(!cur || !n1 || !n2){ toast("Заполни все поля"); return; }
-  if(n1 !== n2){ toast("Пароли не совпадают"); return; }
-
-  try{
-    await apiFetch("/api/auth/change-password", {
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify({ currentPassword: cur, newPassword: n1 })
+    t.addEventListener("click", ()=>{
+      const me = getMe();
+      if(t.id==="tabImports" && me?.role !== "admin"){
+        toast("Нет доступа к Imports (только admin)");
+        return;
+      }
+      setTab(t.dataset.tab);
     });
+  });
+}
+
+function bindChooser(groupId, stateKey, inputsId){
+  document.querySelectorAll(`#${groupId} .chip`).forEach(ch=>{
+    ch.addEventListener("click", ()=>{
+      document.querySelectorAll(`#${groupId} .chip`).forEach(x=>x.classList.remove("active"));
+      ch.classList.add("active");
+      dateState[stateKey].mode = ch.dataset.mode;
+      renderDateInputs(inputsId, stateKey);
+    });
+  });
+}
+
+function bindCoreButtons(){
+  // LOGIN (server)
+  document.getElementById("btnLogin").addEventListener("click", async ()=>{
+    const login = document.getElementById("loginInput").value.trim();
+    const password  = document.getElementById("passwordInput").value;
+    try{
+      const r = await apiFetch("/api/auth/login", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ login, password })
+      });
+      setToken(r.token);
+      setMe(r.user);
+      openApp();
+      toast("Успешный вход");
+    }catch(e){
+      toast("Неверный login/password");
+    }
+  });
+
+  // LOGOUT
+  document.getElementById("btnLogout").addEventListener("click", ()=>{
+    clearToken();
+    openLogin();
+  });
+
+  // CHANGE PASSWORD (server)
+  document.getElementById("btnChangePwd").addEventListener("click", ()=>{
+    document.getElementById("pwdCurrent").value="";
+    document.getElementById("pwdNew").value="";
+    document.getElementById("pwdNew2").value="";
+    document.getElementById("pwdModal").classList.remove("hidden");
+  });
+  document.getElementById("btnPwdCancel").addEventListener("click", ()=>{
     document.getElementById("pwdModal").classList.add("hidden");
-    toast("Пароль изменён");
-  }catch(e){
-    toast("Ошибка: " + e.message);
-  }
-});
+  });
+  document.getElementById("btnPwdSave").addEventListener("click", async ()=>{
+    const cur = document.getElementById("pwdCurrent").value;
+    const n1  = document.getElementById("pwdNew").value;
+    const n2  = document.getElementById("pwdNew2").value;
+    if(!cur || !n1 || !n2){ toast("Заполни все поля"); return; }
+    if(n1 !== n2){ toast("Пароли не совпадают"); return; }
 
-// USER: search + date + export
-document.getElementById("btnUserSearch").addEventListener("click", ()=>{
-  dateState.user.login = document.getElementById("userSearchLogin").value.trim();
+    try{
+      await apiFetch("/api/auth/change-password", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ currentPassword: cur, newPassword: n1 })
+      });
+      document.getElementById("pwdModal").classList.add("hidden");
+      toast("Пароль изменён");
+    }catch(e){
+      toast("Ошибка: " + e.message);
+    }
+  });
+
+  // USER: search + date + export
+  document.getElementById("btnUserSearch").addEventListener("click", ()=>{
+    dateState.user.login = document.getElementById("userSearchLogin").value.trim();
+    renderUserTab().catch(console.error);
+  });
+  document.getElementById("btnApplyDate").addEventListener("click", ()=>{
+    applyDate("user");
+    renderUserTab().catch(console.error);
+  });
+
+// USER: top limit
+document.getElementById("userTopLimit").addEventListener("change", ()=>{
+  dateState.user.top = parseInt(document.getElementById("userTopLimit").value, 10) || 25;
   renderUserTab().catch(console.error);
 });
-document.getElementById("btnApplyDate").addEventListener("click", ()=>{
-  applyDate("user");
-  renderUserTab().catch(console.error);
-});
 
-document.getElementById("btnExportFromUserXlsx").addEventListener("click", async ()=>{
-  try{
-    const st = dateState.user;
-    const from = toDateOnlyISO(st.from);
-    const to = toDateOnlyISO(st.to);
-    const data = await apiExport({ type:"", login: st.login || "", from, to, result:"all" });
-    const rows = (data.rows||[]).map(r=>({
-      Type: r.type,
-      Date: r.date,
-      Time: (r.time||"").replace("T"," "),
-      Login: r.person_login || "",
-      TaskOrder: r.task_order || "",
-      SKU: r.sku || "",
-      BoxNumber: r.box_number || "",
-      Container: r.container || "",
-      Audytor: r.auditor || "",
-      Result: r.result || ""
-    }));
-    if(!rows.length){ toast("Нет данных для экспорта"); return; }
-    exportRowsToExcel(rows, "All", `ALL_${from}-${to}.xlsx`);
-    if(data.truncated) toast("⚠ Экспорт обрезан лимитом сервера (слишком много строк)");
-  }catch(e){
-    toast("Ошибка экспорта: " + e.message);
+// USER: sortable headers + click login
+document.getElementById("userLeaderboardWrap").addEventListener("click", (e)=>{
+  const th = e.target.closest("th[data-sort]");
+  if(th){
+    const key = th.dataset.sort;
+    if(dateState.user.sortKey === key){
+      dateState.user.sortDir = (dateState.user.sortDir === "asc") ? "desc" : "asc";
+    }else{
+      dateState.user.sortKey = key;
+      dateState.user.sortDir = (key === "login") ? "asc" : "desc";
+    }
+    renderUserTab().catch(console.error);
+    e.preventDefault();
+    return;
   }
-});
-document.getElementById("btnExportFromUserCsv").addEventListener("click", async ()=>{
-  try{
-    const st = dateState.user;
-    const from = toDateOnlyISO(st.from);
-    const to = toDateOnlyISO(st.to);
-    const data = await apiExport({ type:"", login: st.login || "", from, to, result:"all" });
-    const rows = (data.rows||[]).map(r=>({
-      Type: r.type,
-      Date: r.date,
-      Time: (r.time||"").replace("T"," "),
-      Login: r.person_login || "",
-      TaskOrder: r.task_order || "",
-      SKU: r.sku || "",
-      BoxNumber: r.box_number || "",
-      Container: r.container || "",
-      Audytor: r.auditor || "",
-      Result: r.result || ""
-    }));
-    exportRowsToCSV(rows, `ALL_${from}-${to}.csv`);
-    if(data.truncated) toast("⚠ Экспорт обрезан лимитом сервера (слишком много строк)");
-  }catch(e){
-    toast("Ошибка экспорта: " + e.message);
-  }
-});
-
-// SHORTPICK: search + date + paging + export
-document.getElementById("btnSpSearch").addEventListener("click", ()=>{
-  dateState.sp.login = document.getElementById("spSearchLogin").value.trim();
-  dateState.sp.page = 1;
-  renderShortpickTab().catch(console.error);
-});
-document.getElementById("btnApplySpDate").addEventListener("click", ()=>{
-  applyDate("sp");
-  dateState.sp.page = 1;
-  renderShortpickTab().catch(console.error);
-});
-document.getElementById("spPrev").addEventListener("click", ()=>{
-  dateState.sp.page = Math.max(1, dateState.sp.page-1);
-  renderShortpickTab().catch(console.error);
-});
-document.getElementById("spNext").addEventListener("click", ()=>{
-  dateState.sp.page += 1;
-  renderShortpickTab().catch(console.error);
-});
-document.getElementById("btnExportShortpickXlsx").addEventListener("click", async ()=>{
-  try{
-    const st = dateState.sp;
-    const from = toDateOnlyISO(st.from);
-    const to = toDateOnlyISO(st.to);
-    const data = await apiExport({ type:TYPES.SHORTPICK, login: st.login||"", from, to, result:"all" });
-    const rows = (data.rows||[]).map(r=>({
-      Date: r.date,
-      "Task order": r.task_order || "",
-      SKU: r.sku || "",
-      "Box number": r.box_number || "",
-      Time: (r.time||"").replace("T"," "),
-      Picker: r.person_login || ""
-    }));
-    exportRowsToExcel(rows, "Shortpick", `Shortpick_${from}-${to}.xlsx`);
-    if(data.truncated) toast("⚠ Экспорт обрезан лимитом сервера");
-  }catch(e){ toast("Ошибка экспорта: " + e.message); }
-});
-document.getElementById("btnExportShortpickCsv").addEventListener("click", async ()=>{
-  try{
-    const st = dateState.sp;
-    const from = toDateOnlyISO(st.from);
-    const to = toDateOnlyISO(st.to);
-    const data = await apiExport({ type:TYPES.SHORTPICK, login: st.login||"", from, to, result:"all" });
-    const rows = (data.rows||[]).map(r=>({
-      Date: r.date,
-      "Task order": r.task_order || "",
-      SKU: r.sku || "",
-      "Box number": r.box_number || "",
-      Time: (r.time||"").replace("T"," "),
-      Picker: r.person_login || ""
-    }));
-    exportRowsToCSV(rows, `Shortpick_${from}-${to}.csv`);
-    if(data.truncated) toast("⚠ Экспорт обрезан лимитом сервера");
-  }catch(e){ toast("Ошибка экспорта: " + e.message); }
-});
-
-// AUDIT PICK: search + date + paging + export + page size
-document.getElementById("btnApSearch").addEventListener("click", ()=>{
-  dateState.ap.login = document.getElementById("apSearchLogin").value.trim();
-  dateState.ap.result = document.getElementById("apResult").value;
-  dateState.ap.pageSize = parseInt(document.getElementById("apPageSize").value, 10) || 25;
-  dateState.ap.page = 1;
-  renderAuditPickTab().catch(console.error);
-});
-document.getElementById("apPageSize").addEventListener("change", ()=>{
-  dateState.ap.pageSize = parseInt(document.getElementById("apPageSize").value, 10) || 25;
-  dateState.ap.page = 1;
-  renderAuditPickTab().catch(console.error);
-});
-document.getElementById("btnApplyApDate").addEventListener("click", ()=>{
-  applyDate("ap");
-  dateState.ap.page = 1;
-  renderAuditPickTab().catch(console.error);
-});
-document.getElementById("apPrev").addEventListener("click", ()=>{
-  dateState.ap.page = Math.max(1, dateState.ap.page-1);
-  renderAuditPickTab().catch(console.error);
-});
-document.getElementById("apNext").addEventListener("click", ()=>{
-  dateState.ap.page += 1;
-  renderAuditPickTab().catch(console.error);
-});
-document.getElementById("btnExportAuditPickXlsx").addEventListener("click", async ()=>{
-  try{
-    const st = dateState.ap;
-    const from = toDateOnlyISO(st.from);
-    const to = toDateOnlyISO(st.to);
-    const data = await apiExport({
-      type:TYPES.AUDIT_PICK,
-      login: st.login||"",
-      from, to,
-      result: st.result||"all"
-    });
-    const rows = (data.rows||[]).map(r=>({
-      Date: r.date,
-      Picker: r.person_login || "",
-      Container: r.container || "",
-      SKU: r.sku || "",
-      Audytor: r.auditor || "",
-      Result: r.result || ""
-    }));
-    exportRowsToExcel(rows, "Audit pick", `AuditPick_${from}-${to}.xlsx`);
-    if(data.truncated) toast("⚠ Экспорт обрезан лимитом сервера");
-  }catch(e){ toast("Ошибка экспорта: " + e.message); }
-});
-document.getElementById("btnExportAuditPickCsv").addEventListener("click", async ()=>{
-  try{
-    const st = dateState.ap;
-    const from = toDateOnlyISO(st.from);
-    const to = toDateOnlyISO(st.to);
-    const data = await apiExport({
-      type:TYPES.AUDIT_PICK,
-      login: st.login||"",
-      from, to,
-      result: st.result||"all"
-    });
-    const rows = (data.rows||[]).map(r=>({
-      Date: r.date,
-      Picker: r.person_login || "",
-      Container: r.container || "",
-      SKU: r.sku || "",
-      Audytor: r.auditor || "",
-      Result: r.result || ""
-    }));
-    exportRowsToCSV(rows, `AuditPick_${from}-${to}.csv`);
-    if(data.truncated) toast("⚠ Экспорт обрезан лимитом сервера");
-  }catch(e){ toast("Ошибка экспорта: " + e.message); }
-});
-
-// AUDIT PA: search + date + paging + export + page size
-document.getElementById("btnPaSearch").addEventListener("click", ()=>{
-  dateState.pa.login = document.getElementById("paSearchLogin").value.trim();
-  dateState.pa.result = document.getElementById("paResult").value;
-  dateState.pa.pageSize = parseInt(document.getElementById("paPageSize").value, 10) || 25;
-  dateState.pa.page = 1;
-  renderAuditPATab().catch(console.error);
-});
-document.getElementById("paPageSize").addEventListener("change", ()=>{
-  dateState.pa.pageSize = parseInt(document.getElementById("paPageSize").value, 10) || 25;
-  dateState.pa.page = 1;
-  renderAuditPATab().catch(console.error);
-});
-document.getElementById("btnApplyPaDate").addEventListener("click", ()=>{
-  applyDate("pa");
-  dateState.pa.page = 1;
-  renderAuditPATab().catch(console.error);
-});
-document.getElementById("paPrev").addEventListener("click", ()=>{
-  dateState.pa.page = Math.max(1, dateState.pa.page-1);
-  renderAuditPATab().catch(console.error);
-});
-document.getElementById("paNext").addEventListener("click", ()=>{
-  dateState.pa.page += 1;
-  renderAuditPATab().catch(console.error);
-});
-document.getElementById("btnExportAuditPAXlsx").addEventListener("click", async ()=>{
-  try{
-    const st = dateState.pa;
-    const from = toDateOnlyISO(st.from);
-    const to = toDateOnlyISO(st.to);
-    const data = await apiExport({
-      type:TYPES.AUDIT_PA,
-      login: st.login||"",
-      from, to,
-      result: st.result||"all"
-    });
-    const rows = (data.rows||[]).map(r=>({
-      Date: r.date,
-      Packer: r.person_login || "",
-      Container: r.container || "",
-      SKU: r.sku || "",
-      Audytor: r.auditor || "",
-      Result: r.result || ""
-    }));
-    exportRowsToExcel(rows, "Audit PA", `AuditPA_${from}-${to}.xlsx`);
-    if(data.truncated) toast("⚠ Экспорт обрезан лимитом сервера");
-  }catch(e){ toast("Ошибка экспорта: " + e.message); }
-});
-document.getElementById("btnExportAuditPACsv").addEventListener("click", async ()=>{
-  try{
-    const st = dateState.pa;
-    const from = toDateOnlyISO(st.from);
-    const to = toDateOnlyISO(st.to);
-    const data = await apiExport({
-      type:TYPES.AUDIT_PA,
-      login: st.login||"",
-      from, to,
-      result: st.result||"all"
-    });
-    const rows = (data.rows||[]).map(r=>({
-      Date: r.date,
-      Packer: r.person_login || "",
-      Container: r.container || "",
-      SKU: r.sku || "",
-      Audytor: r.auditor || "",
-      Result: r.result || ""
-    }));
-    exportRowsToCSV(rows, `AuditPA_${from}-${to}.csv`);
-    if(data.truncated) toast("⚠ Экспорт обрезан лимитом сервера");
-  }catch(e){ toast("Ошибка экспорта: " + e.message); }
-});
-
-// IMPORT (admin only)
-document.getElementById("btnAddImport").addEventListener("click", ()=>{
-  const me = getMe();
-  if(me?.role !== "admin"){ toast("Только admin может загружать файлы"); return; }
-  document.getElementById("fileInput").click();
-});
-document.getElementById("fileInput").addEventListener("change", async (e)=>{
-  const file = e.target.files[0];
-  e.target.value = "";
-  if(!file) return;
-
-  try{
-    const fd = new FormData();
-    fd.append("file", file);
-    const r = await apiFetch("/api/import", { method:"POST", body: fd });
-    toast(`Импорт: ${r.rowsAdded} строк`);
-
-    await renderUserTab();
-    await renderShortpickTab();
-    await renderAuditPickTab();
-    await renderAuditPATab();
-    await renderImportsTab();
-  }catch(err){
-    console.error(err);
-    toast("Ошибка импорта: " + err.message);
-  }
-});
-
-// USERS modal
-document.getElementById("btnAddUser").addEventListener("click", ()=> openUserModal({mode:"add"}) );
-document.getElementById("btnUserCancel").addEventListener("click", ()=> document.getElementById("userModal").classList.add("hidden") );
-document.getElementById("btnUserSave").addEventListener("click", saveUserFromModal);
-
-// delegation: edit/delete users, delete/download imports, leaderboard sorting/click
-document.body.addEventListener("click", async (e)=>{
-  const a = e.target.closest("[data-action]");
+  const a = e.target.closest("a.user-link");
   if(a){
+    const login = a.dataset.login || "";
+    document.getElementById("userSearchLogin").value = login;
+    dateState.user.login = login;
+    renderUserTab().catch(console.error);
+    e.preventDefault();
+  }
+});
+
+  document.getElementById("btnExportFromUser").addEventListener("click", async ()=>{
+    try{
+      const st = dateState.user;
+      const from = toDateOnlyISO(st.from);
+      const to = toDateOnlyISO(st.to);
+      // забираем побольше
+      const data = await apiRecords({
+        type:"",
+        login: st.login || "",
+        from, to,
+        page:1,
+        pageSize:500
+      });
+      const rows = (data.rows||[]).map(r=>({
+        Type: r.type,
+        Date: r.date,
+        Time: (r.time||"").replace("T"," "),
+        Login: r.person_login || "",
+        TaskOrder: r.task_order || "",
+        SKU: r.sku || "",
+        BoxNumber: r.box_number || "",
+        Container: r.container || "",
+        Audytor: r.auditor || "",
+        Result: r.result || ""
+      }));
+      if(!rows.length){ toast("Нет данных для экспорта"); return; }
+      const name = `ALL_${from}-${to}.xlsx`;
+      exportRowsToExcel(rows, "All", name);
+    }catch(e){
+      toast("Ошибка экспорта: " + e.message);
+    }
+  });
+
+  // SHORTPICK: search + date + paging + export
+  document.getElementById("btnSpSearch").addEventListener("click", ()=>{
+    dateState.sp.login = document.getElementById("spSearchLogin").value.trim();
+    dateState.sp.page = 1;
+    renderShortpickTab().catch(console.error);
+  });
+  document.getElementById("btnApplySpDate").addEventListener("click", ()=>{
+    applyDate("sp");
+    dateState.sp.page = 1;
+    renderShortpickTab().catch(console.error);
+  });
+  document.getElementById("spPrev").addEventListener("click", ()=>{
+    dateState.sp.page = Math.max(1, dateState.sp.page-1);
+    renderShortpickTab().catch(console.error);
+  });
+  document.getElementById("spNext").addEventListener("click", async ()=>{
+    // просто листаем, render сам покажет
+    dateState.sp.page += 1;
+    renderShortpickTab().catch(console.error);
+  });
+  document.getElementById("btnExportShortpick").addEventListener("click", async ()=>{
+    try{
+      const st = dateState.sp;
+      const from = toDateOnlyISO(st.from);
+      const to = toDateOnlyISO(st.to);
+      const data = await apiRecords({ type:TYPES.SHORTPICK, login: st.login||"", from, to, page:1, pageSize:500 });
+      const rows = (data.rows||[]).map(r=>({
+        Date: r.date,
+        "Task order": r.task_order || "",
+        SKU: r.sku || "",
+        "Box number": r.box_number || "",
+        Time: (r.time||"").replace("T"," "),
+        Picker: r.person_login || ""
+      }));
+      if(!rows.length){ toast("Нет данных для экспорта"); return; }
+      exportRowsToExcel(rows, "Shortpick", `Shortpick_${from}-${to}.xlsx`);
+    }catch(e){ toast("Ошибка экспорта: " + e.message); }
+  });
+
+  // AUDIT PICK: search + date + paging + export
+  document.getElementById("btnApSearch").addEventListener("click", ()=>{
+    dateState.ap.login = document.getElementById("apSearchLogin").value.trim();
+    dateState.ap.result = document.getElementById("apResult").value;
+    dateState.ap.page = 1;
+    renderAuditPickTab().catch(console.error);
+  });
+  document.getElementById("btnApplyApDate").addEventListener("click", ()=>{
+    applyDate("ap");
+    dateState.ap.page = 1;
+    renderAuditPickTab().catch(console.error);
+  });
+  document.getElementById("apPrev").addEventListener("click", ()=>{
+    dateState.ap.page = Math.max(1, dateState.ap.page-1);
+    renderAuditPickTab().catch(console.error);
+  });
+  document.getElementById("apNext").addEventListener("click", ()=>{
+    dateState.ap.page += 1;
+    renderAuditPickTab().catch(console.error);
+  });
+  document.getElementById("btnExportAuditPick").addEventListener("click", async ()=>{
+    try{
+      const st = dateState.ap;
+      const from = toDateOnlyISO(st.from);
+      const to = toDateOnlyISO(st.to);
+      const data = await apiRecords({
+        type:TYPES.AUDIT_PICK,
+        login: st.login||"",
+        from, to,
+        result: st.result||"all",
+        page:1, pageSize:500
+      });
+      const rows = (data.rows||[]).map(r=>({
+        Date: r.date,
+        Picker: r.person_login || "",
+        Container: r.container || "",
+        SKU: r.sku || "",
+        Audytor: r.auditor || "",
+        Result: r.result || ""
+      }));
+      if(!rows.length){ toast("Нет данных для экспорта"); return; }
+      exportRowsToExcel(rows, "Audit pick", `AuditPick_${from}-${to}.xlsx`);
+    }catch(e){ toast("Ошибка экспорта: " + e.message); }
+  });
+
+  // AUDIT PA: search + date + paging + export
+  document.getElementById("btnPaSearch").addEventListener("click", ()=>{
+    dateState.pa.login = document.getElementById("paSearchLogin").value.trim();
+    dateState.pa.result = document.getElementById("paResult").value;
+    dateState.pa.page = 1;
+    renderAuditPATab().catch(console.error);
+  });
+  document.getElementById("btnApplyPaDate").addEventListener("click", ()=>{
+    applyDate("pa");
+    dateState.pa.page = 1;
+    renderAuditPATab().catch(console.error);
+  });
+  document.getElementById("paPrev").addEventListener("click", ()=>{
+    dateState.pa.page = Math.max(1, dateState.pa.page-1);
+    renderAuditPATab().catch(console.error);
+  });
+  document.getElementById("paNext").addEventListener("click", ()=>{
+    dateState.pa.page += 1;
+    renderAuditPATab().catch(console.error);
+  });
+  document.getElementById("btnExportAuditPA").addEventListener("click", async ()=>{
+    try{
+      const st = dateState.pa;
+      const from = toDateOnlyISO(st.from);
+      const to = toDateOnlyISO(st.to);
+      const data = await apiRecords({
+        type:TYPES.AUDIT_PA,
+        login: st.login||"",
+        from, to,
+        result: st.result||"all",
+        page:1, pageSize:500
+      });
+      const rows = (data.rows||[]).map(r=>({
+        Date: r.date,
+        Packer: r.person_login || "",
+        Container: r.container || "",
+        SKU: r.sku || "",
+        Audytor: r.auditor || "",
+        Result: r.result || ""
+      }));
+      if(!rows.length){ toast("Нет данных для экспорта"); return; }
+      exportRowsToExcel(rows, "Audit PA", `AuditPA_${from}-${to}.xlsx`);
+    }catch(e){ toast("Ошибка экспорта: " + e.message); }
+  });
+
+  // IMPORT (admin only) -> server
+  document.getElementById("btnAddImport").addEventListener("click", ()=>{
+    const me = getMe();
+    if(me?.role !== "admin"){ toast("Только admin может загружать файлы"); return; }
+    document.getElementById("fileInput").click();
+  });
+
+  document.getElementById("fileInput").addEventListener("change", async (e)=>{
+    const file = e.target.files[0];
+    e.target.value = "";
+    if(!file) return;
+
+    try{
+      const fd = new FormData();
+      fd.append("file", file);
+      const r = await apiFetch("/api/import", { method:"POST", body: fd });
+      toast(`Импорт: ${r.rowsAdded} строк`);
+
+      await renderUserTab();
+      await renderShortpickTab();
+      await renderAuditPickTab();
+      await renderAuditPATab();
+      await renderImportsTab();
+    }catch(err){
+      console.error(err);
+      toast("Ошибка импорта: " + err.message);
+    }
+  });
+
+  // USERS modal
+  document.getElementById("btnAddUser").addEventListener("click", ()=> openUserModal({mode:"add"}) );
+  document.getElementById("btnUserCancel").addEventListener("click", ()=> document.getElementById("userModal").classList.add("hidden") );
+  document.getElementById("btnUserSave").addEventListener("click", saveUserFromModal);
+
+  // delegation (edit/delete users, delete/download imports)
+  document.body.addEventListener("click", async (e)=>{
+    const a = e.target.closest("[data-action]");
+    if(!a) return;
     const action = a.dataset.action;
     const id = a.dataset.id;
 
@@ -2147,95 +1877,82 @@ document.body.addEventListener("click", async (e)=>{
         toast("Импорт удалён");
         await renderImportsTab();
         await renderUserTab();
-        await renderShortpickTab();
-        await renderAuditPickTab();
-        await renderAuditPATab();
       }catch(err){
         toast("Ошибка: " + err.message);
       }
     }
 
     if(action === "downloadImport"){
+      e.preventDefault();
       try{
-        const token = getToken();
-        const res = await fetch("/api/imports/" + id + "/file", {
-          headers: { "Authorization": "Bearer " + token }
-        });
-        if(!res.ok) throw new Error("download failed");
-        const blob = await res.blob();
-        const cd = res.headers.get("content-disposition") || "";
-        const m = cd.match(/filename="([^"]+)"/);
-        const name = m ? m[1] : "import.xlsx";
-        downloadBlob(name, blob);
+        // скачивание файла: просто открываем endpoint
+        window.location.href = "/api/imports/" + id + "/file";
       }catch(err){
         toast("Ошибка: " + err.message);
       }
     }
-    return;
-  }
+  });
+}
 
-  // leaderboard sort
-  const th = e.target.closest("[data-lb-sort]");
-  if(th){
-    const key = th.dataset.lbSort;
-    // detect which tab visible
-    const apTabVisible = !document.getElementById("auditPickTab").classList.contains("hidden");
-    const paTabVisible = !document.getElementById("auditPATab").classList.contains("hidden");
-    const st = apTabVisible ? dateState.ap : (paTabVisible ? dateState.pa : null);
-    if(!st) return;
+/** =========================================================
+ *  APP BOOT
+ *  ========================================================= */
+function openLogin(){
+  document.getElementById("topbar").classList.add("hidden");
+  document.getElementById("loginView").classList.remove("hidden");
+  document.getElementById("appView").classList.add("hidden");
+}
+function openApp(){
+  document.getElementById("topbar").classList.remove("hidden");
+  document.getElementById("loginView").classList.add("hidden");
+  document.getElementById("appView").classList.remove("hidden");
 
-    if(st.sortKey === key){
-      st.sortDir = (st.sortDir === "asc") ? "desc" : "asc";
-    }else{
-      st.sortKey = key;
-      st.sortDir = (key === "login") ? "asc" : "desc";
-    }
+  enforceRoleUI();
 
-    if(apTabVisible) renderAuditPickTab().catch(console.error);
-    if(paTabVisible) renderAuditPATab().catch(console.error);
-    return;
-  }
+  renderDateInputs("dateInputs","user");
+  renderDateInputs("spDateInputs","sp");
+  renderDateInputs("apDateInputs","ap");
+  renderDateInputs("paDateInputs","pa");
 
-  // leaderboard login click
-  const loginEl = e.target.closest("[data-lb-login]");
-  if(loginEl){
-    const login = loginEl.dataset.lbLogin || "";
-    const apTabVisible = !document.getElementById("auditPickTab").classList.contains("hidden");
-    const paTabVisible = !document.getElementById("auditPATab").classList.contains("hidden");
-    if(apTabVisible){
-      dateState.ap.login = login;
-      dateState.ap.page = 1;
-      document.getElementById("apSearchLogin").value = login;
-      renderAuditPickTab().catch(console.error);
-    }
-    if(paTabVisible){
-      dateState.pa.login = login;
-      dateState.pa.page = 1;
-      document.getElementById("paSearchLogin").value = login;
-      renderAuditPATab().catch(console.error);
-    }
-    return;
-  }
-});
+  applyDate("user");
+  applyDate("sp");
+  applyDate("ap");
+  applyDate("pa");
 
-(function boot(){
-  initDateChoosers();
-  wireTabs();
+  setTab("userTab");
+}
 
-  // restore session
+(async function main(){
+  bindTabs();
+
+  bindChooser("userChooser","user","dateInputs");
+  bindChooser("spChooser","sp","spDateInputs");
+  bindChooser("apChooser","ap","apDateInputs");
+  bindChooser("paChooser","pa","paDateInputs");
+
+  bindCoreButtons();
+
+  // если токен валиден — откроем app
   const token = getToken();
   const me = getMe();
   if(token && me){
-    document.getElementById("loginView").classList.add("hidden");
-    document.getElementById("appView").classList.remove("hidden");
-    document.getElementById("topbar").classList.remove("hidden");
-    enforceRoleUI();
-    setTab("userTab");
+    try{
+      await apiFetch("/api/health");
+      openApp();
+    }catch{
+      clearToken();
+      openLogin();
+    }
+  }else{
+    openLogin();
   }
 })();
 </script>
 </body>
 </html>
+
+
+
 
 
 
