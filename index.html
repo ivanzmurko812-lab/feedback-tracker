@@ -309,21 +309,7 @@
       z-index: 2;
     }
     tr:last-child td{ border-bottom:none; }
-    
-th.sortable{
-  cursor:pointer;
-  user-select:none;
-  white-space:nowrap;
-}
-th.sortable .ar{
-  margin-left:6px;
-  opacity:.8;
-  font-weight:900;
-}
-th.sortable.active{
-  color: var(--blue1);
-}
-.td-muted{ color: var(--muted); font-weight: 850; }
+    .td-muted{ color: var(--muted); font-weight: 850; }
     .right{ text-align:right; }
     .table-scroll{ max-height: 56vh; overflow:auto; }
 
@@ -504,18 +490,7 @@ th.sortable.active{
               <div class="col">
                 <label>Login</label>
                 <input id="userSearchLogin" type="text" placeholder="введите логин (или пусто для всех)" />
-                
-<div class="row">
-  <div class="col" style="flex:1;">
-    <label>Top</label>
-    <select id="userTopLimit">
-      <option value="10">10</option>
-      <option value="25" selected>25</option>
-      <option value="50">50</option>
-    </select>
-  </div>
-</div>
-<button class="btn wide" id="btnUserSearch">Search</button>
+                <button class="btn wide" id="btnUserSearch">Search</button>
               </div>
               <div class="hr"></div>
               <div class="muted">
@@ -551,8 +526,25 @@ th.sortable.active{
               </div>
 
               <div class="card">
-                <h3>All feedback (Top by user)</h3>
+                <div class="row" style="justify-content:space-between;align-items:flex-end;gap:14px;">
+                  <div>
+                    <h3 style="margin:0">All feedback</h3>
+                    <div class="muted" style="margin-top:6px;">Top users (клик по стрелкам для сортировки, клик по логину = выбрать)</div>
+                  </div>
+                  <div class="row" style="gap:10px; align-items:center;">
+                    <div class="muted">Top</div>
+                    <select id="userTopLimit" style="width:90px;">
+                      <option value="10">10</option>
+                      <option value="25" selected>25</option>
+                      <option value="50">50</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="hr"></div>
                 <div id="userLeaderboardWrap"></div>
+                <div class="hr"></div>
+                <h3 style="margin:0">By Date</h3>
+                <div style="margin-top:10px;" id="userByDateTableWrap"></div>
               </div>
             </div>
 
@@ -970,7 +962,7 @@ function formatWarsawTime(isoLocal){
  *  FILTER STATE
  *  ========================================================= */
 const dateState = {
-  user: { mode:"day", from:null, to:null, login:"", sortKey:"total", sortDir:"desc", top:25 },
+  user: { mode:"day", from:null, to:null, login:"", lbOrderBy:"total", lbOrderDir:"desc", lbLimit:25 },
   sp: { mode:"day", from:null, to:null, login:"", page:1 },
   ap: { mode:"day", from:null, to:null, login:"", result:"all", page:1 },
   pa: { mode:"day", from:null, to:null, login:"", result:"all", page:1 }
@@ -1073,100 +1065,158 @@ async function apiRecords({type, login, from, to, result, page, pageSize}){
   return apiFetch("/api/records?" + qs.toString());
 }
 
-async function apiUserLeaderboard({ login, from, to, orderBy, orderDir, limit }){
+async function apiUserLeaderboard({from, to, orderBy, orderDir, limit, login}){
   const qs = new URLSearchParams();
-  if(login) qs.set("login", login);
   if(from) qs.set("from", from);
   if(to) qs.set("to", to);
   if(orderBy) qs.set("orderBy", orderBy);
   if(orderDir) qs.set("orderDir", orderDir);
   if(limit) qs.set("limit", String(limit));
+  if(login) qs.set("login", login);
   return apiFetch("/api/user-leaderboard?" + qs.toString());
 }
 
-
-
 /** =========================================================
- *  RENDER: USER TAB (summary + leaderboard)
+ *  RENDER: USER TAB (summary)
  *  ========================================================= */
+
 async function renderUserTab(){
+  document.getElementById("userSearchLogin").value = dateState.user.login || "";
+
   const st = dateState.user;
-
-  // inputs
-  document.getElementById("userSearchLogin").value = st.login || "";
-  const topSel = document.getElementById("userTopLimit");
-  if(topSel) topSel.value = String(st.top || 25);
-
   const from = toDateOnlyISO(st.from);
   const to = toDateOnlyISO(st.to);
 
-  // summary cards
-  const sumQS = new URLSearchParams();
-  if(st.login) sumQS.set("login", st.login.trim());
-  sumQS.set("from", from);
-  sumQS.set("to", to);
-  const summary = await apiFetch("/api/user-summary?" + sumQS.toString());
+  // summary (cards + by-date)
+  const qs = new URLSearchParams();
+  if(st.login) qs.set("login", st.login.trim());
+  qs.set("from", from);
+  qs.set("to", to);
+
+  const summary = await apiFetch("/api/user-summary?" + qs.toString());
 
   document.getElementById("statShortpick").textContent = summary.shortpick || 0;
-  document.getElementById("statAuditPickAll").textContent = summary.audit_pick?.all || 0;
-  document.getElementById("statAuditPAAll").textContent = summary.audit_pa?.all || 0;
+  document.getElementById("statAuditPickAll").textContent = summary.audit_pick?.all || summary.audit_pick?.total || 0;
+  document.getElementById("statAuditPAAll").textContent = summary.audit_pa?.all || summary.audit_pa?.total || 0;
   document.getElementById("statPeriod").textContent = humanRange(st.from, st.to);
 
-  // leaderboard
+  // leaderboards (top users)
+  const lbWrap = document.getElementById("userLeaderboardWrap");
+  const topSel = document.getElementById("userTopLimit");
+  if(topSel){
+    topSel.value = String(st.lbLimit || 25);
+  }
+
   const lb = await apiUserLeaderboard({
-    login: st.login || "",
     from,
     to,
-    orderBy: st.sortKey || "total",
-    orderDir: st.sortDir || "desc",
-    limit: st.top || 25
+    orderBy: st.lbOrderBy || "total",
+    orderDir: st.lbOrderDir || "desc",
+    limit: st.lbLimit || 25
   });
 
-  const rowsArr = lb.rows || [];
-  const wrap = document.getElementById("userLeaderboardWrap");
+  const rowsLb = lb.rows || [];
+  if(rowsLb.length === 0){
+    lbWrap.innerHTML = `<div class="muted">Нет данных для Top users по текущему периоду.</div>`;
+  }else{
+    const head = (key, title)=>{
+      const is = (st.lbOrderBy === key) || (key==="all" && st.lbOrderBy==="total");
+      const dir = st.lbOrderDir || "desc";
+      const arrow = is ? (dir==="asc" ? "↑" : "↓") : "↕";
+      return `<th class="sortable" data-k="${esc(key)}">${esc(title)} <span class="sort">${arrow}</span></th>`;
+    };
 
-  if(!rowsArr.length){
+    const trs = rowsLb.map(r=>`
+      <tr>
+        <td><a href="#" class="lnk userPick" data-login="${esc(r.login)}">${esc(r.login)}</a></td>
+        <td class="right">${esc(r.shortpick || 0)}</td>
+        <td class="right">${esc(r.audit_pick || 0)}</td>
+        <td class="right">${esc(r.audit_pa || 0)}</td>
+        <td class="right" style="color:var(--blue1);font-weight:900;">${esc(r.total || r.all || 0)}</td>
+      </tr>
+    `).join("");
+
+    lbWrap.innerHTML = `
+      <div class="table-wrap table-scroll" style="max-height:420px;">
+        <table>
+          <thead>
+            <tr>
+              ${head("login","user")}
+              ${head("shortpick","shortpick")}
+              ${head("audit_pick","audit pick")}
+              ${head("audit_pa","audit pa")}
+              ${head("total","total")}
+            </tr>
+          </thead>
+          <tbody>${trs}</tbody>
+        </table>
+      </div>
+    `;
+
+    // header sorting
+    lbWrap.querySelectorAll("th.sortable").forEach(th=>{
+      th.addEventListener("click", (e)=>{
+        const k = th.dataset.k;
+        if(st.lbOrderBy === k){
+          st.lbOrderDir = (st.lbOrderDir === "asc") ? "desc" : "asc";
+        }else{
+          st.lbOrderBy = k;
+          st.lbOrderDir = "desc";
+        }
+        renderUserTab().catch(console.error);
+      });
+    });
+
+    // click login -> set filter + search
+    lbWrap.querySelectorAll("a.userPick").forEach(a=>{
+      a.addEventListener("click", (e)=>{
+        e.preventDefault();
+        const login = a.dataset.login || "";
+        st.login = login;
+        document.getElementById("userSearchLogin").value = login;
+        renderUserTab().catch(console.error);
+      });
+    });
+  }
+
+  // by-date table
+  const wrap = document.getElementById("userByDateTableWrap");
+  const grouped = summary.grouped || [];
+
+  if(grouped.length === 0){
     wrap.innerHTML = `<div class="muted">Нет данных по текущему фильтру.</div>`;
     return;
   }
 
-  const sortIcon = (key)=>{
-    if((st.sortKey||"total") !== key) return `<span class="ar">⇅</span>`;
-    return `<span class="ar">${(st.sortDir||"desc")==="asc" ? "↑" : "↓"}</span>`;
-  };
-  const thClass = (key)=> ((st.sortKey||"total")===key ? "sortable active" : "sortable");
-
-  const body = rowsArr.map(r=>`
+  const rows = grouped.map(x=>`
     <tr>
-      <td><a href="#" class="user-link" data-login="${esc(r.login||"")}">${esc(r.login||"")}</a></td>
-      <td class="right">${esc(r.shortpick||0)}</td>
-      <td class="right">${esc(r.audit_pick||0)}</td>
-      <td class="right">${esc(r.audit_pa||0)}</td>
-      <td class="right" style="color:var(--blue1); font-weight:950;">${esc(r.total||0)}</td>
+      <td class="td-muted">${esc(x.date)}</td>
+      <td class="right" style="font-size:18px;color:var(--blue1);">${esc(x.count)}</td>
     </tr>
   `).join("");
 
+  const ap = summary.audit_pick || {profit:0,loss:0,all:0,total:0};
+  const pa = summary.audit_pa || {profit:0,loss:0,occupied:0,all:0,total:0};
+
+  const apAll = ap.all ?? ap.total ?? 0;
+  const paAll = pa.all ?? pa.total ?? 0;
+
   wrap.innerHTML = `
-    <div class="muted" style="margin-bottom:10px;">
-      Top ${rowsArr.length} (sorted by <b>${esc(st.sortKey||"total")}</b> ${(st.sortDir||"desc")==="asc"?"↑":"↓"})
-    </div>
-    <div class="table-wrap table-scroll">
+    <div class="table-wrap">
       <table>
-        <thead>
-          <tr>
-            <th class="${thClass("login")}" data-sort="login">user ${sortIcon("login")}</th>
-            <th class="${thClass("shortpick")}" data-sort="shortpick">shortpick ${sortIcon("shortpick")}</th>
-            <th class="${thClass("audit_pick")}" data-sort="audit_pick">audit pick ${sortIcon("audit_pick")}</th>
-            <th class="${thClass("audit_pa")}" data-sort="audit_pa">audit pa ${sortIcon("audit_pa")}</th>
-            <th class="${thClass("total")}" data-sort="total">total ${sortIcon("total")}</th>
-          </tr>
-        </thead>
-        <tbody>${body}</tbody>
+        <thead><tr><th>Date</th><th class="right">Count (ALL)</th></tr></thead>
+        <tbody>${rows}</tbody>
       </table>
+    </div>
+    <div class="hr"></div>
+    <div class="muted">
+      Audit pick: Profit <b>${ap.profit||0}</b> • Loss <b>${ap.loss||0}</b> • All <b>${apAll||0}</b><br>
+      Audit PA: Profit <b>${pa.profit||0}</b> • Loss <b>${pa.loss||0}</b> • Occupied <b>${pa.occupied||0}</b> • All <b>${paAll||0}</b>
     </div>
   `;
 }
 
+}
 
 /** =========================================================
  *  RENDER: SHORTPICK
@@ -1612,43 +1662,21 @@ function bindCoreButtons(){
   // USER: search + date + export
   document.getElementById("btnUserSearch").addEventListener("click", ()=>{
     dateState.user.login = document.getElementById("userSearchLogin").value.trim();
+
+  // User Top limit
+  const topSel = document.getElementById("userTopLimit");
+  if(topSel){
+    topSel.addEventListener("change", ()=>{
+      dateState.user.lbLimit = parseInt(topSel.value,10) || 25;
+      renderUserTab().catch(console.error);
+    });
+  }
     renderUserTab().catch(console.error);
   });
   document.getElementById("btnApplyDate").addEventListener("click", ()=>{
     applyDate("user");
     renderUserTab().catch(console.error);
   });
-
-// USER: top limit
-document.getElementById("userTopLimit").addEventListener("change", ()=>{
-  dateState.user.top = parseInt(document.getElementById("userTopLimit").value, 10) || 25;
-  renderUserTab().catch(console.error);
-});
-
-// USER: sortable headers + click login
-document.getElementById("userLeaderboardWrap").addEventListener("click", (e)=>{
-  const th = e.target.closest("th[data-sort]");
-  if(th){
-    const key = th.dataset.sort;
-    if(dateState.user.sortKey === key){
-      dateState.user.sortDir = (dateState.user.sortDir === "asc") ? "desc" : "asc";
-    }else{
-      dateState.user.sortKey = key;
-      dateState.user.sortDir = (key === "login") ? "asc" : "desc";
-    }
-    renderUserTab().catch(console.error);
-    e.preventDefault();
-    return;
-  }
-  const a = e.target.closest("a.user-link");
-  if(a){
-    const login = a.dataset.login || "";
-    document.getElementById("userSearchLogin").value = login;
-    dateState.user.login = login;
-    renderUserTab().catch(console.error);
-    e.preventDefault();
-  }
-});
 
   document.getElementById("btnExportFromUser").addEventListener("click", async ()=>{
     try{
@@ -1950,7 +1978,6 @@ function openApp(){
 </script>
 </body>
 </html>
-
 
 
 
