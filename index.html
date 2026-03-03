@@ -54,6 +54,7 @@
     .hidden{ display:none !important; }
     a{ color:var(--blue1); text-decoration:none; }
 
+    /* ===== Topbar ===== */
     .topbar{
       position:sticky; top:0; z-index:50;
       padding: 14px 18px;
@@ -104,6 +105,7 @@
     }
     .linklike:hover{ opacity:1; text-decoration:underline; }
 
+    /* ===== Layout ===== */
     .app-shell{
       max-width: 1800px;
       margin: 18px auto 46px;
@@ -119,6 +121,7 @@
       min-height: calc(100vh - 120px);
     }
 
+    /* ===== Tabs ===== */
     .tabs{
       display:flex;
       gap: 12px;
@@ -148,6 +151,7 @@
 
     .content{ padding: 18px; }
 
+    /* ===== Cards, inputs, buttons ===== */
     .card{
       border-radius: var(--r2);
       background: linear-gradient(180deg, var(--card), var(--card2));
@@ -222,6 +226,7 @@
     }
     .btn.wide{ width:100%; font-size:18px; padding: 16px 18px; }
 
+    /* ===== Big dashboard grids ===== */
     .grid-user, .grid-any{
       display:grid;
       grid-template-columns: 420px 1fr 360px;
@@ -233,6 +238,7 @@
       .actions{ width:auto; }
     }
 
+    /* ===== Stats ===== */
     .stats{
       display:grid;
       grid-template-columns: repeat(4, 1fr);
@@ -269,6 +275,7 @@
       line-height:1.25;
     }
 
+    /* ===== Tables ===== */
     .table-wrap{
       border-radius: 16px;
       overflow:hidden;
@@ -300,15 +307,13 @@
       position: sticky;
       top: 0;
       z-index: 2;
-      cursor: pointer;
-      user-select:none;
     }
-    th.no-sort{ cursor: default; }
     tr:last-child td{ border-bottom:none; }
     .td-muted{ color: var(--muted); font-weight: 850; }
     .right{ text-align:right; }
     .table-scroll{ max-height: 56vh; overflow:auto; }
 
+    /* ===== Date chooser ===== */
     .chooser{
       display:flex;
       flex-direction:column;
@@ -335,6 +340,7 @@
       box-shadow: 0 18px 28px rgba(30,79,211,.24);
     }
 
+    /* ===== Modals & toast ===== */
     .modal-backdrop{
       position:fixed; inset:0;
       background: rgba(10,14,26,.58);
@@ -369,6 +375,7 @@
       display:none;
     }
 
+    /* ===== Login ===== */
     .login-wrap{
       min-height: calc(100vh - 72px);
       display:flex;
@@ -420,12 +427,6 @@
       color: var(--muted);
       font-weight: 800;
       text-align:center;
-    }
-    .small-select{
-      padding: 10px 12px;
-      border-radius: 12px;
-      font-size: 14px;
-      font-weight: 900;
     }
   </style>
 </head>
@@ -489,24 +490,12 @@
               <div class="col">
                 <label>Login</label>
                 <input id="userSearchLogin" type="text" placeholder="введите логин (или пусто для всех)" />
-                <div class="row" style="gap:10px;">
-                  <div style="flex:1;">
-                    <label style="display:block;margin-bottom:6px;">Rows per page</label>
-                    <select id="userPageSize" class="small-select">
-                      <option value="10">10</option>
-                      <option value="25" selected>25</option>
-                      <option value="50">50</option>
-                    </select>
-                  </div>
-                  <div style="flex:2; align-self:flex-end;">
-                    <button class="btn wide" id="btnUserSearch">Search</button>
-                  </div>
-                </div>
+                <button class="btn wide" id="btnUserSearch">Search</button>
               </div>
               <div class="hr"></div>
               <div class="muted">
                 • если логин пустой — покажет всех<br>
-                • сортировка по таблице ниже (клик по заголовку)
+                • фильтр дат справа
               </div>
               <div class="hr"></div>
               <button class="btn wide" id="btnExportFromUser">⬇ Export current view</button>
@@ -537,17 +526,7 @@
               </div>
 
               <div class="card">
-                <div class="row" style="justify-content:space-between; align-items:flex-end; gap:14px;">
-                  <div>
-                    <h3 style="margin:0">All feedback (by Date)</h3>
-                    <div class="muted" id="userPageInfo" style="margin-top:6px;">Page 1</div>
-                  </div>
-                  <div class="row">
-                    <button class="btn secondary" id="userPrev">← Prev</button>
-                    <button class="btn secondary" id="userNext">Next →</button>
-                  </div>
-                </div>
-                <div class="hr"></div>
+                <h3>All feedback (by Date)</h3>
                 <div id="userByDateTableWrap"></div>
               </div>
             </div>
@@ -567,7 +546,7 @@
           </div>
         </div>
 
-        <!-- SHORTPICK TAB (НЕ ТРОГАЕМ) -->
+        <!-- SHORTPICK TAB -->
         <div id="shortpickTab" class="hidden">
           <div class="grid-any">
             <div class="card">
@@ -611,7 +590,7 @@
           </div>
         </div>
 
-        <!-- AUDIT PICK TAB (СВОДКА ПО ЛЮДЯМ + СОРТИРОВКА + PAGE SIZE) -->
+        <!-- AUDIT PICK TAB -->
         <div id="auditPickTab" class="hidden">
           <div class="grid-any">
             <div class="card">
@@ -619,29 +598,19 @@
               <div class="col">
                 <label>Login (Picker)</label>
                 <input id="apSearchLogin" type="text" placeholder="введите логин (или пусто для всех)" />
-
-                <label>Result (optional)</label>
+                <label>Result</label>
                 <select id="apResult">
                   <option value="all">All</option>
                   <option value="profit">Profit</option>
                   <option value="loss">Loss</option>
                 </select>
-
-                <label>Rows per page</label>
-                <select id="apPageSize" class="small-select">
-                  <option value="10">10</option>
-                  <option value="25" selected>25</option>
-                  <option value="50">50</option>
-                </select>
-
                 <button class="btn wide" id="btnApSearch">Search</button>
               </div>
               <div class="hr"></div>
-              <button class="btn wide" id="btnExportAuditPick">⬇ Export (details)</button>
+              <button class="btn wide" id="btnExportAuditPick">⬇ Export Audit pick</button>
               <div class="hr"></div>
               <div class="muted">
-                Тут показываем только: Profit / Loss / All по людям.
-                Детали ошибок — только через Export.
+                Stats: Profit / Loss / All
               </div>
             </div>
 
@@ -656,7 +625,7 @@
               <div class="card">
                 <div class="row" style="justify-content:space-between; align-items:flex-end; gap:14px;">
                   <div>
-                    <h3 style="margin:0">Audit pick (people summary)</h3>
+                    <h3 style="margin:0">Audit pick (details)</h3>
                     <div class="muted" id="apPageInfo" style="margin-top:6px;">Page 1</div>
                   </div>
                   <div class="row">
@@ -684,7 +653,7 @@
           </div>
         </div>
 
-        <!-- AUDIT PA TAB (СВОДКА ПО ЛЮДЯМ + СОРТИРОВКА + PAGE SIZE) -->
+        <!-- AUDIT PA TAB -->
         <div id="auditPATab" class="hidden">
           <div class="grid-any">
             <div class="card">
@@ -692,30 +661,20 @@
               <div class="col">
                 <label>Login (Packer)</label>
                 <input id="paSearchLogin" type="text" placeholder="введите логин (или пусто для всех)" />
-
-                <label>Result (optional)</label>
+                <label>Result</label>
                 <select id="paResult">
                   <option value="all">All</option>
                   <option value="profit">Profit</option>
                   <option value="loss">Loss</option>
                   <option value="occupied">Occupied</option>
                 </select>
-
-                <label>Rows per page</label>
-                <select id="paPageSize" class="small-select">
-                  <option value="10">10</option>
-                  <option value="25" selected>25</option>
-                  <option value="50">50</option>
-                </select>
-
                 <button class="btn wide" id="btnPaSearch">Search</button>
               </div>
               <div class="hr"></div>
-              <button class="btn wide" id="btnExportAuditPA">⬇ Export (details)</button>
+              <button class="btn wide" id="btnExportAuditPA">⬇ Export Audit PA</button>
               <div class="hr"></div>
               <div class="muted">
-                Тут показываем только: Profit / Loss / Occupied / All по людям.
-                Детали ошибок — только через Export.
+                Stats: Profit / Loss / Occupied / All
               </div>
             </div>
 
@@ -730,7 +689,7 @@
               <div class="card">
                 <div class="row" style="justify-content:space-between; align-items:flex-end; gap:14px;">
                   <div>
-                    <h3 style="margin:0">Audit PA (people summary)</h3>
+                    <h3 style="margin:0">Audit PA (details)</h3>
                     <div class="muted" id="paPageInfo" style="margin-top:6px;">Page 1</div>
                   </div>
                   <div class="row">
@@ -847,9 +806,12 @@
 
 <script>
 /** =========================================================
- *  AUTH + API
+ *  SERVER AUTH + API (общая база)
  *  ========================================================= */
-const LS_KEYS = { token: "ft_token_v1", me: "ft_me_v1" };
+const LS_KEYS = {
+  token: "ft_token_v1",
+  me:    "ft_me_v1"
+};
 
 const TYPES = {
   SHORTPICK: "shortpick",
@@ -857,8 +819,7 @@ const TYPES = {
   AUDIT_PA: "audit_pa"
 };
 
-const SHORTPICK_PAGE_SIZE = 14; // НЕ ТРОГАЕМ
-const DEFAULT_PAGE_SIZE = 25;
+const PAGE_SIZE = 14;
 
 function toast(msg){
   const t = document.getElementById("toast");
@@ -981,14 +942,13 @@ function formatWarsawTime(isoLocal){
 }
 
 /** =========================================================
- *  FILTER STATE + SORT STATE
+ *  FILTER STATE
  *  ========================================================= */
 const dateState = {
-  user: { mode:"day", from:null, to:null, login:"", page:1, pageSize: DEFAULT_PAGE_SIZE, sortBy:"date", sortDir:"desc" },
-  sp:   { mode:"day", from:null, to:null, login:"", page:1 },
-
-  ap:   { mode:"day", from:null, to:null, login:"", result:"all", page:1, pageSize: DEFAULT_PAGE_SIZE, sortBy:"all", sortDir:"desc" },
-  pa:   { mode:"day", from:null, to:null, login:"", result:"all", page:1, pageSize: DEFAULT_PAGE_SIZE, sortBy:"all", sortDir:"desc" }
+  user: { mode:"day", from:null, to:null, login:"" },
+  sp: { mode:"day", from:null, to:null, login:"", page:1 },
+  ap: { mode:"day", from:null, to:null, login:"", result:"all", page:1 },
+  pa: { mode:"day", from:null, to:null, login:"", result:"all", page:1 }
 };
 
 function renderDateInputs(containerId, stateKey){
@@ -1084,123 +1044,67 @@ async function apiRecords({type, login, from, to, result, page, pageSize}){
   if(to) qs.set("to", to);
   if(result) qs.set("result", result);
   qs.set("page", String(page||1));
-  qs.set("pageSize", String(pageSize||DEFAULT_PAGE_SIZE));
+  qs.set("pageSize", String(pageSize||PAGE_SIZE));
   return apiFetch("/api/records?" + qs.toString());
 }
 
-async function apiUserStats({type, login, from, to, result, page, pageSize, sortBy, sortDir}){
-  const qs = new URLSearchParams();
-  qs.set("type", String(type||""));
-  if(login) qs.set("login", login);
-  if(from) qs.set("from", from);
-  if(to) qs.set("to", to);
-  if(result) qs.set("result", result);
-  qs.set("page", String(page||1));
-  qs.set("pageSize", String(pageSize||DEFAULT_PAGE_SIZE));
-  if(sortBy) qs.set("sortBy", sortBy);
-  if(sortDir) qs.set("sortDir", sortDir);
-  return apiFetch("/api/user-stats?" + qs.toString());
-}
-
 /** =========================================================
- *  SORT UI HELPERS
- *  ========================================================= */
-function sortIcon(active, dir){
-  if(!active) return "↕";
-  return dir === "asc" ? "↑" : "↓";
-}
-function toggleSort(st, key){
-  if(st.sortBy === key){
-    st.sortDir = (st.sortDir === "asc") ? "desc" : "asc";
-  }else{
-    st.sortBy = key;
-    st.sortDir = "desc";
-  }
-  st.page = 1;
-}
-
-/** =========================================================
- *  USER TAB (by date) + pagination + sorting + pageSize
+ *  RENDER: USER TAB (summary)
  *  ========================================================= */
 async function renderUserTab(){
-  const st = dateState.user;
-  document.getElementById("userSearchLogin").value = st.login || "";
-  document.getElementById("userPageSize").value = String(st.pageSize || DEFAULT_PAGE_SIZE);
+  document.getElementById("userSearchLogin").value = dateState.user.login || "";
 
+  const st = dateState.user;
   const from = toDateOnlyISO(st.from);
   const to = toDateOnlyISO(st.to);
 
-  // summary stats (сверху)
-  const qsSum = new URLSearchParams();
-  if(st.login) qsSum.set("login", st.login.trim());
-  qsSum.set("from", from);
-  qsSum.set("to", to);
-  const summary = await apiFetch("/api/user-summary?" + qsSum.toString());
+  const qs = new URLSearchParams();
+  if(st.login) qs.set("login", st.login.trim());
+  qs.set("from", from);
+  qs.set("to", to);
+
+  const summary = await apiFetch("/api/user-summary?" + qs.toString());
 
   document.getElementById("statShortpick").textContent = summary.shortpick || 0;
   document.getElementById("statAuditPickAll").textContent = summary.audit_pick?.all || 0;
   document.getElementById("statAuditPAAll").textContent = summary.audit_pa?.all || 0;
   document.getElementById("statPeriod").textContent = humanRange(st.from, st.to);
 
-  // grouped by date -> пагинация+сортировка в браузере (данных мало)
-  let grouped = (summary.grouped || []).map(x=>({ date: x.date, count: x.count }));
-
-  const sortBy = st.sortBy || "date";
-  const dir = st.sortDir || "desc";
-  grouped.sort((a,b)=>{
-    let av = a[sortBy], bv = b[sortBy];
-    if(sortBy === "date"){
-      av = String(av||""); bv = String(bv||"");
-      return dir==="asc" ? av.localeCompare(bv) : bv.localeCompare(av);
-    }else{
-      av = Number(av||0); bv = Number(bv||0);
-      return dir==="asc" ? av-bv : bv-av;
-    }
-  });
-
-  const total = grouped.length;
-  const ps = Number(st.pageSize || DEFAULT_PAGE_SIZE);
-  const totalPages = Math.max(1, Math.ceil(total / ps));
-  st.page = Math.min(st.page, totalPages);
-  const start = (st.page-1)*ps;
-  const pageRows = grouped.slice(start, start+ps);
-
-  document.getElementById("userPageInfo").textContent =
-    `Page ${st.page} / ${totalPages} (${total} days)`;
-
   const wrap = document.getElementById("userByDateTableWrap");
-  if(pageRows.length === 0){
+  const grouped = summary.grouped || [];
+
+  if(grouped.length === 0){
     wrap.innerHTML = `<div class="muted">Нет данных по текущему фильтру.</div>`;
     return;
   }
 
-  const thDateActive = (st.sortBy==="date");
-  const thCountActive = (st.sortBy==="count");
-
-  const rows = pageRows.map(x=>`
+  const rows = grouped.map(x=>`
     <tr>
       <td class="td-muted">${esc(x.date)}</td>
       <td class="right" style="font-size:18px;color:var(--blue1);">${esc(x.count)}</td>
     </tr>
   `).join("");
 
+  const ap = summary.audit_pick || {profit:0,loss:0,all:0};
+  const pa = summary.audit_pa || {profit:0,loss:0,occupied:0,all:0};
+
   wrap.innerHTML = `
     <div class="table-wrap">
       <table>
-        <thead>
-          <tr>
-            <th data-sort="user:date">Date ${sortIcon(thDateActive, st.sortDir)}</th>
-            <th class="right" data-sort="user:count">Count (ALL) ${sortIcon(thCountActive, st.sortDir)}</th>
-          </tr>
-        </thead>
+        <thead><tr><th>Date</th><th class="right">Count (ALL)</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
+    </div>
+    <div class="hr"></div>
+    <div class="muted">
+      Audit pick: Profit <b>${ap.profit||0}</b> • Loss <b>${ap.loss||0}</b> • All <b>${ap.all||0}</b><br>
+      Audit PA: Profit <b>${pa.profit||0}</b> • Loss <b>${pa.loss||0}</b> • Occupied <b>${pa.occupied||0}</b> • All <b>${pa.all||0}</b>
     </div>
   `;
 }
 
 /** =========================================================
- *  SHORTPICK (НЕ ТРОГАЕМ)
+ *  RENDER: SHORTPICK
  *  ========================================================= */
 async function renderShortpickTab(){
   const st = dateState.sp;
@@ -1214,10 +1118,10 @@ async function renderShortpickTab(){
     login: st.login || "",
     from, to,
     page: st.page,
-    pageSize: SHORTPICK_PAGE_SIZE
+    pageSize: PAGE_SIZE
   });
 
-  const totalPages = Math.max(1, Math.ceil((data.total||0) / SHORTPICK_PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil((data.total||0) / PAGE_SIZE));
   st.page = Math.min(st.page, totalPages);
 
   document.getElementById("spPageInfo").textContent =
@@ -1245,12 +1149,12 @@ async function renderShortpickTab(){
     <table>
       <thead>
         <tr>
-          <th class="no-sort" style="width:120px;">Date</th>
-          <th class="no-sort">Task order</th>
-          <th class="no-sort" style="width:180px;">SKU</th>
-          <th class="no-sort" style="width:170px;">Box number</th>
-          <th class="no-sort" style="width:170px;">Time (Warsaw)</th>
-          <th class="no-sort" style="width:140px;">Login</th>
+          <th style="width:120px;">Date</th>
+          <th>Task order</th>
+          <th style="width:180px;">SKU</th>
+          <th style="width:170px;">Box number</th>
+          <th style="width:170px;">Time (Warsaw)</th>
+          <th style="width:140px;">Login</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
@@ -1259,63 +1163,46 @@ async function renderShortpickTab(){
 }
 
 /** =========================================================
- *  AUDIT PICK (SUMMARY ONLY)
+ *  RENDER: AUDIT PICK
  *  ========================================================= */
 async function renderAuditPickTab(){
   const st = dateState.ap;
   document.getElementById("apSearchLogin").value = st.login || "";
   document.getElementById("apResult").value = st.result || "all";
-  document.getElementById("apPageSize").value = String(st.pageSize || DEFAULT_PAGE_SIZE);
 
   const from = toDateOnlyISO(st.from);
   const to = toDateOnlyISO(st.to);
 
+  // stats берём через user-summary? (тут проще: запросим user-summary без type)
+  // чтобы не плодить эндпоинты — оставим только period текстом.
   document.getElementById("apStatPeriod").textContent = humanRange(st.from, st.to);
 
-  // totals by summary
-  const qsSum = new URLSearchParams();
-  if(st.login) qsSum.set("login", st.login.trim());
-  qsSum.set("from", from); qsSum.set("to", to);
-  const summary = await apiFetch("/api/user-summary?" + qsSum.toString());
-  const ap = summary.audit_pick || {profit:0,loss:0,all:0};
-
-  // если выбран result-фильтр — показываем totals по фильтру отдельно
-  // (быстро: отдельный user-stats запрос с result и суммируем)
-  if((st.result||"all") !== "all"){
-    const tmp = await apiUserStats({
-      type: TYPES.AUDIT_PICK,
-      login: st.login||"",
-      from, to,
-      result: st.result,
-      page: 1, pageSize: 1,
-      sortBy: "all", sortDir: "desc"
-    });
-    // totals в ответе есть
-    document.getElementById("apStatProfit").textContent = (st.result==="profit") ? (tmp.totals?.all||0) : 0;
-    document.getElementById("apStatLoss").textContent = (st.result==="loss") ? (tmp.totals?.all||0) : 0;
-    document.getElementById("apStatAll").textContent = tmp.totals?.all || 0;
-  }else{
-    document.getElementById("apStatProfit").textContent = ap.profit || 0;
-    document.getElementById("apStatLoss").textContent = ap.loss || 0;
-    document.getElementById("apStatAll").textContent = ap.all || 0;
-  }
-
-  const data = await apiUserStats({
+  const data = await apiRecords({
     type: TYPES.AUDIT_PICK,
-    login: st.login||"",
+    login: st.login || "",
     from, to,
-    result: st.result||"all",
+    result: st.result || "all",
     page: st.page,
-    pageSize: st.pageSize,
-    sortBy: st.sortBy,
-    sortDir: st.sortDir
+    pageSize: PAGE_SIZE
   });
 
-  const totalPages = Math.max(1, Math.ceil((data.total||0) / (data.pageSize||st.pageSize||DEFAULT_PAGE_SIZE)));
+  // Счётчики profit/loss/all считаем по странице? — не идеально.
+  // Поэтому показываем "All" как total фильтра + другие — по отдельному запросу /api/user-summary (включает общий all, profit/loss).
+  const sumQS = new URLSearchParams();
+  if(st.login) sumQS.set("login", st.login);
+  sumQS.set("from", from); sumQS.set("to", to);
+  const summary = await apiFetch("/api/user-summary?" + sumQS.toString());
+  const ap = summary.audit_pick || {profit:0,loss:0,all:0};
+
+  document.getElementById("apStatProfit").textContent = ap.profit || 0;
+  document.getElementById("apStatLoss").textContent = ap.loss || 0;
+  document.getElementById("apStatAll").textContent = ap.all || 0;
+
+  const totalPages = Math.max(1, Math.ceil((data.total||0) / PAGE_SIZE));
   st.page = Math.min(st.page, totalPages);
 
   document.getElementById("apPageInfo").textContent =
-    `Page ${st.page} / ${totalPages} (${data.total||0} users)`;
+    `Page ${st.page} / ${totalPages} (${data.total||0} rows)`;
 
   const wrap = document.getElementById("auditPickTableWrap");
   const rowsArr = data.rows || [];
@@ -1324,17 +1211,14 @@ async function renderAuditPickTab(){
     return;
   }
 
-  const thLogin = (st.sortBy==="login");
-  const thProfit = (st.sortBy==="profit");
-  const thLoss = (st.sortBy==="loss");
-  const thAll = (st.sortBy==="all");
-
   const rows = rowsArr.map(r=>`
     <tr>
-      <td style="font-size:16px;font-weight:950;">${esc(r.login||"—")}</td>
-      <td class="right">${esc(r.profit||0)}</td>
-      <td class="right">${esc(r.loss||0)}</td>
-      <td class="right" style="color:var(--blue1);font-weight:950;">${esc(r.all||0)}</td>
+      <td class="td-muted">${esc(r.date||"")}</td>
+      <td>${esc(r.person_login||"")}</td>
+      <td>${esc(r.container||"")}</td>
+      <td>${esc(r.sku||"")}</td>
+      <td>${esc(r.auditor||"")}</td>
+      <td><b>${esc(r.result||"")}</b></td>
     </tr>
   `).join("");
 
@@ -1342,10 +1226,12 @@ async function renderAuditPickTab(){
     <table>
       <thead>
         <tr>
-          <th data-sort="ap:login">Login ${sortIcon(thLogin, st.sortDir)}</th>
-          <th class="right" data-sort="ap:profit">Profit ${sortIcon(thProfit, st.sortDir)}</th>
-          <th class="right" data-sort="ap:loss">Loss ${sortIcon(thLoss, st.sortDir)}</th>
-          <th class="right" data-sort="ap:all">All ${sortIcon(thAll, st.sortDir)}</th>
+          <th style="width:120px;">Date</th>
+          <th style="width:140px;">Picker login</th>
+          <th style="width:180px;">Container</th>
+          <th style="width:200px;">SKU</th>
+          <th style="width:160px;">Audytor</th>
+          <th style="width:120px;">Result</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
@@ -1354,59 +1240,41 @@ async function renderAuditPickTab(){
 }
 
 /** =========================================================
- *  AUDIT PA (SUMMARY ONLY)
+ *  RENDER: AUDIT PA
  *  ========================================================= */
 async function renderAuditPATab(){
   const st = dateState.pa;
   document.getElementById("paSearchLogin").value = st.login || "";
   document.getElementById("paResult").value = st.result || "all";
-  document.getElementById("paPageSize").value = String(st.pageSize || DEFAULT_PAGE_SIZE);
 
   const from = toDateOnlyISO(st.from);
   const to = toDateOnlyISO(st.to);
 
-  const qsSum = new URLSearchParams();
-  if(st.login) qsSum.set("login", st.login.trim());
-  qsSum.set("from", from); qsSum.set("to", to);
-  const summary = await apiFetch("/api/user-summary?" + qsSum.toString());
-  const pa = summary.audit_pa || {profit:0,loss:0,occupied:0,all:0};
-
-  if((st.result||"all") !== "all"){
-    const tmp = await apiUserStats({
-      type: TYPES.AUDIT_PA,
-      login: st.login||"",
-      from, to,
-      result: st.result,
-      page: 1, pageSize: 1,
-      sortBy: "all", sortDir: "desc"
-    });
-    document.getElementById("paStatProfit").textContent = (st.result==="profit") ? (tmp.totals?.all||0) : 0;
-    document.getElementById("paStatLoss").textContent = (st.result==="loss") ? (tmp.totals?.all||0) : 0;
-    document.getElementById("paStatOcc").textContent = (st.result==="occupied") ? (tmp.totals?.all||0) : 0;
-    document.getElementById("paStatAll").textContent = tmp.totals?.all || 0;
-  }else{
-    document.getElementById("paStatProfit").textContent = pa.profit || 0;
-    document.getElementById("paStatLoss").textContent = pa.loss || 0;
-    document.getElementById("paStatOcc").textContent = pa.occupied || 0;
-    document.getElementById("paStatAll").textContent = pa.all || 0;
-  }
-
-  const data = await apiUserStats({
+  const data = await apiRecords({
     type: TYPES.AUDIT_PA,
-    login: st.login||"",
+    login: st.login || "",
     from, to,
-    result: st.result||"all",
+    result: st.result || "all",
     page: st.page,
-    pageSize: st.pageSize,
-    sortBy: st.sortBy,
-    sortDir: st.sortDir
+    pageSize: PAGE_SIZE
   });
 
-  const totalPages = Math.max(1, Math.ceil((data.total||0) / (data.pageSize||st.pageSize||DEFAULT_PAGE_SIZE)));
+  const sumQS = new URLSearchParams();
+  if(st.login) sumQS.set("login", st.login);
+  sumQS.set("from", from); sumQS.set("to", to);
+  const summary = await apiFetch("/api/user-summary?" + sumQS.toString());
+  const pa = summary.audit_pa || {profit:0,loss:0,occupied:0,all:0};
+
+  document.getElementById("paStatProfit").textContent = pa.profit || 0;
+  document.getElementById("paStatLoss").textContent = pa.loss || 0;
+  document.getElementById("paStatOcc").textContent = pa.occupied || 0;
+  document.getElementById("paStatAll").textContent = pa.all || 0;
+
+  const totalPages = Math.max(1, Math.ceil((data.total||0) / PAGE_SIZE));
   st.page = Math.min(st.page, totalPages);
 
   document.getElementById("paPageInfo").textContent =
-    `Page ${st.page} / ${totalPages} (${data.total||0} users)`;
+    `Page ${st.page} / ${totalPages} (${data.total||0} rows)`;
 
   const wrap = document.getElementById("auditPATableWrap");
   const rowsArr = data.rows || [];
@@ -1415,19 +1283,14 @@ async function renderAuditPATab(){
     return;
   }
 
-  const thLogin = (st.sortBy==="login");
-  const thProfit = (st.sortBy==="profit");
-  const thLoss = (st.sortBy==="loss");
-  const thOcc = (st.sortBy==="occupied");
-  const thAll = (st.sortBy==="all");
-
   const rows = rowsArr.map(r=>`
     <tr>
-      <td style="font-size:16px;font-weight:950;">${esc(r.login||"—")}</td>
-      <td class="right">${esc(r.profit||0)}</td>
-      <td class="right">${esc(r.loss||0)}</td>
-      <td class="right">${esc(r.occupied||0)}</td>
-      <td class="right" style="color:var(--blue1);font-weight:950;">${esc(r.all||0)}</td>
+      <td class="td-muted">${esc(r.date||"")}</td>
+      <td>${esc(r.person_login||"")}</td>
+      <td>${esc(r.container||"")}</td>
+      <td>${esc(r.sku||"")}</td>
+      <td>${esc(r.auditor||"")}</td>
+      <td><b>${esc(r.result||"")}</b></td>
     </tr>
   `).join("");
 
@@ -1435,11 +1298,12 @@ async function renderAuditPATab(){
     <table>
       <thead>
         <tr>
-          <th data-sort="pa:login">Login ${sortIcon(thLogin, st.sortDir)}</th>
-          <th class="right" data-sort="pa:profit">Profit ${sortIcon(thProfit, st.sortDir)}</th>
-          <th class="right" data-sort="pa:loss">Loss ${sortIcon(thLoss, st.sortDir)}</th>
-          <th class="right" data-sort="pa:occupied">Occupied ${sortIcon(thOcc, st.sortDir)}</th>
-          <th class="right" data-sort="pa:all">All ${sortIcon(thAll, st.sortDir)}</th>
+          <th style="width:120px;">Date</th>
+          <th style="width:140px;">Packer login</th>
+          <th style="width:180px;">Container</th>
+          <th style="width:200px;">SKU</th>
+          <th style="width:160px;">Audytor</th>
+          <th style="width:120px;">Result</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
@@ -1448,7 +1312,7 @@ async function renderAuditPATab(){
 }
 
 /** =========================================================
- *  USERS TAB
+ *  USERS TAB (server)
  *  ========================================================= */
 async function renderUsersTab(){
   const me = getMe();
@@ -1473,7 +1337,7 @@ async function renderUsersTab(){
   document.getElementById("usersTableWrap").innerHTML = `
     <div class="table-wrap">
       <table>
-        <thead><tr><th class="no-sort">User</th><th class="no-sort">Role</th><th class="right no-sort">Edit</th><th class="right no-sort">Delete</th></tr></thead>
+        <thead><tr><th>User</th><th>Role</th><th class="right">Edit</th><th class="right">Delete</th></tr></thead>
         <tbody>${rows || `<tr><td colspan="4" class="td-muted">No users</td></tr>`}</tbody>
       </table>
     </div>
@@ -1481,7 +1345,7 @@ async function renderUsersTab(){
 }
 
 /** =========================================================
- *  IMPORTS TAB
+ *  IMPORTS TAB (server admin only)
  *  ========================================================= */
 async function renderImportsTab(){
   const me = getMe();
@@ -1508,7 +1372,7 @@ async function renderImportsTab(){
   document.getElementById("importsTableWrap").innerHTML = `
     <div class="table-wrap">
       <table>
-        <thead><tr><th class="no-sort">Name</th><th class="no-sort">Date</th><th class="no-sort">Creator</th><th class="right no-sort">Rows</th><th class="right no-sort">Delete</th></tr></thead>
+        <thead><tr><th>Name</th><th>Date</th><th>Creator</th><th class="right">Rows</th><th class="right">Delete</th></tr></thead>
         <tbody>${rows || `<tr><td colspan="5" class="td-muted">No imports yet</td></tr>`}</tbody>
       </table>
     </div>
@@ -1516,7 +1380,7 @@ async function renderImportsTab(){
 }
 
 /** =========================================================
- *  EXPORT
+ *  EXPORT (берём данные с сервера и пишем в Excel)
  *  ========================================================= */
 function downloadBlob(filename, blob){
   const url = URL.createObjectURL(blob);
@@ -1536,7 +1400,7 @@ function exportRowsToExcel(rows, sheetName, filename){
 }
 
 /** =========================================================
- *  USER MODAL
+ *  MODALS (User management UI) - локальная форма, сохранение на сервер
  *  ========================================================= */
 let userModalState = { mode:"add", user:null };
 
@@ -1625,7 +1489,7 @@ function bindChooser(groupId, stateKey, inputsId){
 }
 
 function bindCoreButtons(){
-  // LOGIN
+  // LOGIN (server)
   document.getElementById("btnLogin").addEventListener("click", async ()=>{
     const login = document.getElementById("loginInput").value.trim();
     const password  = document.getElementById("passwordInput").value;
@@ -1650,7 +1514,7 @@ function bindCoreButtons(){
     openLogin();
   });
 
-  // CHANGE PASSWORD
+  // CHANGE PASSWORD (server)
   document.getElementById("btnChangePwd").addEventListener("click", ()=>{
     document.getElementById("pwdCurrent").value="";
     document.getElementById("pwdNew").value="";
@@ -1680,31 +1544,13 @@ function bindCoreButtons(){
     }
   });
 
-  // USER tab: search + pageSize + date + export + paging
+  // USER: search + date + export
   document.getElementById("btnUserSearch").addEventListener("click", ()=>{
-    const st = dateState.user;
-    st.login = document.getElementById("userSearchLogin").value.trim();
-    st.pageSize = Number(document.getElementById("userPageSize").value || DEFAULT_PAGE_SIZE);
-    st.page = 1;
-    renderUserTab().catch(console.error);
-  });
-  document.getElementById("userPageSize").addEventListener("change", ()=>{
-    const st = dateState.user;
-    st.pageSize = Number(document.getElementById("userPageSize").value || DEFAULT_PAGE_SIZE);
-    st.page = 1;
+    dateState.user.login = document.getElementById("userSearchLogin").value.trim();
     renderUserTab().catch(console.error);
   });
   document.getElementById("btnApplyDate").addEventListener("click", ()=>{
     applyDate("user");
-    dateState.user.page = 1;
-    renderUserTab().catch(console.error);
-  });
-  document.getElementById("userPrev").addEventListener("click", ()=>{
-    dateState.user.page = Math.max(1, dateState.user.page-1);
-    renderUserTab().catch(console.error);
-  });
-  document.getElementById("userNext").addEventListener("click", ()=>{
-    dateState.user.page += 1;
     renderUserTab().catch(console.error);
   });
 
@@ -1713,12 +1559,13 @@ function bindCoreButtons(){
       const st = dateState.user;
       const from = toDateOnlyISO(st.from);
       const to = toDateOnlyISO(st.to);
+      // забираем побольше
       const data = await apiRecords({
         type:"",
         login: st.login || "",
         from, to,
         page:1,
-        pageSize:5000
+        pageSize:500
       });
       const rows = (data.rows||[]).map(r=>({
         Type: r.type,
@@ -1740,7 +1587,7 @@ function bindCoreButtons(){
     }
   });
 
-  // SHORTPICK: как было
+  // SHORTPICK: search + date + paging + export
   document.getElementById("btnSpSearch").addEventListener("click", ()=>{
     dateState.sp.login = document.getElementById("spSearchLogin").value.trim();
     dateState.sp.page = 1;
@@ -1755,7 +1602,8 @@ function bindCoreButtons(){
     dateState.sp.page = Math.max(1, dateState.sp.page-1);
     renderShortpickTab().catch(console.error);
   });
-  document.getElementById("spNext").addEventListener("click", ()=>{
+  document.getElementById("spNext").addEventListener("click", async ()=>{
+    // просто листаем, render сам покажет
     dateState.sp.page += 1;
     renderShortpickTab().catch(console.error);
   });
@@ -1764,7 +1612,7 @@ function bindCoreButtons(){
       const st = dateState.sp;
       const from = toDateOnlyISO(st.from);
       const to = toDateOnlyISO(st.to);
-      const data = await apiRecords({ type:TYPES.SHORTPICK, login: st.login||"", from, to, page:1, pageSize:5000 });
+      const data = await apiRecords({ type:TYPES.SHORTPICK, login: st.login||"", from, to, page:1, pageSize:500 });
       const rows = (data.rows||[]).map(r=>({
         Date: r.date,
         "Task order": r.task_order || "",
@@ -1778,19 +1626,11 @@ function bindCoreButtons(){
     }catch(e){ toast("Ошибка экспорта: " + e.message); }
   });
 
-  // AUDIT PICK: search + date + paging + export(details)
+  // AUDIT PICK: search + date + paging + export
   document.getElementById("btnApSearch").addEventListener("click", ()=>{
-    const st = dateState.ap;
-    st.login = document.getElementById("apSearchLogin").value.trim();
-    st.result = document.getElementById("apResult").value;
-    st.pageSize = Number(document.getElementById("apPageSize").value || DEFAULT_PAGE_SIZE);
-    st.page = 1;
-    renderAuditPickTab().catch(console.error);
-  });
-  document.getElementById("apPageSize").addEventListener("change", ()=>{
-    const st = dateState.ap;
-    st.pageSize = Number(document.getElementById("apPageSize").value || DEFAULT_PAGE_SIZE);
-    st.page = 1;
+    dateState.ap.login = document.getElementById("apSearchLogin").value.trim();
+    dateState.ap.result = document.getElementById("apResult").value;
+    dateState.ap.page = 1;
     renderAuditPickTab().catch(console.error);
   });
   document.getElementById("btnApplyApDate").addEventListener("click", ()=>{
@@ -1816,7 +1656,7 @@ function bindCoreButtons(){
         login: st.login||"",
         from, to,
         result: st.result||"all",
-        page:1, pageSize:5000
+        page:1, pageSize:500
       });
       const rows = (data.rows||[]).map(r=>({
         Date: r.date,
@@ -1831,19 +1671,11 @@ function bindCoreButtons(){
     }catch(e){ toast("Ошибка экспорта: " + e.message); }
   });
 
-  // AUDIT PA: search + date + paging + export(details)
+  // AUDIT PA: search + date + paging + export
   document.getElementById("btnPaSearch").addEventListener("click", ()=>{
-    const st = dateState.pa;
-    st.login = document.getElementById("paSearchLogin").value.trim();
-    st.result = document.getElementById("paResult").value;
-    st.pageSize = Number(document.getElementById("paPageSize").value || DEFAULT_PAGE_SIZE);
-    st.page = 1;
-    renderAuditPATab().catch(console.error);
-  });
-  document.getElementById("paPageSize").addEventListener("change", ()=>{
-    const st = dateState.pa;
-    st.pageSize = Number(document.getElementById("paPageSize").value || DEFAULT_PAGE_SIZE);
-    st.page = 1;
+    dateState.pa.login = document.getElementById("paSearchLogin").value.trim();
+    dateState.pa.result = document.getElementById("paResult").value;
+    dateState.pa.page = 1;
     renderAuditPATab().catch(console.error);
   });
   document.getElementById("btnApplyPaDate").addEventListener("click", ()=>{
@@ -1869,7 +1701,7 @@ function bindCoreButtons(){
         login: st.login||"",
         from, to,
         result: st.result||"all",
-        page:1, pageSize:5000
+        page:1, pageSize:500
       });
       const rows = (data.rows||[]).map(r=>({
         Date: r.date,
@@ -1884,7 +1716,7 @@ function bindCoreButtons(){
     }catch(e){ toast("Ошибка экспорта: " + e.message); }
   });
 
-  // IMPORT (admin)
+  // IMPORT (admin only) -> server
   document.getElementById("btnAddImport").addEventListener("click", ()=>{
     const me = getMe();
     if(me?.role !== "admin"){ toast("Только admin может загружать файлы"); return; }
@@ -1918,65 +1750,50 @@ function bindCoreButtons(){
   document.getElementById("btnUserCancel").addEventListener("click", ()=> document.getElementById("userModal").classList.add("hidden") );
   document.getElementById("btnUserSave").addEventListener("click", saveUserFromModal);
 
-  // Global click delegation (users/imports)
+  // delegation (edit/delete users, delete/download imports)
   document.body.addEventListener("click", async (e)=>{
     const a = e.target.closest("[data-action]");
-    if(a){
-      const action = a.dataset.action;
-      const id = a.dataset.id;
+    if(!a) return;
+    const action = a.dataset.action;
+    const id = a.dataset.id;
 
-      if(action === "editUser"){
-        const data = await apiFetch("/api/users");
-        const u = (data.rows||[]).find(x=>x.id===id);
-        if(u) openUserModal({mode:"edit", user:u});
+    if(action === "editUser"){
+      const data = await apiFetch("/api/users");
+      const u = (data.rows||[]).find(x=>x.id===id);
+      if(u) openUserModal({mode:"edit", user:u});
+    }
+
+    if(action === "delUser"){
+      if(!confirm("Удалить пользователя?")) return;
+      try{
+        await apiFetch("/api/users/" + id, { method:"DELETE" });
+        toast("Пользователь удалён");
+        await renderUsersTab();
+      }catch(err){
+        toast("Ошибка: " + err.message);
       }
+    }
 
-      if(action === "delUser"){
-        if(!confirm("Удалить пользователя?")) return;
-        try{
-          await apiFetch("/api/users/" + id, { method:"DELETE" });
-          toast("Пользователь удалён");
-          await renderUsersTab();
-        }catch(err){
-          toast("Ошибка: " + err.message);
-        }
+    if(action === "deleteImport"){
+      if(!confirm("Удалить импорт и все строки из этого файла?")) return;
+      try{
+        await apiFetch("/api/imports/" + id, { method:"DELETE" });
+        toast("Импорт удалён");
+        await renderImportsTab();
+        await renderUserTab();
+      }catch(err){
+        toast("Ошибка: " + err.message);
       }
+    }
 
-      if(action === "deleteImport"){
-        if(!confirm("Удалить импорт и все строки из этого файла?")) return;
-        try{
-          await apiFetch("/api/imports/" + id, { method:"DELETE" });
-          toast("Импорт удалён");
-          await renderImportsTab();
-          await renderUserTab();
-        }catch(err){
-          toast("Ошибка: " + err.message);
-        }
-      }
-
-      if(action === "downloadImport"){
-        e.preventDefault();
+    if(action === "downloadImport"){
+      e.preventDefault();
+      try{
+        // скачивание файла: просто открываем endpoint
         window.location.href = "/api/imports/" + id + "/file";
+      }catch(err){
+        toast("Ошибка: " + err.message);
       }
-      return;
-    }
-
-    // Sorting click on th
-    const th = e.target.closest("th[data-sort]");
-    if(!th) return;
-    const token = th.getAttribute("data-sort"); // e.g. "ap:all"
-    const [tab, key] = token.split(":");
-    if(tab === "user"){
-      toggleSort(dateState.user, key);
-      renderUserTab().catch(console.error);
-    }
-    if(tab === "ap"){
-      toggleSort(dateState.ap, key);
-      renderAuditPickTab().catch(console.error);
-    }
-    if(tab === "pa"){
-      toggleSort(dateState.pa, key);
-      renderAuditPATab().catch(console.error);
     }
   });
 }
@@ -2019,6 +1836,7 @@ function openApp(){
 
   bindCoreButtons();
 
+  // если токен валиден — откроем app
   const token = getToken();
   const me = getMe();
   if(token && me){
