@@ -21,9 +21,9 @@ const JWT_SECRET = process.env.JWT_SECRET || "CHANGE_ME_IN_RENDER_ENV";
 const TOKEN_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days
 
 // limits (защита от нагрузки)
-const MAX_PAGE_SIZE = 50;       // для /api/records
-const MAX_EXPORT_ROWS = 5000;   // для /api/records-export
-const MAX_LEADERBOARD = 200;    // top users
+const MAX_PAGE_SIZE = 50;       // /api/records
+const MAX_EXPORT_ROWS = 5000;   // /api/records-export
+const MAX_LEADERBOARD = 200;    // /api/audit-leaderboard
 
 function uuid() {
   return crypto.randomUUID();
@@ -450,7 +450,7 @@ app.get("/api/records-export", authRequired, async (req, res) => {
   res.json({ rows, truncated, limit: MAX_EXPORT_ROWS });
 });
 
-// USER SUMMARY (!!! total вместо all)
+// USER SUMMARY (возвращаем и total и all)
 app.get("/api/user-summary", authRequired, async (req, res) => {
   const { login, from, to } = req.query;
 
@@ -482,6 +482,7 @@ app.get("/api/user-summary", authRequired, async (req, res) => {
   const ap = await pool.query(
     `SELECT
       COUNT(*)::int AS total,
+      COUNT(*)::int AS "all",
       SUM(CASE WHEN LOWER(result)='profit' THEN 1 ELSE 0 END)::int AS profit,
       SUM(CASE WHEN LOWER(result)='loss' THEN 1 ELSE 0 END)::int AS loss,
       0::int AS occupied
@@ -492,6 +493,7 @@ app.get("/api/user-summary", authRequired, async (req, res) => {
   const pa = await pool.query(
     `SELECT
       COUNT(*)::int AS total,
+      COUNT(*)::int AS "all",
       SUM(CASE WHEN LOWER(result)='profit' THEN 1 ELSE 0 END)::int AS profit,
       SUM(CASE WHEN LOWER(result)='loss' THEN 1 ELSE 0 END)::int AS loss,
       SUM(CASE WHEN LOWER(result)='occupied' THEN 1 ELSE 0 END)::int AS occupied
@@ -507,14 +509,14 @@ app.get("/api/user-summary", authRequired, async (req, res) => {
   });
 });
 
-// LEADERBOARD (!!! total вместо all + безопасный ORDER BY)
+// LEADERBOARD (возвращаем и total и all, и поддерживаем orderBy=all)
 app.get("/api/audit-leaderboard", authRequired, async (req, res) => {
   const {
     type,
     from,
     to,
     result = "all",
-    orderBy = "total",
+    orderBy = "all",
     orderDir = "desc",
     limit = "200",
   } = req.query;
@@ -524,8 +526,10 @@ app.get("/api/audit-leaderboard", authRequired, async (req, res) => {
 
   const lim = clampInt(limit, 1, MAX_LEADERBOARD, 200);
 
-  const allowedOrder = new Set(["login", "profit", "loss", "occupied", "total"]);
-  const ob = allowedOrder.has(String(orderBy)) ? String(orderBy) : "total";
+  // разрешаем all, но сортируем по total (all = total)
+  const allowedOrder = new Set(["login", "profit", "loss", "occupied", "total", "all"]);
+  const ob = allowedOrder.has(String(orderBy)) ? String(orderBy) : "all";
+  const ob2 = ob === "all" ? "total" : ob;
   const od = String(orderDir).toLowerCase() === "asc" ? "asc" : "desc";
 
   const where = [`type = $1`];
@@ -538,20 +542,21 @@ app.get("/api/audit-leaderboard", authRequired, async (req, res) => {
 
   const whereSql = `WHERE ${where.join(" AND ")}`;
 
-  const occupiedExpr = (t === "audit_pa")
-    ? `SUM(CASE WHEN LOWER(result)='occupied' THEN 1 ELSE 0 END)::int`
-    : `0::int`;
+  const occupiedExpr =
+    t === "audit_pa"
+      ? `SUM(CASE WHEN LOWER(result)='occupied' THEN 1 ELSE 0 END)::int`
+      : `0::int`;
 
-  // ORDER BY безопасный: только whitelist, логин отдельно
   const orderSql =
-    ob === "login"
+    ob2 === "login"
       ? `login ${od}, total DESC`
-      : `${ob} ${od}, total DESC`;
+      : `${ob2} ${od}, total DESC`;
 
   const sql = `
     SELECT
       COALESCE(person_login,'') AS login,
       COUNT(*)::int AS total,
+      COUNT(*)::int AS "all",
       SUM(CASE WHEN LOWER(result)='profit' THEN 1 ELSE 0 END)::int AS profit,
       SUM(CASE WHEN LOWER(result)='loss' THEN 1 ELSE 0 END)::int AS loss,
       ${occupiedExpr} AS occupied
