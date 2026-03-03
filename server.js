@@ -486,10 +486,11 @@ app.get("/api/user-summary", authRequired, async (req, res) => {
   );
 
   const ap = await pool.query(
-    `SELECT
-      COUNT(*)::int AS all,
-      SUM(CASE WHEN LOWER(result)='profit' THEN 1 ELSE 0 END)::int AS profit,
-      SUM(CASE WHEN LOWER(result)='loss' THEN 1 ELSE 0 END)::int AS loss,
+    SELECT
+  COUNT(*)::int AS total,
+  SUM(CASE WHEN LOWER(result)='profit' THEN 1 ELSE 0 END)::int AS profit,
+  SUM(CASE WHEN LOWER(result)='loss' THEN 1 ELSE 0 END)::int AS loss,
+  
       0::int AS occupied
      FROM records ${whereSql} ${whereSql ? "AND" : "WHERE"} type='audit_pick'`,
     vals
@@ -497,7 +498,7 @@ app.get("/api/user-summary", authRequired, async (req, res) => {
 
   const pa = await pool.query(
     `SELECT
-      COUNT(*)::int AS all,
+      COUNT(*)::int AS total,
       SUM(CASE WHEN LOWER(result)='profit' THEN 1 ELSE 0 END)::int AS profit,
       SUM(CASE WHEN LOWER(result)='loss' THEN 1 ELSE 0 END)::int AS loss,
       SUM(CASE WHEN LOWER(result)='occupied' THEN 1 ELSE 0 END)::int AS occupied
@@ -542,7 +543,7 @@ app.get("/api/audit-leaderboard", authRequired, async (req, res) => {
     `
     SELECT
       COALESCE(person_login,'') AS login,
-      COUNT(*)::int AS all,
+      COUNT(*):int AS total,
       SUM(CASE WHEN LOWER(result)='profit' THEN 1 ELSE 0 END)::int AS profit,
       SUM(CASE WHEN LOWER(result)='loss' THEN 1 ELSE 0 END)::int AS loss,
       ${t === "audit_pa"
