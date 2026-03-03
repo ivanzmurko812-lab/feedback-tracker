@@ -24,6 +24,7 @@ const TOKEN_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days
 const MAX_PAGE_SIZE = 50;       // /api/records
 const MAX_EXPORT_ROWS = 5000;   // /api/records-export
 const MAX_LEADERBOARD = 200;    // /api/audit-leaderboard
+const MAX_USER_LEADERBOARD = 200; // /api/user-leaderboard
 
 function uuid() {
   return crypto.randomUUID();
@@ -507,6 +508,47 @@ app.get("/api/user-summary", authRequired, async (req, res) => {
     audit_pick: ap.rows[0],
     audit_pa: pa.rows[0],
   });
+});
+
+// USER LEADERBOARD (Top by user across all types)
+app.get("/api/user-leaderboard", authRequired, async (req, res) => {
+  const { login, from, to, orderBy="total", orderDir="desc", limit="25" } = req.query;
+
+  const lim = clampInt(limit, 1, MAX_USER_LEADERBOARD, 25);
+
+  const allowedOrder = new Set(["login","shortpick","audit_pick","audit_pa","total"]);
+  const ob = allowedOrder.has(String(orderBy)) ? String(orderBy) : "total";
+  const od = String(orderDir).toLowerCase() === "asc" ? "asc" : "desc";
+
+  const where = [];
+  const vals = [];
+  let i = 1;
+
+  if (login) { where.push(`person_login = $${i++}`); vals.push(String(login).trim()); }
+  if (from) { where.push(`date >= $${i++}`); vals.push(String(from)); }
+  if (to) { where.push(`date <= $${i++}`); vals.push(String(to)); }
+
+  const whereSql = where.length ? `WHERE ${where.join(" AND ")} AND COALESCE(person_login,'') <> ''`
+                                : `WHERE COALESCE(person_login,'') <> ''`;
+
+  const orderSql = ob === "login" ? `login ${od}, total DESC` : `${ob} ${od}, total DESC`;
+
+  const sql = `
+    SELECT
+      COALESCE(person_login,'') AS login,
+      SUM(CASE WHEN type='shortpick' THEN 1 ELSE 0 END)::int AS shortpick,
+      SUM(CASE WHEN type='audit_pick' THEN 1 ELSE 0 END)::int AS audit_pick,
+      SUM(CASE WHEN type='audit_pa' THEN 1 ELSE 0 END)::int AS audit_pa,
+      COUNT(*)::int AS total
+    FROM records
+    ${whereSql}
+    GROUP BY person_login
+    ORDER BY ${orderSql}
+    LIMIT ${lim}
+  `;
+
+  const q = await pool.query(sql, vals);
+  res.json({ rows: q.rows });
 });
 
 // LEADERBOARD (возвращаем и total и all, и поддерживаем orderBy=all)
