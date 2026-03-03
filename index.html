@@ -653,6 +653,28 @@
                 <div class="hr"></div>
                 <div class="table-wrap table-scroll" id="auditPickTableWrap"></div>
               </div>
+
+              <div class="card">
+                <div class="row" style="justify-content:space-between; align-items:center; gap:14px;">
+                  <div>
+                    <h3 style="margin:0">Audit pick leaderboard (by login)</h3>
+                    <div class="muted" id="apLbInfo" style="margin-top:6px;">Top —</div>
+                  </div>
+                  <div class="row" style="gap:10px; align-items:center;">
+                    <div class="muted" style="font-weight:900;">Top</div>
+                    <select id="apLbLimit" style="width:110px;">
+                      <option value="10">10</option>
+                      <option value="25" selected>25</option>
+                      <option value="50">50</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="hr"></div>
+                <div class="table-wrap table-scroll" id="auditPickLbWrap"></div>
+                <div class="hr"></div>
+                <div class="muted">Сортировка: клик по заголовку колонки (↑/↓). Клик по логину — подставит в фильтр.</div>
+              </div>
+
             </div>
 
             <div class="card">
@@ -717,6 +739,28 @@
                 <div class="hr"></div>
                 <div class="table-wrap table-scroll" id="auditPATableWrap"></div>
               </div>
+
+              <div class="card">
+                <div class="row" style="justify-content:space-between; align-items:center; gap:14px;">
+                  <div>
+                    <h3 style="margin:0">Audit PA leaderboard (by login)</h3>
+                    <div class="muted" id="paLbInfo" style="margin-top:6px;">Top —</div>
+                  </div>
+                  <div class="row" style="gap:10px; align-items:center;">
+                    <div class="muted" style="font-weight:900;">Top</div>
+                    <select id="paLbLimit" style="width:110px;">
+                      <option value="10">10</option>
+                      <option value="25" selected>25</option>
+                      <option value="50">50</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="hr"></div>
+                <div class="table-wrap table-scroll" id="auditPaLbWrap"></div>
+                <div class="hr"></div>
+                <div class="muted">Сортировка: клик по заголовку колонки (↑/↓). Клик по логину — подставит в фильтр.</div>
+              </div>
+
             </div>
 
             <div class="card">
@@ -888,6 +932,13 @@ function esc(s){
     .replaceAll("'","&#039;");
 }
 
+function clampInt(v, min, max, fallback){
+  const n = parseInt(String(v ?? ""), 10);
+  if(!isFinite(n)) return fallback;
+  return Math.max(min, Math.min(max, n));
+}
+
+
 /** =========================================================
  *  DATE
  *  ========================================================= */
@@ -964,8 +1015,8 @@ function formatWarsawTime(isoLocal){
 const dateState = {
   user: { mode:"day", from:null, to:null, login:"", lbOrderBy:"total", lbOrderDir:"desc", lbLimit:25 },
   sp: { mode:"day", from:null, to:null, login:"", page:1 },
-  ap: { mode:"day", from:null, to:null, login:"", result:"all", page:1 },
-  pa: { mode:"day", from:null, to:null, login:"", result:"all", page:1 }
+  ap: { mode:"day", from:null, to:null, login:"", result:"all", page:1, lbOrderBy:"all", lbOrderDir:"desc", lbLimit:25 },
+  pa: { mode:"day", from:null, to:null, login:"", result:"all", page:1, lbOrderBy:"all", lbOrderDir:"desc", lbLimit:25 }
 };
 
 function renderDateInputs(containerId, stateKey){
@@ -1075,6 +1126,19 @@ async function apiUserLeaderboard({from, to, orderBy, orderDir, limit, login}){
   if(login) qs.set("login", login);
   return apiFetch("/api/user-leaderboard?" + qs.toString());
 }
+
+async function apiAuditLeaderboard({type, from, to, result, orderBy, orderDir, limit}){
+  const qs = new URLSearchParams();
+  qs.set("type", type);
+  if(from) qs.set("from", from);
+  if(to) qs.set("to", to);
+  if(result && result !== "all") qs.set("result", result);
+  qs.set("orderBy", orderBy || "all");
+  qs.set("orderDir", orderDir || "desc");
+  qs.set("limit", String(limit || 25));
+  return apiFetch("/api/audit-leaderboard?" + qs.toString());
+}
+
 
 /** =========================================================
  *  RENDER: USER TAB (summary)
@@ -1278,6 +1342,71 @@ async function renderShortpickTab(){
 /** =========================================================
  *  RENDER: AUDIT PICK
  *  ========================================================= */
+
+function renderAuditLeaderboardTable({wrapId, infoId, rows, state, columns, onLoginClick}){
+  const wrap = document.getElementById(wrapId);
+  const info = document.getElementById(infoId);
+  if(!wrap || !info) return;
+
+  const arrowFor = (k)=>{
+    if(state.lbOrderBy !== k) return "";
+    return state.lbOrderDir === "asc" ? "↑" : "↓";
+  };
+
+  const th = (key, title)=>{
+    const a = arrowFor(key);
+    return `<th class="sortable" data-k="${esc(key)}">${esc(title)} <span class="sort">${esc(a)}</span></th>`;
+  };
+
+  if(!rows || rows.length === 0){
+    info.textContent = "Top 0";
+    wrap.innerHTML = `<div class="muted">Нет данных.</div>`;
+    return;
+  }
+
+  info.textContent = `Top ${rows.length} (sorted by ${state.lbOrderBy} ${state.lbOrderDir})`;
+
+  const head = `<tr>${columns.map(c=>th(c.key, c.title)).join("")}</tr>`;
+  const body = rows.map(r=>{
+    const tds = columns.map(c=>{
+      if(c.key === "login"){
+        return `<td><a href="#" data-login="${esc(r.login||"")}" class="lb-login">${esc(r.login||"")}</a></td>`;
+      }
+      const v = (r[c.key] ?? 0);
+      return `<td class="right"><b>${esc(v)}</b></td>`;
+    }).join("");
+    return `<tr>${tds}</tr>`;
+  }).join("");
+
+  wrap.innerHTML = `
+    <table>
+      <thead>${head}</thead>
+      <tbody>${body}</tbody>
+    </table>
+  `;
+
+  wrap.querySelectorAll("th.sortable").forEach(thEl=>{
+    thEl.addEventListener("click", ()=>{
+      const k = thEl.dataset.k;
+      if(state.lbOrderBy === k){
+        state.lbOrderDir = state.lbOrderDir === "asc" ? "desc" : "asc";
+      }else{
+        state.lbOrderBy = k;
+        state.lbOrderDir = "desc";
+      }
+      wrap._rerender && wrap._rerender();
+    });
+  });
+
+  wrap.querySelectorAll("a.lb-login").forEach(a=>{
+    a.addEventListener("click", (e)=>{
+      e.preventDefault();
+      const login = a.dataset.login || "";
+      onLoginClick && onLoginClick(login);
+    });
+  });
+}
+
 async function renderAuditPickTab(){
   const st = dateState.ap;
   document.getElementById("apSearchLogin").value = st.login || "";
@@ -1350,6 +1479,47 @@ async function renderAuditPickTab(){
       <tbody>${rows}</tbody>
     </table>
   `;
+  // leaderboard (top pickers)
+  const lb = await apiAuditLeaderboard({
+    type: "audit_pick",
+    from, to,
+    result: st.result || "all",
+    orderBy: st.lbOrderBy || "all",
+    orderDir: st.lbOrderDir || "desc",
+    limit: st.lbLimit || 25
+  });
+
+  const lbWrap = document.getElementById("auditPickLbWrap");
+  if(lbWrap) lbWrap._rerender = ()=>renderAuditPickTab().catch(console.error);
+  const apLimitSel = document.getElementById("apLbLimit");
+  if(apLimitSel){
+    apLimitSel.value = String(st.lbLimit || 25);
+    apLimitSel.onchange = ()=>{
+      st.lbLimit = clampInt(apLimitSel.value, 1, 50, 25);
+      renderAuditPickTab().catch(console.error);
+    };
+  }
+
+  renderAuditLeaderboardTable({
+    wrapId: "auditPickLbWrap",
+    infoId: "apLbInfo",
+    rows: (lb.rows || []),
+    state: st,
+    columns: [
+      {key:"login", title:"Login"},
+      {key:"profit", title:"Profit"},
+      {key:"loss", title:"Loss"},
+      {key:"all", title:"All"}
+    ],
+    onLoginClick: (login)=>{
+      st.login = login;
+      st.page = 1;
+      document.getElementById("apSearchLogin").value = login;
+      renderAuditPickTab().catch(console.error);
+    }
+  });
+
+
 }
 
 /** =========================================================
@@ -1422,6 +1592,48 @@ async function renderAuditPATab(){
       <tbody>${rows}</tbody>
     </table>
   `;
+  // leaderboard (top packers)
+  const lb = await apiAuditLeaderboard({
+    type: "audit_pa",
+    from, to,
+    result: st.result || "all",
+    orderBy: st.lbOrderBy || "all",
+    orderDir: st.lbOrderDir || "desc",
+    limit: st.lbLimit || 25
+  });
+
+  const lbWrap = document.getElementById("auditPaLbWrap");
+  if(lbWrap) lbWrap._rerender = ()=>renderAuditPATab().catch(console.error);
+  const paLimitSel = document.getElementById("paLbLimit");
+  if(paLimitSel){
+    paLimitSel.value = String(st.lbLimit || 25);
+    paLimitSel.onchange = ()=>{
+      st.lbLimit = clampInt(paLimitSel.value, 1, 50, 25);
+      renderAuditPATab().catch(console.error);
+    };
+  }
+
+  renderAuditLeaderboardTable({
+    wrapId: "auditPaLbWrap",
+    infoId: "paLbInfo",
+    rows: (lb.rows || []),
+    state: st,
+    columns: [
+      {key:"login", title:"Login"},
+      {key:"profit", title:"Profit"},
+      {key:"loss", title:"Loss"},
+      {key:"occupied", title:"Occupied"},
+      {key:"all", title:"All"}
+    ],
+    onLoginClick: (login)=>{
+      st.login = login;
+      st.page = 1;
+      document.getElementById("paSearchLogin").value = login;
+      renderAuditPATab().catch(console.error);
+    }
+  });
+
+
 }
 
 /** =========================================================
@@ -1976,6 +2188,10 @@ function openApp(){
 </script>
 </body>
 </html>
+
+
+
+
 
 
 
