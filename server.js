@@ -21,6 +21,11 @@ const pool = new Pool({
 const JWT_SECRET = process.env.JWT_SECRET || "CHANGE_ME_IN_RENDER_ENV";
 const TOKEN_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days
 
+// limits (защита от нагрузки)
+const MAX_PAGE_SIZE = 50;       // для /api/records
+const MAX_EXPORT_ROWS = 5000;   // для /api/records-export
+const MAX_LEADERBOARD = 200;    // top users
+
 function uuid() {
   return crypto.randomUUID();
 }
@@ -92,12 +97,39 @@ function roleRequired(...roles) {
 }
 
 /** =========================================================
+ *  Simple rate limiter (in-memory)
+ *  ========================================================= */
+function createRateLimiter({ windowMs, max }) {
+  const map = new Map(); // key -> {count, resetAt}
+  return (key) => {
+    const now = Date.now();
+    const cur = map.get(key);
+    if (!cur || now > cur.resetAt) {
+      map.set(key, { count: 1, resetAt: now + windowMs });
+      return { ok: true, remaining: max - 1 };
+    }
+    cur.count += 1;
+    if (cur.count > max) return { ok: false, remaining: 0 };
+    return { ok: true, remaining: max - cur.count };
+  };
+}
+
+const apiLimiter = createRateLimiter({ windowMs: 60_000, max: 120 });      // 120 req/min per IP
+const loginLimiter = createRateLimiter({ windowMs: 10 * 60_000, max: 12 }); // 12 attempts / 10 min per IP
+
+app.use("/api", (req, res, next) => {
+  const ip = req.headers["x-forwarded-for"]?.toString().split(",")[0]?.trim() || req.socket.remoteAddress || "ip";
+  const r = apiLimiter(ip);
+  if (!r.ok) return res.status(429).json({ error: "rate limit" });
+  next();
+});
+
+/** =========================================================
  *  Excel date/time helpers
  *  ========================================================= */
 
 // Excel serial date/time -> JS Date (UTC-ish)
 function excelSerialToJsDate(serial) {
-  // XLSX умеет разбирать серийные даты
   const d = XLSX.SSF.parse_date_code(serial);
   if (!d || !d.y || !d.m || !d.d) return null;
 
@@ -116,14 +148,12 @@ function excelSerialToJsDate(serial) {
 function toPgDate(value) {
   if (value === null || value === undefined) return null;
 
-  // Если это число (как 45811) — это Excel serial date
   if (typeof value === "number" && isFinite(value)) {
     const jsd = excelSerialToJsDate(value);
     if (!jsd) return null;
     return jsd.toISOString().slice(0, 10);
   }
 
-  // Если JS Date (иногда XLSX может дать Date при raw:false)
   if (value instanceof Date && !isNaN(value)) {
     return value.toISOString().slice(0, 10);
   }
@@ -131,11 +161,9 @@ function toPgDate(value) {
   const s = String(value).trim();
   if (!s) return null;
 
-  // Уже ISO 'YYYY-MM-DD...'
   const m1 = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (m1) return `${m1[1]}-${m1[2]}-${m1[3]}`;
 
-  // Формат 'DD.MM.YYYY'
   const m2 = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
   if (m2) {
     const dd = m2[1].padStart(2, "0");
@@ -144,7 +172,6 @@ function toPgDate(value) {
     return `${yy}-${mm}-${dd}`;
   }
 
-  // Пробуем Date.parse
   const t = Date.parse(s);
   if (!isNaN(t)) return new Date(t).toISOString().slice(0, 10);
 
@@ -156,7 +183,6 @@ function toPgTimestamp(value) {
   if (value === null || value === undefined) return null;
 
   if (typeof value === "number" && isFinite(value)) {
-    // Может быть "дата+время" или просто "время"
     const jsd = excelSerialToJsDate(value);
     if (!jsd) return null;
     return jsd.toISOString();
@@ -169,11 +195,16 @@ function toPgTimestamp(value) {
   const s = String(value).trim();
   if (!s) return null;
 
-  // Если уже ISO
   const t = Date.parse(s);
   if (!isNaN(t)) return new Date(t).toISOString();
 
   return null;
+}
+
+function clampInt(v, min, max, fallback) {
+  const n = parseInt(String(v ?? ""), 10);
+  if (!isFinite(n)) return fallback;
+  return Math.max(min, Math.min(max, n));
 }
 
 /** =========================================================
@@ -220,6 +251,7 @@ async function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_records_type_date ON records(type, date);
     CREATE INDEX IF NOT EXISTS idx_records_login_date ON records(person_login, date);
     CREATE INDEX IF NOT EXISTS idx_records_import_id ON records(import_id);
+    CREATE INDEX IF NOT EXISTS idx_records_type_result_date ON records(type, lower(result), date);
   `);
 
   // seed admin: 60078903 / 123456
@@ -245,6 +277,10 @@ app.get("/api/health", (req, res) => res.json({ ok: true }));
 
 // AUTH
 app.post("/api/auth/login", async (req, res) => {
+  const ip = req.headers["x-forwarded-for"]?.toString().split(",")[0]?.trim() || req.socket.remoteAddress || "ip";
+  const rl = loginLimiter(ip);
+  if (!rl.ok) return res.status(429).json({ error: "too many login attempts" });
+
   const { login, password } = req.body || {};
   if (!login || !password) return res.status(400).json({ error: "missing login/password" });
 
@@ -353,12 +389,12 @@ app.delete("/api/users/:id", authRequired, roleRequired("admin", "manager"), asy
   res.json({ ok: true });
 });
 
-// RECORDS
+// RECORDS (paged)
 app.get("/api/records", authRequired, async (req, res) => {
-  const { type, login, from, to, result, page = "1", pageSize = "14" } = req.query;
+  const { type, login, from, to, result, page = "1", pageSize = "25" } = req.query;
 
-  const p = Math.max(1, parseInt(page, 10));
-  const ps = Math.min(500, Math.max(1, parseInt(pageSize, 10)));
+  const p = clampInt(page, 1, 1_000_000, 1);
+  const ps = clampInt(pageSize, 1, MAX_PAGE_SIZE, 25);
   const offset = (p - 1) * ps;
 
   const where = [];
@@ -387,6 +423,40 @@ app.get("/api/records", authRequired, async (req, res) => {
   res.json({ page: p, pageSize: ps, total: total.rows[0].c, rows: rows.rows });
 });
 
+// RECORDS EXPORT (limited)
+app.get("/api/records-export", authRequired, async (req, res) => {
+  const { type, login, from, to, result } = req.query;
+
+  const where = [];
+  const vals = [];
+  const add = (sql, v) => {
+    vals.push(v);
+    where.push(sql.replace("?", `$${vals.length}`));
+  };
+
+  if (type) add(`type = ?`, String(type));
+  if (login) add(`person_login = ?`, String(login).trim());
+  if (from) add(`date >= ?`, String(from));
+  if (to) add(`date <= ?`, String(to));
+  if (result && result !== "all") add(`LOWER(result) = ?`, String(result).toLowerCase());
+
+  const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+
+  // fetch +1 to detect truncation
+  const rowsQ = await pool.query(
+    `SELECT * FROM records ${whereSql}
+     ORDER BY date DESC NULLS LAST, time DESC NULLS LAST, created_at DESC
+     LIMIT ${MAX_EXPORT_ROWS + 1}`,
+    vals
+  );
+
+  const truncated = rowsQ.rows.length > MAX_EXPORT_ROWS;
+  const rows = truncated ? rowsQ.rows.slice(0, MAX_EXPORT_ROWS) : rowsQ.rows;
+
+  res.json({ rows, truncated, limit: MAX_EXPORT_ROWS });
+});
+
+// USER SUMMARY
 app.get("/api/user-summary", authRequired, async (req, res) => {
   const { login, from, to } = req.query;
 
@@ -443,6 +513,55 @@ app.get("/api/user-summary", authRequired, async (req, res) => {
   });
 });
 
+// LEADERBOARD: audit_pick / audit_pa grouped by login
+app.get("/api/audit-leaderboard", authRequired, async (req, res) => {
+  const { type, from, to, result = "all", orderBy = "all", orderDir = "desc", limit = "200" } = req.query;
+
+  const t = String(type || "");
+  if (!["audit_pick", "audit_pa"].includes(t)) return res.status(400).json({ error: "bad type" });
+
+  const lim = clampInt(limit, 1, MAX_LEADERBOARD, 200);
+
+  const allowedOrder = new Set(["login", "profit", "loss", "occupied", "all"]);
+  const ob = allowedOrder.has(String(orderBy)) ? String(orderBy) : "all";
+  const od = String(orderDir).toLowerCase() === "asc" ? "asc" : "desc";
+
+  const where = [`type = $1`];
+  const vals = [t];
+  let i = 2;
+
+  if (from) { where.push(`date >= $${i++}`); vals.push(String(from)); }
+  if (to) { where.push(`date <= $${i++}`); vals.push(String(to)); }
+  if (result && result !== "all") { where.push(`LOWER(result) = $${i++}`); vals.push(String(result).toLowerCase()); }
+
+  const whereSql = `WHERE ${where.join(" AND ")}`;
+
+  // login, profit, loss, occupied, all
+  // for audit_pick occupied always 0
+  const q = await pool.query(
+    `
+    SELECT
+      COALESCE(person_login,'') AS login,
+      COUNT(*)::int AS all,
+      SUM(CASE WHEN LOWER(result)='profit' THEN 1 ELSE 0 END)::int AS profit,
+      SUM(CASE WHEN LOWER(result)='loss' THEN 1 ELSE 0 END)::int AS loss,
+      ${t === "audit_pa"
+        ? `SUM(CASE WHEN LOWER(result)='occupied' THEN 1 ELSE 0 END)::int`
+        : `0::int`
+      } AS occupied
+    FROM records
+    ${whereSql}
+    GROUP BY person_login
+    HAVING COALESCE(person_login,'') <> ''
+    ORDER BY ${ob === "login" ? "login" : ob} ${od}, all DESC
+    LIMIT ${lim}
+    `,
+    vals
+  );
+
+  res.json({ rows: q.rows });
+});
+
 // IMPORTS
 app.get("/api/imports", authRequired, roleRequired("admin"), async (req, res) => {
   const q = await pool.query(
@@ -488,7 +607,6 @@ app.post("/api/import", authRequired, roleRequired("admin"), upload.single("file
   try {
     const wb = XLSX.read(req.file.buffer, { type: "buffer" });
     const ws = wb.Sheets[wb.SheetNames[0]];
-    // raw:true => получаем числа (45811) — мы их теперь умеем
     data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", raw: true });
   } catch (e) {
     console.error(e);
