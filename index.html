@@ -238,16 +238,6 @@
       .actions{ width:auto; }
     }
 
-    .grid-delivery{
-      display:grid;
-      grid-template-columns: 420px 1fr;
-      gap: 16px;
-      align-items:start;
-    }
-    @media (max-width: 1200px){
-      .grid-delivery{ grid-template-columns: 1fr; }
-    }
-
     /* ===== Stats ===== */
     .stats{
       display:grid;
@@ -487,7 +477,6 @@
         <div class="tab" data-tab="shortpickTab" id="tabShortpick">Shortpick</div>
         <div class="tab" data-tab="auditPickTab" id="tabAuditPick">Audit pick</div>
         <div class="tab" data-tab="auditPATab" id="tabAuditPA">Audit PA</div>
-        <div class="tab" data-tab="deliveryTab" id="tabDelivery">Delivery</div>
         <div class="tab" data-tab="usersTab" id="tabUsers">User management</div>
         <div class="tab" data-tab="importsTab" id="tabImports">Imports</div>
       </div>
@@ -789,122 +778,6 @@
           </div>
         </div>
 
-
-        <!-- DELIVERY TAB -->
-        <div id="deliveryTab" class="hidden">
-          <div class="grid-delivery">
-            <div class="card pad">
-              <div class="section-title">Feedback delivery</div>
-              <div class="form">
-                <div class="label">Target login</div>
-                <input class="input" id="delTargetLogin" placeholder="логин сотрудника" />
-
-                <div class="label">Type</div>
-                <select class="input" id="delType">
-                  <option value="audit_pick">Audit pick</option>
-                  <option value="audit_pa">Audit PA</option>
-                  <option value="shortpick">Shortpick</option>
-                  <option value="other">Other</option>
-                </select>
-
-                <div class="label">Message</div>
-                <textarea class="input" id="delMessage" rows="5" placeholder="что за фидбек, что нужно исправить..."></textarea>
-
-                <button class="btn wide" id="btnCreateFeedback">➕ Add feedback</button>
-              </div>
-
-              <div class="hr"></div>
-
-              <div class="label">Filters</div>
-              <div class="form">
-                <select class="input" id="delStatus">
-                  <option value="all">All</option>
-                  <option value="new">Not delivered</option>
-                  <option value="delivered">Delivered</option>
-                </select>
-
-                <input class="input" id="delFilterLogin" placeholder="filter by target login (optional)" />
-
-                <div class="row">
-                  <div style="flex:1">
-                    <div class="label">Rows</div>
-                    <select class="input" id="delPageSize">
-                      <option value="10">10</option>
-                      <option value="25" selected>25</option>
-                      <option value="50">50</option>
-                    </select>
-                  </div>
-                  <div style="flex:1">
-                    <div class="label">Top</div>
-                    <select class="input" id="delTop">
-                      <option value="10">Top 10</option>
-                      <option value="25" selected>Top 25</option>
-                      <option value="50">Top 50</option>
-                    </select>
-                  </div>
-                </div>
-
-                <button class="btn wide" id="btnLoadFeedback">Search</button>
-              </div>
-
-              <div class="hint" style="margin-top:10px">
-                ✅ Mark delivered — фиксирует кто доставил и когда.
-              </div>
-            </div>
-
-            <div class="card pad">
-              <div class="row" style="justify-content:space-between; align-items:center; gap:10px">
-                <div>
-                  <div class="section-title">Feedback list</div>
-                  <div class="muted" id="delMeta">—</div>
-                </div>
-                <div class="row" style="gap:10px">
-                  <button class="btn ghost" id="btnDelPrev">← Prev</button>
-                  <button class="btn ghost" id="btnDelNext">Next →</button>
-                </div>
-              </div>
-
-              <div class="table-wrap">
-                <table class="table" id="delTable">
-                  <thead>
-                    <tr>
-                      <th class="sortable" data-k="created_at">Created <span class="sort-ind" id="delSortCreated"></span></th>
-                      <th class="sortable" data-k="target_login">Target <span class="sort-ind" id="delSortTarget"></span></th>
-                      <th>Type</th>
-                      <th>Message</th>
-                      <th class="sortable" data-k="delivered">Status <span class="sort-ind" id="delSortStatus"></span></th>
-                      <th class="sortable" data-k="delivered_by_login">Leader <span class="sort-ind" id="delSortLeader"></span></th>
-                      <th class="sortable" data-k="delivered_at">Delivered at <span class="sort-ind" id="delSortDeliveredAt"></span></th>
-                      <th>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody id="delTbody"></tbody>
-                </table>
-              </div>
-
-              <div class="hr"></div>
-
-              <div class="section-title">Top delivered (by leader)</div>
-              <div class="muted">кто сколько фидбеков доставил (сортировка стрелками)</div>
-
-              <div class="table-wrap" style="margin-top:10px">
-                <table class="table" id="delTopTable">
-                  <thead>
-                    <tr>
-                      <th class="sortable" data-k="leader">Leader <span class="sort-ind" id="topSortLeader"></span></th>
-                      <th class="sortable" data-k="delivered">Delivered <span class="sort-ind" id="topSortDelivered"></span></th>
-                      <th class="sortable" data-k="new">Not delivered <span class="sort-ind" id="topSortNew"></span></th>
-                      <th class="sortable" data-k="total">Total <span class="sort-ind" id="topSortTotal"></span></th>
-                    </tr>
-                  </thead>
-                  <tbody id="delTopTbody"></tbody>
-                </table>
-              </div>
-
-            </div>
-          </div>
-        </div>
-
         <!-- USERS TAB -->
         <div id="usersTab" class="hidden">
           <div class="row" style="justify-content:space-between; margin-bottom:14px;">
@@ -977,7 +850,6 @@
           <label>Role</label>
           <select id="umRole">
             <option value="manager">manager</option>
-            <option value="leader">leader</option>
             <option value="admin">admin</option>
           </select>
           <div class="muted" style="font-size:13px;">manager не видит вкладку Imports</div>
@@ -1070,16 +942,6 @@ function fmtDate(v){
   // already date
   return s.slice(0,10);
 }
-
-
-function fmtDateTime(v){
-  if(v === null || v === undefined) return "";
-  if(v instanceof Date && !isNaN(v)) return v.toISOString().replace("T"," ").slice(0,19);
-  const s = String(v);
-  if(s.includes("T")) return s.replace("T"," ").replace("Z","").slice(0,19);
-  return s;
-}
-
 
 function clampInt(v, min, max, fallback){
   const n = parseInt(String(v ?? ""), 10);
@@ -1227,14 +1089,6 @@ function enforceRoleUI(){
     const active = document.querySelector(".tab.active");
     if(active && active.id === "tabImports") setTab("userTab");
   }
-
-  const delTab = document.getElementById("tabDelivery");
-  const canDelivery = ["admin","manager","leader"].includes(me.role);
-  delTab.classList.toggle("hidden", !canDelivery);
-  if(!canDelivery){
-    const active = document.querySelector(".tab.active");
-    if(active && active.id === "tabDelivery") setTab("userTab");
-  }
   document.getElementById("whoami").textContent = `${me.login} (${me.role})`;
 }
 
@@ -1246,7 +1100,7 @@ function setTab(tabId){
     t.classList.toggle("active", t.dataset.tab === tabId);
   });
 
-  ["userTab","shortpickTab","auditPickTab","auditPATab","deliveryTab","usersTab","importsTab"].forEach(id=>{
+  ["userTab","shortpickTab","auditPickTab","auditPATab","usersTab","importsTab"].forEach(id=>{
     document.getElementById(id).classList.toggle("hidden", id !== tabId);
   });
 
@@ -1254,7 +1108,6 @@ function setTab(tabId){
   if(tabId==="shortpickTab") renderShortpickTab().catch(console.error);
   if(tabId==="auditPickTab") renderAuditPickTab().catch(console.error);
   if(tabId==="auditPATab") renderAuditPATab().catch(console.error);
-  if(tabId==="deliveryTab") renderDeliveryTab().catch(console.error);
   if(tabId==="usersTab") renderUsersTab().catch(console.error);
   if(tabId==="importsTab") renderImportsTab().catch(console.error);
 }
@@ -2290,255 +2143,6 @@ function bindCoreButtons(){
   });
 }
 
-
-/** =========================================================
- *  DELIVERY TAB (feedback delivery)
- *  ========================================================= */
-const deliveryState = {
-  page: 1,
-  pageSize: 25,
-  sortKey: "created_at",
-  sortDir: "desc",
-  topLimit: 25,
-  topSortKey: "delivered",
-  topSortDir: "desc",
-  bound: false,
-};
-
-function setSortIndicator(baseId, activeKey, sortKey, sortDir){
-  const el = document.getElementById(baseId);
-  if(!el) return;
-  if(activeKey !== sortKey){ el.textContent = ""; return; }
-  el.textContent = sortDir === "asc" ? "↑" : "↓";
-}
-
-async function loadFeedbackList(){
-  const status = document.getElementById("delStatus").value;
-  const targetLogin = document.getElementById("delFilterLogin").value.trim();
-  const pageSize = parseInt(document.getElementById("delPageSize").value, 10) || 25;
-
-  deliveryState.pageSize = pageSize;
-
-  const qs = new URLSearchParams();
-  qs.set("status", status);
-  if(targetLogin) qs.set("targetLogin", targetLogin);
-  qs.set("page", String(deliveryState.page));
-  qs.set("pageSize", String(deliveryState.pageSize));
-  qs.set("sortKey", deliveryState.sortKey);
-  qs.set("sortDir", deliveryState.sortDir);
-
-  const data = await apiFetch("/api/feedback?" + qs.toString());
-  const rows = data.rows || [];
-  const total = data.total || 0;
-
-  document.getElementById("delMeta").textContent =
-    `Page ${data.page} / ${Math.max(1, Math.ceil(total / data.pageSize))} (${total} rows)`;
-
-  // indicators
-  setSortIndicator("delSortCreated", "created_at", deliveryState.sortKey, deliveryState.sortDir);
-  setSortIndicator("delSortTarget", "target_login", deliveryState.sortKey, deliveryState.sortDir);
-  setSortIndicator("delSortStatus", "delivered", deliveryState.sortKey, deliveryState.sortDir);
-  setSortIndicator("delSortLeader", "delivered_by_login", deliveryState.sortKey, deliveryState.sortDir);
-  setSortIndicator("delSortDeliveredAt", "delivered_at", deliveryState.sortKey, deliveryState.sortDir);
-
-  const tb = document.getElementById("delTbody");
-  tb.innerHTML = rows.map(r=>{
-    const statusTxt = r.delivered ? "Delivered" : "Not delivered";
-    const leader = r.delivered_by_login || "";
-    const deliveredAt = r.delivered_at ? fmtDateTime(r.delivered_at) : "";
-    const createdAt = fmtDateTime(r.created_at);
-
-    const actionBtn = r.delivered
-      ? `<button class="btn ghost" data-act="undo" data-id="${r.id}">Undo</button>`
-      : `<button class="btn" data-act="deliver" data-id="${r.id}">Mark delivered</button>`;
-
-    const msg = escapeHtml(String(r.message||"")).replace(/\n/g,"<br/>");
-
-    return `
-      <tr>
-        <td>${createdAt}</td>
-        <td><a href="#" data-act="pickTarget" data-login="${escapeAttr(r.target_login)}">${escapeHtml(r.target_login)}</a></td>
-        <td>${escapeHtml(r.type || "")}</td>
-        <td style="max-width:380px">${msg}</td>
-        <td>${statusTxt}</td>
-        <td>${escapeHtml(leader)}</td>
-        <td>${deliveredAt}</td>
-        <td>${actionBtn}</td>
-      </tr>
-    `;
-  }).join("");
-}
-
-async function loadFeedbackTop(){
-  deliveryState.topLimit = parseInt(document.getElementById("delTop").value, 10) || 25;
-
-  const qs = new URLSearchParams();
-  qs.set("limit", String(deliveryState.topLimit));
-  qs.set("orderBy", deliveryState.topSortKey);
-  qs.set("orderDir", deliveryState.topSortDir);
-
-  const data = await apiFetch("/api/feedback-leaderboard?" + qs.toString());
-  const rows = data.rows || [];
-
-  setSortIndicator("topSortLeader", "leader", deliveryState.topSortKey, deliveryState.topSortDir);
-  setSortIndicator("topSortDelivered", "delivered", deliveryState.topSortKey, deliveryState.topSortDir);
-  setSortIndicator("topSortNew", "new", deliveryState.topSortKey, deliveryState.topSortDir);
-  setSortIndicator("topSortTotal", "total", deliveryState.topSortKey, deliveryState.topSortDir);
-
-  const tb = document.getElementById("delTopTbody");
-  tb.innerHTML = rows.map(r=>`
-    <tr>
-      <td>${escapeHtml(r.leader)}</td>
-      <td>${r.delivered}</td>
-      <td>${r.new}</td>
-      <td>${r.total}</td>
-    </tr>
-  `).join("");
-}
-
-function bindDeliveryTab(){
-  if(deliveryState.bound) return;
-  deliveryState.bound = true;
-
-  document.getElementById("btnCreateFeedback").addEventListener("click", async ()=>{
-    try{
-      const targetLogin = document.getElementById("delTargetLogin").value.trim();
-      const type = document.getElementById("delType").value;
-      const message = document.getElementById("delMessage").value.trim();
-
-      if(!targetLogin || !message){
-        toast("Введите target login и message");
-        return;
-      }
-
-      await apiFetch("/api/feedback", {
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ targetLogin, type, message })
-      });
-
-      document.getElementById("delMessage").value = "";
-      toast("Feedback added");
-      deliveryState.page = 1;
-      await loadFeedbackList();
-      await loadFeedbackTop();
-    }catch(err){
-      toast("Ошибка: " + err.message);
-    }
-  });
-
-  document.getElementById("btnLoadFeedback").addEventListener("click", async ()=>{
-    deliveryState.page = 1;
-    await renderDeliveryTab();
-  });
-
-  document.getElementById("btnDelPrev").addEventListener("click", async ()=>{
-    if(deliveryState.page > 1){
-      deliveryState.page--;
-      await loadFeedbackList();
-    }
-  });
-  document.getElementById("btnDelNext").addEventListener("click", async ()=>{
-    deliveryState.page++;
-    await loadFeedbackList();
-  });
-
-  document.getElementById("delTbody").addEventListener("click", async (e)=>{
-    const a = e.target.closest("[data-act]");
-    if(!a) return;
-    e.preventDefault();
-
-    const act = a.dataset.act;
-
-    if(act === "pickTarget"){
-      document.getElementById("delFilterLogin").value = a.dataset.login || "";
-      deliveryState.page = 1;
-      await loadFeedbackList();
-      return;
-    }
-
-    const id = a.dataset.id;
-    if(!id) return;
-
-    if(act === "deliver"){
-      try{
-        await apiFetch("/api/feedback/" + id + "/deliver", {
-          method:"PATCH",
-          headers:{ "Content-Type":"application/json" },
-          body: JSON.stringify({ delivered:true })
-        });
-        toast("Marked delivered");
-        await loadFeedbackList();
-        await loadFeedbackTop();
-      }catch(err){
-        toast("Ошибка: " + err.message);
-      }
-    }
-
-    if(act === "undo"){
-      try{
-        await apiFetch("/api/feedback/" + id + "/deliver", {
-          method:"PATCH",
-          headers:{ "Content-Type":"application/json" },
-          body: JSON.stringify({ delivered:false })
-        });
-        toast("Undo delivered");
-        await loadFeedbackList();
-        await loadFeedbackTop();
-      }catch(err){
-        toast("Ошибка: " + err.message);
-      }
-    }
-  });
-
-  // sort handlers (list)
-  document.querySelectorAll("#delTable thead th.sortable").forEach(th=>{
-    th.addEventListener("click", async ()=>{
-      const k = th.dataset.k;
-      if(!k) return;
-      if(deliveryState.sortKey === k){
-        deliveryState.sortDir = deliveryState.sortDir === "asc" ? "desc" : "asc";
-      }else{
-        deliveryState.sortKey = k;
-        deliveryState.sortDir = "desc";
-      }
-      deliveryState.page = 1;
-      await loadFeedbackList();
-    });
-  });
-
-  // sort handlers (top)
-  document.querySelectorAll("#delTopTable thead th.sortable").forEach(th=>{
-    th.addEventListener("click", async ()=>{
-      const k = th.dataset.k;
-      if(!k) return;
-      if(deliveryState.topSortKey === k){
-        deliveryState.topSortDir = deliveryState.topSortDir === "asc" ? "desc" : "asc";
-      }else{
-        deliveryState.topSortKey = k;
-        deliveryState.topSortDir = "desc";
-      }
-      await loadFeedbackTop();
-    });
-  });
-
-  document.getElementById("delTop").addEventListener("change", async ()=>{
-    await loadFeedbackTop();
-  });
-}
-
-async function renderDeliveryTab(){
-  bindDeliveryTab();
-  try{
-    // reset if page too large
-    if(deliveryState.page < 1) deliveryState.page = 1;
-    await loadFeedbackList();
-    await loadFeedbackTop();
-  }catch(err){
-    toast("Ошибка: " + err.message);
-  }
-}
-
 /** =========================================================
  *  APP BOOT
  *  ========================================================= */
@@ -2595,6 +2199,19 @@ function openApp(){
 </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
