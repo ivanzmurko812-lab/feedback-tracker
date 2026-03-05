@@ -244,6 +244,29 @@ async function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_records_login_date ON records(person_login, date);
     CREATE INDEX IF NOT EXISTS idx_records_import_id ON records(import_id);
     CREATE INDEX IF NOT EXISTS idx_records_type_result_date ON records(type, lower(result), date);
+
+    -- allow new role 'leader' (upgrade old constraint)
+    ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
+    ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('admin','manager','leader'));
+
+    -- feedback delivery table (manual feedback + delivery tracking)
+    CREATE TABLE IF NOT EXISTS feedback_items (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      target_login text NOT NULL,
+      type text NOT NULL,
+      message text NOT NULL,
+      created_by_login text NOT NULL,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      delivered boolean NOT NULL DEFAULT false,
+      delivered_by_login text,
+      delivered_at timestamptz,
+      delivered_note text
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_feedback_target_created ON feedback_items(target_login, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_feedback_delivered_created ON feedback_items(delivered, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_feedback_delivered_by ON feedback_items(delivered_by_login, delivered_at DESC);
+
   `);
 
   // seed admin: 60078903 / 123456
@@ -614,6 +637,137 @@ app.get("/api/audit-leaderboard", authRequired, async (req, res) => {
   res.json({ rows: q.rows });
 });
 
+
+// FEEDBACK DELIVERY (manual feedback + delivery tracking)
+app.post("/api/feedback", authRequired, roleRequired("admin", "manager", "leader"), async (req, res) => {
+  const { targetLogin, type, message } = req.body || {};
+  const t = String(targetLogin || "").trim();
+  const tp = String(type || "").trim() || "other";
+  const msg = String(message || "").trim();
+
+  if (!t || !msg) return res.status(400).json({ error: "missing targetLogin/message" });
+
+  const ins = await pool.query(
+    `INSERT INTO feedback_items(target_login,type,message,created_by_login)
+     VALUES($1,$2,$3,$4) RETURNING id`,
+    [t, tp, msg, req.user.login]
+  );
+
+  res.json({ ok: true, id: ins.rows[0].id });
+});
+
+app.get("/api/feedback", authRequired, roleRequired("admin", "manager", "leader"), async (req, res) => {
+  const {
+    status = "all", // all|new|delivered
+    targetLogin,
+    type,
+    from,
+    to,
+    page = "1",
+    pageSize = "25",
+    sortKey = "created_at",
+    sortDir = "desc",
+  } = req.query;
+
+  const p = clampInt(page, 1, 1_000_000, 1);
+  const ps = clampInt(pageSize, 1, MAX_PAGE_SIZE, 25);
+  const offset = (p - 1) * ps;
+
+  const where = [];
+  const vals = [];
+  const add = (sql, v) => {
+    vals.push(v);
+    where.push(sql.replace("?", `$${vals.length}`));
+  };
+
+  if (status === "new") add(`delivered = ?`, false);
+  if (status === "delivered") add(`delivered = ?`, true);
+
+  if (targetLogin) add(`target_login = ?`, String(targetLogin).trim());
+  if (type) add(`type = ?`, String(type).trim());
+  if (from) add(`created_at >= ?::timestamptz`, String(from));
+  if (to) add(`created_at <= ?::timestamptz`, String(to));
+
+  const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+
+  const allowed = new Set(["created_at", "target_login", "delivered", "delivered_at", "delivered_by_login"]);
+  const sk = allowed.has(String(sortKey)) ? String(sortKey) : "created_at";
+  const sd = String(sortDir).toLowerCase() === "asc" ? "asc" : "desc";
+
+  const totalQ = await pool.query(`SELECT COUNT(*)::int AS c FROM feedback_items ${whereSql}`, vals);
+
+  const rowsQ = await pool.query(
+    `SELECT *
+     FROM feedback_items
+     ${whereSql}
+     ORDER BY ${sk} ${sd}, created_at DESC
+     LIMIT ${ps} OFFSET ${offset}`,
+    vals
+  );
+
+  res.json({ page: p, pageSize: ps, total: totalQ.rows[0].c, rows: rowsQ.rows });
+});
+
+app.patch("/api/feedback/:id/deliver", authRequired, roleRequired("admin", "manager", "leader"), async (req, res) => {
+  const id = req.params.id;
+  const { delivered, note } = req.body || {};
+  const d = !!delivered;
+
+  if (d) {
+    await pool.query(
+      `UPDATE feedback_items
+       SET delivered=true,
+           delivered_by_login=$1,
+           delivered_at=now(),
+           delivered_note=$2
+       WHERE id=$3`,
+      [req.user.login, note ? String(note).trim() : null, id]
+    );
+  } else {
+    // allow undo (admin/manager only)
+    if (!["admin", "manager"].includes(req.user.role)) {
+      return res.status(403).json({ error: "forbidden" });
+    }
+    await pool.query(
+      `UPDATE feedback_items
+       SET delivered=false,
+           delivered_by_login=NULL,
+           delivered_at=NULL,
+           delivered_note=NULL
+       WHERE id=$1`,
+      [id]
+    );
+  }
+
+  res.json({ ok: true });
+});
+
+app.get("/api/feedback-leaderboard", authRequired, roleRequired("admin", "manager", "leader"), async (req, res) => {
+  const { limit = "25", orderBy = "delivered", orderDir = "desc" } = req.query;
+
+  const lim = clampInt(limit, 1, 200, 25);
+  const allowed = new Set(["leader", "delivered", "new", "total"]);
+  const ob = allowed.has(String(orderBy)) ? String(orderBy) : "delivered";
+  const od = String(orderDir).toLowerCase() === "asc" ? "asc" : "desc";
+
+  const sql = `
+    SELECT
+      COALESCE(delivered_by_login,'') AS leader,
+      SUM(CASE WHEN delivered THEN 1 ELSE 0 END)::int AS delivered,
+      SUM(CASE WHEN NOT delivered THEN 1 ELSE 0 END)::int AS "new",
+      COUNT(*)::int AS total
+    FROM feedback_items
+    GROUP BY delivered_by_login
+    HAVING COALESCE(delivered_by_login,'') <> ''
+    ORDER BY ${ob === "leader" ? "leader" : ob} ${od}, total DESC
+    LIMIT ${lim}
+  `;
+
+  const q = await pool.query(sql);
+  res.json({ rows: q.rows });
+});
+
+
 // IMPORTS
 app.get("/api/imports", authRequired, roleRequired("admin"), async (req, res) => {
   const q = await pool.query(
@@ -849,4 +1003,5 @@ const port = process.env.PORT || 3000;
   await initDatabase();
   app.listen(port, () => console.log("Listening on", port));
 })();
+
 
