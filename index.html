@@ -932,6 +932,17 @@ function esc(s){
     .replaceAll("'","&#039;");
 }
 
+function fmtDate(v){
+  if(v === null || v === undefined) return "";
+  // server can send: "YYYY-MM-DD", "YYYY-MM-DDT00:00:00.000Z" or Date
+  if(v instanceof Date && !isNaN(v)) return v.toISOString().slice(0,10);
+  const s = String(v);
+  // cut time part if ISO
+  if(s.includes("T")) return s.split("T")[0];
+  // already date
+  return s.slice(0,10);
+}
+
 function clampInt(v, min, max, fallback){
   const n = parseInt(String(v ?? ""), 10);
   if(!isFinite(n)) return fallback;
@@ -1254,7 +1265,7 @@ async function renderUserTab(){
 
   const rows = grouped.map(x=>`
     <tr>
-      <td class="td-muted">${esc(x.date)}</td>
+      <td class="td-muted">${esc(fmtDate(x.date))}</td>
       <td class="right" style="font-size:18px;color:var(--blue1);">${esc(x.count)}</td>
     </tr>
   `).join("");
@@ -1313,7 +1324,7 @@ async function renderShortpickTab(){
 
   const rows = rowsArr.map(r=>`
     <tr>
-      <td class="td-muted">${esc(r.date||"")}</td>
+      <td class="td-muted">${esc(fmtDate(r.date))}</td>
       <td>${esc(r.task_order||"")}</td>
       <td>${esc(r.sku||"")}</td>
       <td>${esc(r.box_number||"")}</td>
@@ -1455,7 +1466,7 @@ async function renderAuditPickTab(){
 
   const rows = rowsArr.map(r=>`
     <tr>
-      <td class="td-muted">${esc(r.date||"")}</td>
+      <td class="td-muted">${esc(fmtDate(r.date))}</td>
       <td>${esc(r.person_login||"")}</td>
       <td>${esc(r.container||"")}</td>
       <td>${esc(r.sku||"")}</td>
@@ -1568,7 +1579,7 @@ async function renderAuditPATab(){
 
   const rows = rowsArr.map(r=>`
     <tr>
-      <td class="td-muted">${esc(r.date||"")}</td>
+      <td class="td-muted">${esc(fmtDate(r.date))}</td>
       <td>${esc(r.person_login||"")}</td>
       <td>${esc(r.container||"")}</td>
       <td>${esc(r.sku||"")}</td>
@@ -1903,7 +1914,7 @@ function bindCoreButtons(){
       });
       const rows = (data.rows||[]).map(r=>({
         Type: r.type,
-        Date: r.date,
+        Date: fmtDate(r.date),
         Time: (r.time||"").replace("T"," "),
         Login: r.person_login || "",
         TaskOrder: r.task_order || "",
@@ -1948,7 +1959,7 @@ function bindCoreButtons(){
       const to = toDateOnlyISO(st.to);
       const data = await apiRecords({ type:TYPES.SHORTPICK, login: st.login||"", from, to, page:1, pageSize:500 });
       const rows = (data.rows||[]).map(r=>({
-        Date: r.date,
+        Date: fmtDate(r.date),
         "Task order": r.task_order || "",
         SKU: r.sku || "",
         "Box number": r.box_number || "",
@@ -1993,7 +2004,7 @@ function bindCoreButtons(){
         page:1, pageSize:500
       });
       const rows = (data.rows||[]).map(r=>({
-        Date: r.date,
+        Date: fmtDate(r.date),
         Picker: r.person_login || "",
         Container: r.container || "",
         SKU: r.sku || "",
@@ -2038,7 +2049,7 @@ function bindCoreButtons(){
         page:1, pageSize:500
       });
       const rows = (data.rows||[]).map(r=>({
-        Date: r.date,
+        Date: fmtDate(r.date),
         Packer: r.person_login || "",
         Container: r.container || "",
         SKU: r.sku || "",
