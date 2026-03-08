@@ -851,7 +851,7 @@
                   <option value="no">No</option>
                 </select>
                 <label>Delivered date</label>
-                <input id="deliveryDeliveredDate" type="date" />
+                <input id="deliveryDeliveredDate" type="text" inputmode="numeric" placeholder="yyyy-mm-dd" />
                 <button class="btn wide" id="btnDeliveryApplyFilters">Apply filters</button>
                 <button class="btn secondary wide" id="btnDeliveryResetFilters">Reset delivery filters</button>
               </div>
@@ -2247,6 +2247,22 @@ function downloadBlob(filename, blob){
   a.remove();
   URL.revokeObjectURL(url);
 }
+async function downloadImportFile(id, filename){
+  const token = getToken();
+  const res = await fetch("/api/imports/" + encodeURIComponent(id) + "/file", {
+    headers: token ? { Authorization: "Bearer " + token } : {}
+  });
+  if(!res.ok){
+    let msg = "Download failed";
+    try{
+      const data = await res.json();
+      if(data?.error) msg = data.error;
+    }catch(_){}
+    throw new Error(msg);
+  }
+  const blob = await res.blob();
+  downloadBlob(filename || "import.xlsx", blob);
+}
 function exportRowsToExcel(rows, sheetName, filename){
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
@@ -2723,7 +2739,8 @@ function bindCoreButtons(){
     if(action === "downloadImport"){
       e.preventDefault();
       try{
-        window.location.href = "/api/imports/" + id + "/file";
+        const filename = (a.textContent || "").trim() || "import.xlsx";
+        await downloadImportFile(id, filename);
       }catch(err){
         toast("Error: " + err.message);
       }
@@ -2791,6 +2808,7 @@ function openApp(){
 </script>
 </body>
 </html>
+
 
 
 
