@@ -199,6 +199,44 @@ function clampInt(v, min, max, fallback) {
   return Math.max(min, Math.min(max, n));
 }
 
+
+function normalizeDp(value) {
+  const s = String(value ?? "").trim().toUpperCase().replace(/\s+/g, "");
+  if (!s || s === "ALL") return null;
+  if (s === "DP1" || s === "1" || s === "DP01") return "DP1";
+  if (s === "DP2" || s === "2" || s === "DP02") return "DP2";
+  if (s.startsWith("DP")) {
+    const m = s.match(/^DP(\d+)$/);
+    if (m) return `DP${m[1]}`;
+  }
+  return s;
+}
+
+function normalizeSide(value) {
+  const s = String(value ?? "").trim().toUpperCase().replace(/\s+/g, "");
+  if (!s || s === "ALL") return null;
+  if (s === "GEEK" || s === "GEEK+") return "GEEK+";
+  if (s === "HAI") return "HAI";
+  return s;
+}
+
+function findHeaderIndexes(header, name) {
+  const target = String(name || "").trim().toLowerCase();
+  const out = [];
+  for (let i = 0; i < header.length; i++) {
+    if (String(header[i] || "").trim().toLowerCase() === target) out.push(i);
+  }
+  return out;
+}
+
+function findBlockColumn(header, startIdx, nextStartIdx, names) {
+  for (let i = startIdx + 1; i < nextStartIdx; i++) {
+    const cur = String(header[i] || "").trim().toLowerCase();
+    if (names.includes(cur)) return i;
+  }
+  return -1;
+}
+
 /** =========================================================
  *  DB init
  *  ========================================================= */
@@ -236,9 +274,14 @@ async function initDatabase() {
       container text,
       auditor text,
       result text,
+      dp text,
+      side text,
       import_id uuid REFERENCES imports(id) ON DELETE SET NULL,
       created_at timestamptz NOT NULL DEFAULT now()
     );
+
+    ALTER TABLE records ADD COLUMN IF NOT EXISTS dp text;
+    ALTER TABLE records ADD COLUMN IF NOT EXISTS side text;
 
     CREATE INDEX IF NOT EXISTS idx_records_type_date ON records(type, date);
     CREATE INDEX IF NOT EXISTS idx_records_login_date ON records(person_login, date);
@@ -387,7 +430,7 @@ app.delete("/api/users/:id", authRequired, roleRequired("admin", "manager"), asy
 
 // RECORDS (paged)
 app.get("/api/records", authRequired, async (req, res) => {
-  const { type, login, from, to, result, page = "1", pageSize = "25" } = req.query;
+  const { type, login, from, to, result, side, dp, page = "1", pageSize = "25" } = req.query;
 
   const p = clampInt(page, 1, 1_000_000, 1);
   const ps = clampInt(pageSize, 1, MAX_PAGE_SIZE, 25);
@@ -405,6 +448,8 @@ app.get("/api/records", authRequired, async (req, res) => {
   if (from) add(`date >= ?`, String(from));
   if (to) add(`date <= ?`, String(to));
   if (result && result !== "all") add(`LOWER(result) = ?`, String(result).toLowerCase());
+  if (side && side !== "all") add(`side = ?`, normalizeSide(side));
+  if (dp && dp !== "all") add(`dp = ?`, normalizeDp(dp));
 
   const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
 
@@ -421,7 +466,7 @@ app.get("/api/records", authRequired, async (req, res) => {
 
 // RECORDS EXPORT (limited)
 app.get("/api/records-export", authRequired, async (req, res) => {
-  const { type, login, from, to, result } = req.query;
+  const { type, login, from, to, result, side, dp } = req.query;
 
   const where = [];
   const vals = [];
@@ -453,7 +498,7 @@ app.get("/api/records-export", authRequired, async (req, res) => {
 
 // USER SUMMARY (возвращаем и total и all)
 app.get("/api/user-summary", authRequired, async (req, res) => {
-  const { login, from, to } = req.query;
+  const { login, from, to, side, dp } = req.query;
 
   const where = [];
   const vals = [];
@@ -465,6 +510,8 @@ app.get("/api/user-summary", authRequired, async (req, res) => {
   if (login) add(`person_login = ?`, String(login).trim());
   if (from) add(`date >= ?`, String(from));
   if (to) add(`date <= ?`, String(to));
+  if (side && side !== "all") add(`side = ?`, normalizeSide(side));
+  if (dp && dp !== "all") add(`dp = ?`, normalizeDp(dp));
   const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
 
   const grouped = await pool.query(
@@ -512,7 +559,7 @@ app.get("/api/user-summary", authRequired, async (req, res) => {
 
 // USER LEADERBOARD (Top by user across all types)
 app.get("/api/user-leaderboard", authRequired, async (req, res) => {
-  const { login, from, to, orderBy="total", orderDir="desc", limit="25" } = req.query;
+  const { login, from, to, side, dp, orderBy="total", orderDir="desc", limit="25" } = req.query;
 
   const lim = clampInt(limit, 1, MAX_USER_LEADERBOARD, 25);
 
@@ -527,6 +574,8 @@ app.get("/api/user-leaderboard", authRequired, async (req, res) => {
   if (login) { where.push(`person_login = $${i++}`); vals.push(String(login).trim()); }
   if (from) { where.push(`date >= $${i++}`); vals.push(String(from)); }
   if (to) { where.push(`date <= $${i++}`); vals.push(String(to)); }
+  if (side && side !== "all") { where.push(`side = $${i++}`); vals.push(normalizeSide(side)); }
+  if (dp && dp !== "all") { where.push(`dp = $${i++}`); vals.push(normalizeDp(dp)); }
 
   const whereSql = where.length ? `WHERE ${where.join(" AND ")} AND COALESCE(person_login,'') <> ''`
                                 : `WHERE COALESCE(person_login,'') <> ''`;
@@ -558,6 +607,8 @@ app.get("/api/audit-leaderboard", authRequired, async (req, res) => {
     from,
     to,
     result = "all",
+    side,
+    dp,
     orderBy = "all",
     orderDir = "desc",
     limit = "200",
@@ -581,6 +632,8 @@ app.get("/api/audit-leaderboard", authRequired, async (req, res) => {
   if (from) { where.push(`date >= $${i++}`); vals.push(String(from)); }
   if (to) { where.push(`date <= $${i++}`); vals.push(String(to)); }
   if (result && result !== "all") { where.push(`LOWER(result) = $${i++}`); vals.push(String(result).toLowerCase()); }
+  if (side && side !== "all") { where.push(`side = $${i++}`); vals.push(normalizeSide(side)); }
+  if (dp && dp !== "all") { where.push(`dp = $${i++}`); vals.push(normalizeDp(dp)); }
 
   const whereSql = `WHERE ${where.join(" AND ")}`;
 
@@ -666,9 +719,29 @@ app.post("/api/import", authRequired, roleRequired("admin"), upload.single("file
   }
 
   const header = (data[0] || []).map((x) => String(x || "").trim());
+
   const colAP = header.indexOf("Audit pick");
   const colSP = header.indexOf("Shortpick");
   const colPA = header.indexOf("Audit PA");
+
+  const blockStarts = [colAP, colSP, colPA].filter((x) => x >= 0).sort((a, b) => a - b);
+  const nextBlockStart = (start) => {
+    const bigger = blockStarts.find((x) => x > start);
+    return bigger >= 0 ? bigger : header.length;
+  };
+
+  const apNext = nextBlockStart(colAP);
+  const spNext = nextBlockStart(colSP);
+  const paNext = nextBlockStart(colPA);
+
+  const apDpCol = colAP >= 0 ? findBlockColumn(header, colAP, apNext, ["dp", "dep."]) : -1;
+  const apSideCol = colAP >= 0 ? findBlockColumn(header, colAP, apNext, ["side"]) : -1;
+
+  const spDpCol = colSP >= 0 ? findBlockColumn(header, colSP, spNext, ["dp", "dep."]) : -1;
+  const spSideCol = colSP >= 0 ? findBlockColumn(header, colSP, spNext, ["side"]) : -1;
+
+  const paDpCol = colPA >= 0 ? findBlockColumn(header, colPA, paNext, ["dp", "dep."]) : -1;
+  const paSideCol = colPA >= 0 ? findBlockColumn(header, colPA, paNext, ["side"]) : -1;
 
   const importId = uuid();
   const recs = [];
@@ -676,7 +749,6 @@ app.post("/api/import", authRequired, roleRequired("admin"), upload.single("file
   for (let r = 1; r < data.length; r++) {
     const row = data[r] || [];
 
-    // Shortpick
     if (colSP >= 0) {
       const DateV = row[colSP + 1];
       const TaskOrder = row[colSP + 2];
@@ -684,8 +756,10 @@ app.post("/api/import", authRequired, roleRequired("admin"), upload.single("file
       const BoxNumber = row[colSP + 4];
       const TimeV = row[colSP + 5];
       const Picker = row[colSP + 6];
+      const DpV = spDpCol >= 0 ? row[spDpCol] : null;
+      const SideV = spSideCol >= 0 ? row[spSideCol] : null;
 
-      const has = [DateV, TaskOrder, SKU, BoxNumber, TimeV, Picker].some(
+      const has = [DateV, TaskOrder, SKU, BoxNumber, TimeV, Picker, DpV, SideV].some(
         (v) => String(v || "").trim() !== ""
       );
 
@@ -702,12 +776,13 @@ app.post("/api/import", authRequired, roleRequired("admin"), upload.single("file
           container: null,
           auditor: null,
           result: null,
+          dp: normalizeDp(DpV),
+          side: normalizeSide(SideV),
           import_id: importId,
         });
       }
     }
 
-    // Audit pick
     if (colAP >= 0) {
       const Audytor = row[colAP + 1];
       const DateV = row[colAP + 2];
@@ -715,8 +790,10 @@ app.post("/api/import", authRequired, roleRequired("admin"), upload.single("file
       const SKU = row[colAP + 4];
       const Picker = row[colAP + 5];
       const Error = row[colAP + 6];
+      const DpV = apDpCol >= 0 ? row[apDpCol] : null;
+      const SideV = apSideCol >= 0 ? row[apSideCol] : null;
 
-      const has = [DateV, Container, SKU, Picker, Error].some(
+      const has = [DateV, Container, SKU, Picker, Error, DpV, SideV].some(
         (v) => String(v || "").trim() !== ""
       );
 
@@ -733,12 +810,13 @@ app.post("/api/import", authRequired, roleRequired("admin"), upload.single("file
           container: String(Container || "") || null,
           auditor: String(Audytor || "") || null,
           result: String(Error || "") || null,
+          dp: normalizeDp(DpV),
+          side: normalizeSide(SideV),
           import_id: importId,
         });
       }
     }
 
-    // Audit PA
     if (colPA >= 0) {
       const Audytor = row[colPA + 1];
       const DateV = row[colPA + 2];
@@ -746,8 +824,10 @@ app.post("/api/import", authRequired, roleRequired("admin"), upload.single("file
       const Packer = row[colPA + 4];
       const Eror = row[colPA + 5];
       const SKU = row[colPA + 6];
+      const DpV = paDpCol >= 0 ? row[paDpCol] : null;
+      const SideV = paSideCol >= 0 ? row[paSideCol] : null;
 
-      const has = [DateV, Container, Packer, Eror, SKU].some(
+      const has = [DateV, Container, Packer, Eror, SKU, DpV, SideV].some(
         (v) => String(v || "").trim() !== ""
       );
 
@@ -764,6 +844,8 @@ app.post("/api/import", authRequired, roleRequired("admin"), upload.single("file
           container: String(Container || "") || null,
           auditor: String(Audytor || "") || null,
           result: String(Eror || "") || null,
+          dp: normalizeDp(DpV),
+          side: normalizeSide(SideV),
           import_id: importId,
         });
       }
@@ -795,7 +877,7 @@ app.post("/api/import", authRequired, roleRequired("admin"), upload.single("file
 
     for (const x of recs) {
       params.push(
-        `($${i++},$${i++},$${i++},$${i++},$${i++},$${i++},$${i++},$${i++},$${i++},$${i++},$${i++},$${i++})`
+        `($${i++},$${i++},$${i++},$${i++},$${i++},$${i++},$${i++},$${i++},$${i++},$${i++},$${i++},$${i++},$${i++},$${i++})`
       );
       values.push(
         x.id,
@@ -809,13 +891,15 @@ app.post("/api/import", authRequired, roleRequired("admin"), upload.single("file
         x.container,
         x.auditor,
         x.result,
+        x.dp,
+        x.side,
         x.import_id
       );
     }
 
     await client.query(
       `INSERT INTO records
-        (id,type,date,time,person_login,task_order,sku,box_number,container,auditor,result,import_id)
+        (id,type,date,time,person_login,task_order,sku,box_number,container,auditor,result,dp,side,import_id)
        VALUES ${params.join(",")}`,
       values
     );
@@ -849,4 +933,5 @@ const port = process.env.PORT || 3000;
   await initDatabase();
   app.listen(port, () => console.log("Listening on", port));
 })();
+
 
