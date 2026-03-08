@@ -251,13 +251,6 @@
       border-color: rgba(214,54,58,.7);
       box-shadow: 0 18px 30px rgba(214,54,58,.22);
     }
-    .btn.table-action{
-      min-width: 92px;
-      padding: 12px 14px;
-      font-size: 15px;
-      line-height: 1.1;
-      white-space: nowrap;
-    }
     .btn.wide{ width:100%; font-size:18px; padding: 16px 18px; }
 
     /* ===== Big dashboard grids ===== */
@@ -267,14 +260,8 @@
       gap: 16px;
       align-items:start;
     }
-    .grid-two{
-      display:grid;
-      grid-template-columns: 420px 1fr;
-      gap: 16px;
-      align-items:start;
-    }
     @media (max-width: 1200px){
-      .grid-user, .grid-any, .grid-two{ grid-template-columns: 1fr; }
+      .grid-user, .grid-any{ grid-template-columns: 1fr; }
       .actions{ width:auto; }
     }
 
@@ -532,7 +519,7 @@
       </div>
 
       <div class="hint">
-        
+      
       </div>
     </div>
   </div>
@@ -920,7 +907,7 @@
 
         <!-- BLACKLIST TAB -->
         <div id="blacklistTab" class="hidden">
-          <div class="grid-two">
+          <div class="grid-any">
             <div class="card">
               <h3>Black list</h3>
               <div class="col">
@@ -944,6 +931,19 @@
                 </div>
               </div>
               <div id="blacklistTableWrap"></div>
+            </div>
+
+            <div class="card">
+              <h3>Choose Date</h3>
+              <div class="chooser" id="blacklistChooser">
+                <div class="chip active" data-mode="day">📅 Day</div>
+                <div class="chip" data-mode="week">🗓 Week</div>
+                <div class="chip" data-mode="month">🗓 Month</div>
+                <div class="chip" data-mode="custom">🗓 Custom Date</div>
+              </div>
+              <div class="hr"></div>
+              <div class="col" id="blacklistDateInputs"></div>
+              <button class="btn wide" id="btnApplyBlacklistDate">Apply</button>
             </div>
           </div>
         </div>
@@ -1191,7 +1191,8 @@ const dateState = {
   sp: { mode:"day", from:null, to:null, login:"", page:1 },
   ap: { mode:"day", from:null, to:null, login:"", result:"all", page:1, lbOrderBy:"all", lbOrderDir:"desc", lbLimit:25 },
   pa: { mode:"day", from:null, to:null, login:"", result:"all", page:1, lbOrderBy:"all", lbOrderDir:"desc", lbLimit:25 },
-  delivery: { mode:"day", from:null, to:null, delivered:"all", deliveredDate:"", orderBy:"date", orderDir:"desc", expandedKey:"" }
+  delivery: { mode:"day", from:null, to:null, delivered:"all", deliveredDate:"", orderBy:"date", orderDir:"desc", expandedKey:"" },
+  blacklist: { mode:"day", from:null, to:null }
 };
 
 function normalizeSideClient(v){
@@ -2173,8 +2174,8 @@ async function renderUsersTab(){
       <tr>
         <td style="font-size:18px;font-weight:950;">${esc(u.login)}</td>
         <td>${esc(u.role)}</td>
-        <td class="right">${canEdit ? `<button class="btn secondary table-action" data-action="editUser" data-id="${u.id}" title="Edit user"><span>Edit</span></button>` : ""}</td>
-        <td class="right">${canDelete ? `<button class="btn danger table-action" data-action="delUser" data-id="${u.id}" title="Delete user"><span>Delete</span></button>` : ""}</td>
+        <td class="right">${canEdit ? `<button class="btn secondary" data-action="editUser" data-id="${u.id}">Edit</button>` : ""}</td>
+        <td class="right">${canDelete ? `<button class="btn danger" data-action="delUser" data-id="${u.id}">Delete</button>` : ""}</td>
       </tr>
     `;
   }).join("");
@@ -2634,12 +2635,9 @@ function bindCoreButtons(){
     renderDeliveryTab().catch(console.error);
   });
 
-  document.getElementById("btnDeliveryResetFilters").addEventListener("click", ()=>{
-    dateState.delivery.delivered = "all";
-    dateState.delivery.deliveredDate = "";
-    document.getElementById("deliveryDelivered").value = "all";
-    document.getElementById("deliveryDeliveredDate").value = "";
-    renderDeliveryTab().catch(console.error);
+  document.getElementById("btnApplyBlacklistDate").addEventListener("click", ()=>{
+    applyDate("blacklist");
+    renderBlacklistTab().catch(console.error);
   });
 
   document.getElementById("btnBlacklistAdd").addEventListener("click", async ()=>{
@@ -2782,12 +2780,14 @@ function openApp(){
   renderDateInputs("apDateInputs","ap");
   renderDateInputs("paDateInputs","pa");
   renderDateInputs("deliveryDateInputs","delivery");
+  renderDateInputs("blacklistDateInputs","blacklist");
 
   applyDate("user");
   applyDate("sp");
   applyDate("ap");
   applyDate("pa");
   applyDate("delivery");
+  applyDate("blacklist");
 
   setTab("userTab");
 }
@@ -2800,6 +2800,7 @@ function openApp(){
   bindChooser("apChooser","ap","apDateInputs");
   bindChooser("paChooser","pa","paDateInputs");
   bindChooser("deliveryChooser","delivery","deliveryDateInputs");
+  bindChooser("blacklistChooser","blacklist","blacklistDateInputs");
 
   bindCoreButtons();
 
@@ -2821,6 +2822,20 @@ function openApp(){
 </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
