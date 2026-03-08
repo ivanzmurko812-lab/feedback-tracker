@@ -519,7 +519,7 @@
       </div>
 
       <div class="hint">
-      
+        Demo admin: <b>60078903</b> / <b>123456</b>
       </div>
     </div>
   </div>
@@ -850,8 +850,8 @@
                   <option value="yes">Yes</option>
                   <option value="no">No</option>
                 </select>
-                <label>Delivered date</label>
-                <input id="deliveryDeliveredDate" type="text" inputmode="numeric" placeholder="yyyy-mm-dd" />
+                <label>Login</label>
+                <input id="deliveryLoginFilter" type="text" placeholder="Enter login" />
                 <button class="btn wide" id="btnDeliveryApplyFilters">Apply filters</button>
                 <button class="btn secondary wide" id="btnDeliveryResetFilters">Reset delivery filters</button>
               </div>
@@ -1191,7 +1191,7 @@ const dateState = {
   sp: { mode:"day", from:null, to:null, login:"", page:1 },
   ap: { mode:"day", from:null, to:null, login:"", result:"all", page:1, lbOrderBy:"all", lbOrderDir:"desc", lbLimit:25 },
   pa: { mode:"day", from:null, to:null, login:"", result:"all", page:1, lbOrderBy:"all", lbOrderDir:"desc", lbLimit:25 },
-  delivery: { mode:"day", from:null, to:null, delivered:"all", deliveredDate:"", orderBy:"date", orderDir:"desc", expandedKey:"" },
+  delivery: { mode:"day", from:null, to:null, delivered:"all", loginFilter:"", orderBy:"date", orderDir:"desc", expandedKey:"" },
   blacklist: { mode:"day", from:null, to:null }
 };
 
@@ -1397,12 +1397,12 @@ async function apiAuditLeaderboard({type, from, to, result, orderBy, orderDir, l
 }
 
 
-async function apiDeliveryGroups({from, to, delivered, deliveredDate, side, dp, orderBy, orderDir}){
+async function apiDeliveryGroups({from, to, delivered, login, side, dp, orderBy, orderDir}){
   const qs = new URLSearchParams();
   if(from) qs.set("from", from);
   if(to) qs.set("to", to);
   if(delivered && delivered !== "all") qs.set("delivered", delivered);
-  if(deliveredDate) qs.set("deliveredDate", deliveredDate);
+  if(login) qs.set("login", login);
   if(side && side !== "all") qs.set("side", side);
   if(dp && dp !== "all") qs.set("dp", dp);
   qs.set("orderBy", orderBy || "date");
@@ -1967,12 +1967,12 @@ async function renderDeliveryTab(){
   const to = toDateOnlyISO(st.to);
 
   document.getElementById("deliveryDelivered").value = st.delivered || "all";
-  document.getElementById("deliveryDeliveredDate").value = st.deliveredDate || "";
+  document.getElementById("deliveryLoginFilter").value = st.loginFilter || "";
 
   const data = await apiDeliveryGroups({
     from, to,
     delivered: st.delivered || "all",
-    deliveredDate: st.deliveredDate || "",
+    login: st.loginFilter || "",
     side: globalFilters.side || "all",
     dp: globalFilters.dp || "all",
     orderBy: st.orderBy || "date",
@@ -1989,7 +1989,7 @@ async function renderDeliveryTab(){
   const info = [];
   info.push(`Rows: <b>${rows.length}</b>`);
   info.push(`Delivered filter: <b>${esc((st.delivered || "all").toUpperCase())}</b>`);
-  if(st.deliveredDate) info.push(`Delivered date: <b>${esc(st.deliveredDate)}</b>`);
+  if(st.loginFilter) info.push(`Login: <b>${esc(st.loginFilter)}</b>`);
   document.getElementById("deliveryInfo").innerHTML = info.join(" • ");
 
   const wrap = document.getElementById("deliveryTableWrap");
@@ -2631,7 +2631,7 @@ function bindCoreButtons(){
 
   document.getElementById("btnDeliveryApplyFilters").addEventListener("click", ()=>{
     dateState.delivery.delivered = document.getElementById("deliveryDelivered").value;
-    dateState.delivery.deliveredDate = document.getElementById("deliveryDeliveredDate").value || "";
+    dateState.delivery.loginFilter = (document.getElementById("deliveryLoginFilter").value || "").trim();
     renderDeliveryTab().catch(console.error);
   });
 
