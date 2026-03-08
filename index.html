@@ -1319,6 +1319,26 @@ async function apiAuditLeaderboard({type, from, to, result, orderBy, orderDir, l
   return apiFetch("/api/audit-leaderboard?" + qs.toString());
 }
 
+let blacklistCache = [];
+
+async function apiBlacklist(){
+  return apiFetch("/api/blacklist");
+}
+
+async function apiBlacklistAdd({login, note}){
+  return apiFetch("/api/blacklist", {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({ login, note })
+  });
+}
+
+async function apiBlacklistDelete(login){
+  return apiFetch("/api/blacklist/" + encodeURIComponent(login), {
+    method:"DELETE"
+  });
+}
+
 
 /** =========================================================
  *  RENDER: USER TAB (summary)
