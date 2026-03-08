@@ -733,6 +733,7 @@ app.get("/api/delivery-groups", authRequired, roleRequired("admin", "manager"), 
     dp,
     delivered = "all",
     deliveredDate,
+    login,
     orderBy = "date",
     orderDir = "desc",
   } = req.query;
@@ -756,6 +757,11 @@ app.get("/api/delivery-groups", authRequired, roleRequired("admin", "manager"), 
   if (deliveredDate) {
     where.push(`DATE(ds.delivered_at) = $${i++}`);
     vals.push(String(deliveredDate));
+  }
+
+  if (login) {
+    where.push(`COALESCE(r.person_login,'') ILIKE $${i++}`);
+    vals.push(`%${String(login).trim()}%`);
   }
 
   const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
@@ -1131,6 +1137,7 @@ const port = process.env.PORT || 3000;
   await initDatabase();
   app.listen(port, () => console.log("Listening on", port));
 })();
+
 
 
 
