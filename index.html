@@ -533,6 +533,7 @@
         <div class="tab" data-tab="auditPickTab" id="tabAuditPick">Audit pick</div>
         <div class="tab" data-tab="auditPATab" id="tabAuditPA">Audit PA</div>
         <div class="tab" data-tab="usersTab" id="tabUsers">User management</div>
+        <div class="tab" data-tab="blacklistTab" id="tabBlacklist">Black list</div>
         <div class="tab" data-tab="importsTab" id="tabImports">Imports</div>
         <div class="tabs-spacer"></div>
         <div class="global-filter-bar" id="globalFilterBar"></div>
@@ -843,6 +844,37 @@
           </div>
           <div id="usersTableWrap"></div>
         </div>
+
+        <!-- BLACKLIST TAB -->
+        <div id="blacklistTab" class="hidden">
+          <div class="grid-any">
+            <div class="card">
+              <h3>Black list</h3>
+              <div class="col">
+                <label>Login</label>
+                <input id="blLogin" type="text" placeholder="enter login to hide from reports" />
+                <label>Note (optional)</label>
+                <input id="blNote" type="text" placeholder="e.g. dismissed employee" />
+                <button class="btn wide" id="btnBlacklistAdd">Add to Black list</button>
+              </div>
+              <div class="hr"></div>
+              <div class="muted">
+                Logins in the black list are hidden from <b>User</b>, <b>Shortpick</b>, <b>Audit pick</b>, and <b>Audit PA</b>.
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="row" style="justify-content:space-between; margin-bottom:14px;">
+                <div>
+                  <h3 style="margin:0;">Hidden logins</h3>
+                  <div class="muted" style="margin-top:6px;">These users will not appear in reports or tables</div>
+                </div>
+              </div>
+              <div id="blacklistTableWrap"></div>
+            </div>
+          </div>
+        </div>
+
 
         <!-- IMPORTS TAB -->
         <div id="importsTab" class="hidden">
@@ -1156,6 +1188,7 @@ function refreshActiveTab(){
   if(activeTab==="auditPickTab") return renderAuditPickTab().catch(console.error);
   if(activeTab==="auditPATab") return renderAuditPATab().catch(console.error);
   if(activeTab==="usersTab") return renderUsersTab().catch(console.error);
+  if(activeTab==="blacklistTab") return renderBlacklistTab().catch(console.error);
   if(activeTab==="importsTab") return renderImportsTab().catch(console.error);
 }
 
@@ -1238,6 +1271,7 @@ function setTab(tabId){
   if(tabId==="auditPickTab") renderAuditPickTab().catch(console.error);
   if(tabId==="auditPATab") renderAuditPATab().catch(console.error);
   if(tabId==="usersTab") renderUsersTab().catch(console.error);
+  if(tabId==="blacklistTab") renderBlacklistTab().catch(console.error);
   if(tabId==="importsTab") renderImportsTab().catch(console.error);
 }
 
@@ -1831,6 +1865,30 @@ async function renderUsersTab(){
   `;
 }
 
+async function renderBlacklistTab(){
+  const data = await apiBlacklist();
+  blacklistCache = data.rows || [];
+
+  const rows = blacklistCache.map(item=>`
+    <tr>
+      <td style="font-size:18px;font-weight:950;">${esc(item.login)}</td>
+      <td>${esc(item.note || "")}</td>
+      <td>${esc(item.created_by || "")}</td>
+      <td class="td-muted">${esc((item.created_at || "").slice(0,10))}</td>
+      <td class="right"><button class="btn danger" data-action="deleteBlacklist" data-id="${encodeURIComponent(item.login)}">Remove</button></td>
+    </tr>
+  `).join("");
+
+  document.getElementById("blacklistTableWrap").innerHTML = `
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Login</th><th>Note</th><th>Added by</th><th>Date</th><th class="right">Remove</th></tr></thead>
+        <tbody>${rows || `<tr><td colspan="5" class="td-muted">Black list is empty</td></tr>`}</tbody>
+      </table>
+    </div>
+  `;
+}
+
 /** =========================================================
  *  IMPORTS TAB (server admin only)
  *  ========================================================= */
@@ -2225,6 +2283,25 @@ function bindCoreButtons(){
     }catch(e){ toast("Export error: " + e.message); }
   });
 
+  document.getElementById("btnBlacklistAdd").addEventListener("click", async ()=>{
+    const login = document.getElementById("blLogin").value.trim();
+    const note = document.getElementById("blNote").value.trim();
+    if(!login){ toast("Login is required"); return; }
+    try{
+      await apiBlacklistAdd({ login, note });
+      document.getElementById("blLogin").value = "";
+      document.getElementById("blNote").value = "";
+      toast("Login added to Black list");
+      await renderBlacklistTab();
+      await renderUserTab();
+      await renderShortpickTab();
+      await renderAuditPickTab();
+      await renderAuditPATab();
+    }catch(err){
+      toast("Error: " + err.message);
+    }
+  });
+
   document.getElementById("btnAddImport").addEventListener("click", ()=>{
     const me = getMe();
     if(me?.role !== "admin"){ toast("Only admin can upload files"); return; }
@@ -2246,6 +2323,7 @@ function bindCoreButtons(){
       await renderShortpickTab();
       await renderAuditPickTab();
       await renderAuditPATab();
+      await renderBlacklistTab();
       await renderImportsTab();
     }catch(err){
       console.error(err);
@@ -2287,6 +2365,22 @@ function bindCoreButtons(){
         toast("Import deleted");
         await renderImportsTab();
         await renderUserTab();
+      }catch(err){
+        toast("Error: " + err.message);
+      }
+    }
+
+    if(action === "deleteBlacklist"){
+      const login = decodeURIComponent(id);
+      if(!confirm(`Remove ${login} from Black list?`)) return;
+      try{
+        await apiBlacklistDelete(login);
+        toast("Login removed from Black list");
+        await renderBlacklistTab();
+        await renderUserTab();
+        await renderShortpickTab();
+        await renderAuditPickTab();
+        await renderAuditPATab();
       }catch(err){
         toast("Error: " + err.message);
       }
@@ -2360,6 +2454,8 @@ function openApp(){
 </script>
 </body>
 </html>
+
+
 
 
 
