@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="ru">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -163,7 +163,6 @@
       margin: 0 0 12px;
       font-size: 20px;
       letter-spacing:.2px;
-      text-align:center;
     }
     .muted{
       color: var(--muted);
@@ -300,8 +299,7 @@
       font-size: 14px;
       font-weight: 800;
       color:#1e2740;
-      vertical-align: middle;
-      text-align: center;
+      vertical-align: top;
     }
     th{
       background: rgba(240,244,255,.90);
@@ -312,28 +310,8 @@
     }
     tr:last-child td{ border-bottom:none; }
     .td-muted{ color: var(--muted); font-weight: 850; }
-    .right{ text-align:center !important; }
+    .right{ text-align:right; }
     .table-scroll{ max-height: 56vh; overflow:auto; }
-    .table-wrap table th,
-    .table-wrap table td,
-    table th,
-    table td{
-      text-align: center !important;
-      vertical-align: middle !important;
-    }
-    td a,
-    th a{
-      display:inline-block;
-      text-align:center;
-    }
-    #userLeaderboardWrap .sort,
-    #auditPickLbWrap .sort,
-    #auditPaLbWrap .sort{
-      display:inline-block;
-      min-width: 16px;
-      text-align:center;
-    }
-
 
     /* ===== Date chooser ===== */
     .chooser{
@@ -360,6 +338,31 @@
       color:#fff;
       border-color: rgba(30,79,211,.55);
       box-shadow: 0 18px 28px rgba(30,79,211,.24);
+    }
+
+    .filter-stack{ display:flex; flex-direction:column; gap:12px; margin-top:2px; }
+    .filter-group-title{ font-weight:950; font-size:13px; color:#4b5773; text-transform:uppercase; letter-spacing:.04em; }
+    .segmented{
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0,1fr));
+      gap:8px;
+    }
+    .seg-btn{
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(190,200,220,.95);
+      background: rgba(255,255,255,.86);
+      font-weight: 950;
+      cursor:pointer;
+      text-align:center;
+      user-select:none;
+      box-shadow: 0 10px 18px rgba(12,18,40,.08);
+    }
+    .seg-btn.active{
+      background: linear-gradient(180deg, var(--blue1), var(--blue2));
+      color:#fff;
+      border-color: rgba(30,79,211,.55);
+      box-shadow: 0 16px 26px rgba(30,79,211,.22);
     }
 
     /* ===== Modals & toast ===== */
@@ -476,7 +479,7 @@
       <div class="login-form">
         <div class="col">
           <label>Login</label>
-          <input id="loginInput" type="text" placeholder="for example 60078903" autocomplete="username" />
+          <input id="loginInput" type="text" placeholder="например 60078903" autocomplete="username" />
         </div>
         <div class="col">
           <label>Password</label>
@@ -486,7 +489,7 @@
       </div>
 
       <div class="hint">
-        Demo admin: <b>60078903</b> / <b>123456</b>
+        Демо admin: <b>60078903</b> / <b>123456</b>
       </div>
     </div>
   </div>
@@ -499,7 +502,7 @@
         <div class="tab" data-tab="shortpickTab" id="tabShortpick">Shortpick</div>
         <div class="tab" data-tab="auditPickTab" id="tabAuditPick">Audit pick</div>
         <div class="tab" data-tab="auditPATab" id="tabAuditPA">Audit PA</div>
-        <div class="tab" data-tab="usersTab" id="tabUsers">User Management</div>
+        <div class="tab" data-tab="usersTab" id="tabUsers">User management</div>
         <div class="tab" data-tab="importsTab" id="tabImports">Imports</div>
       </div>
 
@@ -511,13 +514,14 @@
               <h3>Search (User)</h3>
               <div class="col">
                 <label>Login</label>
-                <input id="userSearchLogin" type="text" placeholder="enter login (or leave blank for all)" />
+                <input id="userSearchLogin" type="text" placeholder="введите логин (или пусто для всех)" />
+                <div id="userFilterControls"></div>
                 <button class="btn wide" id="btnUserSearch">Search</button>
               </div>
               <div class="hr"></div>
               <div class="muted">
-                • if login is empty — shows all users<br>
-                • date filter on the right
+                • если логин пустой — покажет всех<br>
+                • фильтр дат справа
               </div>
               <div class="hr"></div>
               <button class="btn wide" id="btnExportFromUser">⬇ Export current view</button>
@@ -550,8 +554,8 @@
               <div class="card">
                 <div class="row" style="justify-content:space-between;align-items:flex-end;gap:14px;">
                   <div>
-                    <h3 style="margin:0">All Feedback</h3>
-                    <div class="muted" style="margin-top:6px;">Top users (click arrows to sort, click login to select)</div>
+                    <h3 style="margin:0">All feedback</h3>
+                    <div class="muted" style="margin-top:6px;">Top users (клик по стрелкам для сортировки, клик по логину = выбрать)</div>
                   </div>
                   <div class="row" style="gap:10px; align-items:center;">
                     <div class="muted">Top</div>
@@ -592,7 +596,8 @@
               <h3>Search (Shortpick)</h3>
               <div class="col">
                 <label>Login (Picker)</label>
-                <input id="spSearchLogin" type="text" placeholder="enter login (or leave blank for all)" />
+                <input id="spSearchLogin" type="text" placeholder="введите логин (или пусто для всех)" />
+                <div id="spFilterControls"></div>
                 <button class="btn wide" id="btnSpSearch">Search</button>
               </div>
               <div class="hr"></div>
@@ -633,16 +638,17 @@
         <div id="auditPickTab" class="hidden">
           <div class="grid-any">
             <div class="card">
-              <h3>Search (Audit Pick)</h3>
+              <h3>Search (Audit pick)</h3>
               <div class="col">
                 <label>Login (Picker)</label>
-                <input id="apSearchLogin" type="text" placeholder="enter login (or leave blank for all)" />
+                <input id="apSearchLogin" type="text" placeholder="введите логин (или пусто для всех)" />
                 <label>Result</label>
                 <select id="apResult">
                   <option value="all">All</option>
                   <option value="profit">Profit</option>
                   <option value="loss">Loss</option>
                 </select>
+                <div id="apFilterControls"></div>
                 <button class="btn wide" id="btnApSearch">Search</button>
               </div>
               <div class="hr"></div>
@@ -664,7 +670,7 @@
               <div class="card">
                 <div class="row" style="justify-content:space-between; align-items:flex-end; gap:14px;">
                   <div>
-                    <h3 style="margin:0">Audit Pick (Details)</h3>
+                    <h3 style="margin:0">Audit pick (details)</h3>
                     <div class="muted" id="apPageInfo" style="margin-top:6px;">Page 1</div>
                   </div>
                   <div class="row">
@@ -679,7 +685,7 @@
               <div class="card">
                 <div class="row" style="justify-content:space-between; align-items:center; gap:14px;">
                   <div>
-                    <h3 style="margin:0">Audit Pick Leaderboard (by Login)</h3>
+                    <h3 style="margin:0">Audit pick leaderboard (by login)</h3>
                     <div class="muted" id="apLbInfo" style="margin-top:6px;">Top —</div>
                   </div>
                   <div class="row" style="gap:10px; align-items:center;">
@@ -694,7 +700,7 @@
                 <div class="hr"></div>
                 <div class="table-wrap table-scroll" id="auditPickLbWrap"></div>
                 <div class="hr"></div>
-                <div class="muted">Sorting: click a column header (↑/↓). Click a login to apply it to the filter.</div>
+                <div class="muted">Сортировка: клик по заголовку колонки (↑/↓). Клик по логину — подставит в фильтр.</div>
               </div>
 
             </div>
@@ -721,7 +727,7 @@
               <h3>Search (Audit PA)</h3>
               <div class="col">
                 <label>Login (Packer)</label>
-                <input id="paSearchLogin" type="text" placeholder="enter login (or leave blank for all)" />
+                <input id="paSearchLogin" type="text" placeholder="введите логин (или пусто для всех)" />
                 <label>Result</label>
                 <select id="paResult">
                   <option value="all">All</option>
@@ -729,6 +735,7 @@
                   <option value="loss">Loss</option>
                   <option value="occupied">Occupied</option>
                 </select>
+                <div id="paFilterControls"></div>
                 <button class="btn wide" id="btnPaSearch">Search</button>
               </div>
               <div class="hr"></div>
@@ -750,7 +757,7 @@
               <div class="card">
                 <div class="row" style="justify-content:space-between; align-items:flex-end; gap:14px;">
                   <div>
-                    <h3 style="margin:0">Audit PA (Details)</h3>
+                    <h3 style="margin:0">Audit PA (details)</h3>
                     <div class="muted" id="paPageInfo" style="margin-top:6px;">Page 1</div>
                   </div>
                   <div class="row">
@@ -765,7 +772,7 @@
               <div class="card">
                 <div class="row" style="justify-content:space-between; align-items:center; gap:14px;">
                   <div>
-                    <h3 style="margin:0">Audit PA Leaderboard (by Login)</h3>
+                    <h3 style="margin:0">Audit PA leaderboard (by login)</h3>
                     <div class="muted" id="paLbInfo" style="margin-top:6px;">Top —</div>
                   </div>
                   <div class="row" style="gap:10px; align-items:center;">
@@ -780,7 +787,7 @@
                 <div class="hr"></div>
                 <div class="table-wrap table-scroll" id="auditPaLbWrap"></div>
                 <div class="hr"></div>
-                <div class="muted">Sorting: click a column header (↑/↓). Click a login to apply it to the filter.</div>
+                <div class="muted">Сортировка: клик по заголовку колонки (↑/↓). Клик по логину — подставит в фильтр.</div>
               </div>
 
             </div>
@@ -803,7 +810,7 @@
         <!-- USERS TAB -->
         <div id="usersTab" class="hidden">
           <div class="row" style="justify-content:space-between; margin-bottom:14px;">
-            <div class="muted" style="font-weight:950; font-size:18px;">User Management</div>
+            <div class="muted" style="font-weight:950; font-size:18px;">User management</div>
             <button class="btn" id="btnAddUser">Add User</button>
           </div>
           <div id="usersTableWrap"></div>
@@ -812,13 +819,13 @@
         <!-- IMPORTS TAB -->
         <div id="importsTab" class="hidden">
           <div class="row" style="justify-content:space-between; margin-bottom:14px;">
-            <div class="muted" style="font-weight:950; font-size:18px;">Imports (Upload Excel → Save to System)</div>
+            <div class="muted" style="font-weight:950; font-size:18px;">Imports (Upload Excel → Save to system)</div>
             <button class="btn" id="btnAddImport">Add Import</button>
           </div>
 
           <div class="card" style="margin-bottom:14px;">
             <div class="muted">
-              Excel must contain <b>Shortpick</b>, <b>Audit pick</b>, and <b>Audit PA</b> blocks (as in your template).
+              Excel может содержать блоки <b>Shortpick</b>, <b>Audit pick</b>, <b>Audit PA</b> и новые колонки <b>DP</b> / <b>Side</b>. Поддерживается старый и новый шаблон.
             </div>
           </div>
 
@@ -835,15 +842,15 @@
       <h2>Change Password</h2>
       <div class="col" style="gap:12px;">
         <div class="col">
-          <label>Current Password</label>
+          <label>Current password</label>
           <input id="pwdCurrent" type="password" />
         </div>
         <div class="col">
-          <label>New Password</label>
+          <label>New password</label>
           <input id="pwdNew" type="password" />
         </div>
         <div class="col">
-          <label>Repeat New Password</label>
+          <label>Repeat new password</label>
           <input id="pwdNew2" type="password" />
         </div>
         <div class="row" style="justify-content:flex-end; gap:12px; margin-top:4px;">
@@ -866,7 +873,7 @@
         <div class="col">
           <label>Password</label>
           <input id="umPassword" type="password" />
-          <div class="muted" style="font-size:13px;">For editing: leave blank to keep the current password</div>
+          <div class="muted" style="font-size:13px;">Для редактирования: оставь пустым, чтобы не менять пароль</div>
         </div>
         <div class="col">
           <label>Role</label>
@@ -874,7 +881,7 @@
             <option value="manager">manager</option>
             <option value="admin">admin</option>
           </select>
-          <div class="muted" style="font-size:13px;">manager cannot see the Imports tab</div>
+          <div class="muted" style="font-size:13px;">manager не видит вкладку Imports</div>
         </div>
 
         <div class="row" style="justify-content:flex-end; gap:12px; margin-top:4px;">
@@ -1046,11 +1053,75 @@ function formatWarsawTime(isoLocal){
  *  FILTER STATE
  *  ========================================================= */
 const dateState = {
-  user: { mode:"day", from:null, to:null, login:"", lbOrderBy:"total", lbOrderDir:"desc", lbLimit:25 },
-  sp: { mode:"day", from:null, to:null, login:"", page:1 },
-  ap: { mode:"day", from:null, to:null, login:"", result:"all", page:1, lbOrderBy:"all", lbOrderDir:"desc", lbLimit:25 },
-  pa: { mode:"day", from:null, to:null, login:"", result:"all", page:1, lbOrderBy:"all", lbOrderDir:"desc", lbLimit:25 }
+  user: { mode:"day", from:null, to:null, login:"", side:"all", dp:"all", lbOrderBy:"total", lbOrderDir:"desc", lbLimit:25 },
+  sp: { mode:"day", from:null, to:null, login:"", side:"all", dp:"all", page:1 },
+  ap: { mode:"day", from:null, to:null, login:"", result:"all", side:"all", dp:"all", page:1, lbOrderBy:"all", lbOrderDir:"desc", lbLimit:25 },
+  pa: { mode:"day", from:null, to:null, login:"", result:"all", side:"all", dp:"all", page:1, lbOrderBy:"all", lbOrderDir:"desc", lbLimit:25 }
 };
+
+function normalizeSideClient(v){
+  const s = String(v || "").trim().toUpperCase().replace(/\s+/g, "");
+  if(!s || s === "ALL") return "all";
+  if(s === "GEEK" || s === "GEEK+") return "GEEK+";
+  if(s === "HAI") return "HAI";
+  return s;
+}
+function normalizeDpClient(v){
+  const s = String(v || "").trim().toUpperCase().replace(/\s+/g, "");
+  if(!s || s === "ALL") return "all";
+  if(s === "DP1" || s === "1") return "DP1";
+  if(s === "DP2" || s === "2") return "DP2";
+  return s;
+}
+function filterBadge(v){
+  return v && v !== "all" ? v : "ALL";
+}
+function renderSegmentButtons(current, options, onPick){
+  return `
+    <div class="segmented">
+      ${options.map(opt=>`<button type="button" class="seg-btn ${current===opt.value ? "active" : ""}" data-value="${esc(opt.value)}">${esc(opt.label)}</button>`).join("")}
+    </div>
+  `;
+}
+function mountFilterControls(containerId, stateKey){
+  const box = document.getElementById(containerId);
+  if(!box) return;
+  const st = dateState[stateKey];
+  box.innerHTML = `
+    <div class="filter-stack">
+      <div>
+        <div class="filter-group-title">Side</div>
+        ${renderSegmentButtons(st.side || "all", [
+          {value:"GEEK+", label:"GEEK+"},
+          {value:"HAI", label:"HAI"},
+          {value:"all", label:"ALL"}
+        ])}
+      </div>
+      <div>
+        <div class="filter-group-title">DP</div>
+        ${renderSegmentButtons(st.dp || "all", [
+          {value:"DP1", label:"DP1"},
+          {value:"DP2", label:"DP2"},
+          {value:"all", label:"ALL"}
+        ])}
+      </div>
+    </div>
+  `;
+  const groups = box.querySelectorAll(".segmented");
+  const [sideGroup, dpGroup] = groups;
+  sideGroup?.querySelectorAll(".seg-btn").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      st.side = normalizeSideClient(btn.dataset.value);
+      mountFilterControls(containerId, stateKey);
+    });
+  });
+  dpGroup?.querySelectorAll(".seg-btn").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      st.dp = normalizeDpClient(btn.dataset.value);
+      mountFilterControls(containerId, stateKey);
+    });
+  });
+}
 
 function renderDateInputs(containerId, stateKey){
   const st = dateState[stateKey];
@@ -1080,7 +1151,7 @@ function renderDateInputs(containerId, stateKey){
     const {from,to} = computeRange(st.mode);
     st.from = from; st.to = to;
     el.innerHTML = `
-      <div class="muted">Current period:</div>
+      <div class="muted">Текущий период:</div>
       <div style="font-weight:950; font-size:18px; margin-top:8px;">${humanRange(from,to)}</div>
     `;
   }
@@ -1137,19 +1208,21 @@ function setTab(tabId){
 /** =========================================================
  *  API HELPERS
  *  ========================================================= */
-async function apiRecords({type, login, from, to, result, page, pageSize}){
+async function apiRecords({type, login, from, to, result, side, dp, page, pageSize}){
   const qs = new URLSearchParams();
   if(type) qs.set("type", type);
   if(login) qs.set("login", login);
   if(from) qs.set("from", from);
   if(to) qs.set("to", to);
   if(result) qs.set("result", result);
+  if(side && side !== "all") qs.set("side", side);
+  if(dp && dp !== "all") qs.set("dp", dp);
   qs.set("page", String(page||1));
   qs.set("pageSize", String(pageSize||PAGE_SIZE));
   return apiFetch("/api/records?" + qs.toString());
 }
 
-async function apiUserLeaderboard({from, to, orderBy, orderDir, limit, login}){
+async function apiUserLeaderboard({from, to, orderBy, orderDir, limit, login, side, dp}){
   const qs = new URLSearchParams();
   if(from) qs.set("from", from);
   if(to) qs.set("to", to);
@@ -1157,15 +1230,19 @@ async function apiUserLeaderboard({from, to, orderBy, orderDir, limit, login}){
   if(orderDir) qs.set("orderDir", orderDir);
   if(limit) qs.set("limit", String(limit));
   if(login) qs.set("login", login);
+  if(side && side !== "all") qs.set("side", side);
+  if(dp && dp !== "all") qs.set("dp", dp);
   return apiFetch("/api/user-leaderboard?" + qs.toString());
 }
 
-async function apiAuditLeaderboard({type, from, to, result, orderBy, orderDir, limit}){
+async function apiAuditLeaderboard({type, from, to, result, orderBy, orderDir, limit, side, dp}){
   const qs = new URLSearchParams();
   qs.set("type", type);
   if(from) qs.set("from", from);
   if(to) qs.set("to", to);
   if(result && result !== "all") qs.set("result", result);
+  if(side && side !== "all") qs.set("side", side);
+  if(dp && dp !== "all") qs.set("dp", dp);
   qs.set("orderBy", orderBy || "all");
   qs.set("orderDir", orderDir || "desc");
   qs.set("limit", String(limit || 25));
@@ -1178,38 +1255,39 @@ async function apiAuditLeaderboard({type, from, to, result, orderBy, orderDir, l
  *  ========================================================= */
 
 async function renderUserTab(){
-  document.getElementById("userSearchLogin").value = dateState.user.login || "";
-
   const st = dateState.user;
+  mountFilterControls("userFilterControls", "user");
+  document.getElementById("userSearchLogin").value = st.login || "";
+
   const from = toDateOnlyISO(st.from);
   const to = toDateOnlyISO(st.to);
 
-  // summary (cards + by-date)
   const qs = new URLSearchParams();
   if(st.login) qs.set("login", st.login.trim());
   qs.set("from", from);
   qs.set("to", to);
+  if(st.side && st.side !== "all") qs.set("side", st.side);
+  if(st.dp && st.dp !== "all") qs.set("dp", st.dp);
 
   const summary = await apiFetch("/api/user-summary?" + qs.toString());
 
   document.getElementById("statShortpick").textContent = summary.shortpick || 0;
   document.getElementById("statAuditPickAll").textContent = summary.audit_pick?.all || summary.audit_pick?.total || 0;
   document.getElementById("statAuditPAAll").textContent = summary.audit_pa?.all || summary.audit_pa?.total || 0;
-  document.getElementById("statPeriod").textContent = humanRange(st.from, st.to);
+  document.getElementById("statPeriod").textContent = `${humanRange(st.from, st.to)} · ${filterBadge(st.side)} · ${filterBadge(st.dp)}`;
 
-  // leaderboards (top users)
   const lbWrap = document.getElementById("userLeaderboardWrap");
   const topSel = document.getElementById("userTopLimit");
-  if(topSel){
-    topSel.value = String(st.lbLimit || 25);
-  }
+  if(topSel) topSel.value = String(st.lbLimit || 25);
 
   const lb = await apiUserLeaderboard({
-    from,
-    to,
+    from, to,
     orderBy: st.lbOrderBy || "total",
     orderDir: st.lbOrderDir || "desc",
-    limit: st.lbLimit || 25
+    limit: st.lbLimit || 25,
+    login: st.login || "",
+    side: st.side || "all",
+    dp: st.dp || "all"
   });
 
   const rowsLb = lb.rows || [];
@@ -1238,11 +1316,11 @@ async function renderUserTab(){
         <table>
           <thead>
             <tr>
-              ${head("login","user")}
-              ${head("shortpick","shortpick")}
-              ${head("audit_pick","audit pick")}
-              ${head("audit_pa","audit pa")}
-              ${head("total","total")}
+              ${head("login","User")}
+              ${head("shortpick","Shortpick")}
+              ${head("audit_pick","Audit pick")}
+              ${head("audit_pa","Audit PA")}
+              ${head("total","Total")}
             </tr>
           </thead>
           <tbody>${trs}</tbody>
@@ -1250,9 +1328,8 @@ async function renderUserTab(){
       </div>
     `;
 
-    // header sorting
     lbWrap.querySelectorAll("th.sortable").forEach(th=>{
-      th.addEventListener("click", (e)=>{
+      th.addEventListener("click", ()=>{
         const k = th.dataset.k;
         if(st.lbOrderBy === k){
           st.lbOrderDir = (st.lbOrderDir === "asc") ? "desc" : "asc";
@@ -1264,7 +1341,6 @@ async function renderUserTab(){
       });
     });
 
-    // click login -> set filter + search
     lbWrap.querySelectorAll("a.userPick").forEach(a=>{
       a.addEventListener("click", (e)=>{
         e.preventDefault();
@@ -1276,10 +1352,8 @@ async function renderUserTab(){
     });
   }
 
-  // by-date table
   const wrap = document.getElementById("userByDateTableWrap");
   const grouped = summary.grouped || [];
-
   if(grouped.length === 0){
     wrap.innerHTML = `<div class="muted">No data for the current filter.</div>`;
     return;
@@ -1294,7 +1368,6 @@ async function renderUserTab(){
 
   const ap = summary.audit_pick || {profit:0,loss:0,all:0,total:0};
   const pa = summary.audit_pa || {profit:0,loss:0,occupied:0,all:0,total:0};
-
   const apAll = ap.all ?? ap.total ?? 0;
   const paAll = pa.all ?? pa.total ?? 0;
 
@@ -1307,6 +1380,7 @@ async function renderUserTab(){
     </div>
     <div class="hr"></div>
     <div class="muted">
+      Active filters: Side <b>${esc(filterBadge(st.side))}</b> • DP <b>${esc(filterBadge(st.dp))}</b><br>
       Audit pick: Profit <b>${ap.profit||0}</b> • Loss <b>${ap.loss||0}</b> • All <b>${apAll||0}</b><br>
       Audit PA: Profit <b>${pa.profit||0}</b> • Loss <b>${pa.loss||0}</b> • Occupied <b>${pa.occupied||0}</b> • All <b>${paAll||0}</b>
     </div>
@@ -1318,6 +1392,7 @@ async function renderUserTab(){
  *  ========================================================= */
 async function renderShortpickTab(){
   const st = dateState.sp;
+  mountFilterControls("spFilterControls", "sp");
   document.getElementById("spSearchLogin").value = st.login || "";
 
   const from = toDateOnlyISO(st.from);
@@ -1327,6 +1402,8 @@ async function renderShortpickTab(){
     type: TYPES.SHORTPICK,
     login: st.login || "",
     from, to,
+    side: st.side || "all",
+    dp: st.dp || "all",
     page: st.page,
     pageSize: PAGE_SIZE
   });
@@ -1335,7 +1412,7 @@ async function renderShortpickTab(){
   st.page = Math.min(st.page, totalPages);
 
   document.getElementById("spPageInfo").textContent =
-    `Page ${st.page} / ${totalPages} (${data.total||0} rows)`;
+    `Page ${st.page} / ${totalPages} (${data.total||0} rows) · ${filterBadge(st.side)} · ${filterBadge(st.dp)}`;
 
   const wrap = document.getElementById("shortpickTableWrap");
   const rowsArr = data.rows || [];
@@ -1350,6 +1427,8 @@ async function renderShortpickTab(){
       <td>${esc(r.task_order||"")}</td>
       <td>${esc(r.sku||"")}</td>
       <td>${esc(r.box_number||"")}</td>
+      <td>${esc(r.dp||"")}</td>
+      <td>${esc(r.side||"")}</td>
       <td class="td-muted">${esc(formatWarsawTime(r.time))}</td>
       <td>${esc(r.person_login||"")}</td>
     </tr>
@@ -1360,9 +1439,11 @@ async function renderShortpickTab(){
       <thead>
         <tr>
           <th style="width:120px;">Date</th>
-          <th>Task Order</th>
+          <th>Task order</th>
           <th style="width:180px;">SKU</th>
-          <th style="width:170px;">Box Number</th>
+          <th style="width:170px;">Box number</th>
+          <th style="width:90px;">DP</th>
+          <th style="width:90px;">Side</th>
           <th style="width:170px;">Time (Warsaw)</th>
           <th style="width:140px;">Login</th>
         </tr>
@@ -1393,7 +1474,7 @@ function renderAuditLeaderboardTable({wrapId, infoId, rows, state, columns, onLo
 
   if(!rows || rows.length === 0){
     info.textContent = "Top 0";
-    wrap.innerHTML = `<div class="muted">No data.</div>`;
+    wrap.innerHTML = `<div class="muted">Нет данных.</div>`;
     return;
   }
 
@@ -1442,30 +1523,32 @@ function renderAuditLeaderboardTable({wrapId, infoId, rows, state, columns, onLo
 
 async function renderAuditPickTab(){
   const st = dateState.ap;
+  mountFilterControls("apFilterControls", "ap");
   document.getElementById("apSearchLogin").value = st.login || "";
   document.getElementById("apResult").value = st.result || "all";
 
   const from = toDateOnlyISO(st.from);
   const to = toDateOnlyISO(st.to);
 
-  // stats берём через user-summary? (тут проще: запросим user-summary без type)
-  // чтобы не плодить эндпоинты — оставим только period текстом.
-  document.getElementById("apStatPeriod").textContent = humanRange(st.from, st.to);
+  document.getElementById("apStatPeriod").textContent = `${humanRange(st.from, st.to)} · ${filterBadge(st.side)} · ${filterBadge(st.dp)}`;
 
   const data = await apiRecords({
     type: TYPES.AUDIT_PICK,
     login: st.login || "",
     from, to,
     result: st.result || "all",
+    side: st.side || "all",
+    dp: st.dp || "all",
     page: st.page,
     pageSize: PAGE_SIZE
   });
 
-  // Счётчики profit/loss/all считаем по странице? — не идеально.
-  // Поэтому показываем "All" как total фильтра + другие — по отдельному запросу /api/user-summary (включает общий all, profit/loss).
   const sumQS = new URLSearchParams();
   if(st.login) sumQS.set("login", st.login);
-  sumQS.set("from", from); sumQS.set("to", to);
+  sumQS.set("from", from); 
+  sumQS.set("to", to);
+  if(st.side && st.side !== "all") sumQS.set("side", st.side);
+  if(st.dp && st.dp !== "all") sumQS.set("dp", st.dp);
   const summary = await apiFetch("/api/user-summary?" + sumQS.toString());
   const ap = summary.audit_pick || {profit:0,loss:0,all:0};
 
@@ -1492,6 +1575,8 @@ async function renderAuditPickTab(){
       <td>${esc(r.person_login||"")}</td>
       <td>${esc(r.container||"")}</td>
       <td>${esc(r.sku||"")}</td>
+      <td>${esc(r.dp||"")}</td>
+      <td>${esc(r.side||"")}</td>
       <td>${esc(r.auditor||"")}</td>
       <td><b>${esc(r.result||"")}</b></td>
     </tr>
@@ -1505,21 +1590,25 @@ async function renderAuditPickTab(){
           <th style="width:140px;">Picker login</th>
           <th style="width:180px;">Container</th>
           <th style="width:200px;">SKU</th>
-          <th style="width:160px;">Audytor</th>
+          <th style="width:90px;">DP</th>
+          <th style="width:90px;">Side</th>
+          <th style="width:160px;">Auditor</th>
           <th style="width:120px;">Result</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
     </table>
   `;
-  // leaderboard (top pickers)
+
   const lb = await apiAuditLeaderboard({
     type: "audit_pick",
     from, to,
     result: st.result || "all",
     orderBy: st.lbOrderBy || "all",
     orderDir: st.lbOrderDir || "desc",
-    limit: st.lbLimit || 25
+    limit: st.lbLimit || 25,
+    side: st.side || "all",
+    dp: st.dp || "all"
   });
 
   const lbWrap = document.getElementById("auditPickLbWrap");
@@ -1551,8 +1640,6 @@ async function renderAuditPickTab(){
       renderAuditPickTab().catch(console.error);
     }
   });
-
-
 }
 
 /** =========================================================
@@ -1560,6 +1647,7 @@ async function renderAuditPickTab(){
  *  ========================================================= */
 async function renderAuditPATab(){
   const st = dateState.pa;
+  mountFilterControls("paFilterControls", "pa");
   document.getElementById("paSearchLogin").value = st.login || "";
   document.getElementById("paResult").value = st.result || "all";
 
@@ -1571,13 +1659,18 @@ async function renderAuditPATab(){
     login: st.login || "",
     from, to,
     result: st.result || "all",
+    side: st.side || "all",
+    dp: st.dp || "all",
     page: st.page,
     pageSize: PAGE_SIZE
   });
 
   const sumQS = new URLSearchParams();
   if(st.login) sumQS.set("login", st.login);
-  sumQS.set("from", from); sumQS.set("to", to);
+  sumQS.set("from", from); 
+  sumQS.set("to", to);
+  if(st.side && st.side !== "all") sumQS.set("side", st.side);
+  if(st.dp && st.dp !== "all") sumQS.set("dp", st.dp);
   const summary = await apiFetch("/api/user-summary?" + sumQS.toString());
   const pa = summary.audit_pa || {profit:0,loss:0,occupied:0,all:0};
 
@@ -1590,7 +1683,7 @@ async function renderAuditPATab(){
   st.page = Math.min(st.page, totalPages);
 
   document.getElementById("paPageInfo").textContent =
-    `Page ${st.page} / ${totalPages} (${data.total||0} rows)`;
+    `Page ${st.page} / ${totalPages} (${data.total||0} rows) · ${filterBadge(st.side)} · ${filterBadge(st.dp)}`;
 
   const wrap = document.getElementById("auditPATableWrap");
   const rowsArr = data.rows || [];
@@ -1605,6 +1698,8 @@ async function renderAuditPATab(){
       <td>${esc(r.person_login||"")}</td>
       <td>${esc(r.container||"")}</td>
       <td>${esc(r.sku||"")}</td>
+      <td>${esc(r.dp||"")}</td>
+      <td>${esc(r.side||"")}</td>
       <td>${esc(r.auditor||"")}</td>
       <td><b>${esc(r.result||"")}</b></td>
     </tr>
@@ -1618,21 +1713,25 @@ async function renderAuditPATab(){
           <th style="width:140px;">Packer login</th>
           <th style="width:180px;">Container</th>
           <th style="width:200px;">SKU</th>
-          <th style="width:160px;">Audytor</th>
+          <th style="width:90px;">DP</th>
+          <th style="width:90px;">Side</th>
+          <th style="width:160px;">Auditor</th>
           <th style="width:120px;">Result</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
     </table>
   `;
-  // leaderboard (top packers)
+
   const lb = await apiAuditLeaderboard({
     type: "audit_pa",
     from, to,
     result: st.result || "all",
     orderBy: st.lbOrderBy || "all",
     orderDir: st.lbOrderDir || "desc",
-    limit: st.lbLimit || 25
+    limit: st.lbLimit || 25,
+    side: st.side || "all",
+    dp: st.dp || "all"
   });
 
   const lbWrap = document.getElementById("auditPaLbWrap");
@@ -1665,8 +1764,6 @@ async function renderAuditPATab(){
       renderAuditPATab().catch(console.error);
     }
   });
-
-
 }
 
 /** =========================================================
@@ -1710,7 +1807,7 @@ async function renderImportsTab(){
   if(!me) return;
   if(me.role !== "admin"){
     document.getElementById("importsTableWrap").innerHTML =
-      `<div class="muted">No access (admin only).</div>`;
+      `<div class="muted">Нет доступа (только admin).</div>`;
     return;
   }
 
@@ -1758,7 +1855,7 @@ function exportRowsToExcel(rows, sheetName, filename){
 }
 
 /** =========================================================
- *  MODALS (User Management UI) - локальная форма, сохранение на сервер
+ *  MODALS (User management UI) - локальная форма, сохранение на сервер
  *  ========================================================= */
 let userModalState = { mode:"add", user:null };
 
@@ -1791,8 +1888,8 @@ async function saveUserFromModal(){
   const pwd = document.getElementById("umPassword").value;
   const role = document.getElementById("umRole").value;
 
-  if(!login){ toast("Login is required"); return; }
-  if(userModalState.mode === "add" && !pwd){ toast("Password is required"); return; }
+  if(!login){ toast("Login обязателен"); return; }
+  if(userModalState.mode === "add" && !pwd){ toast("Password обязателен"); return; }
 
   try{
     if(userModalState.mode === "add"){
@@ -1801,21 +1898,21 @@ async function saveUserFromModal(){
         headers:{ "Content-Type":"application/json" },
         body: JSON.stringify({ login, password: pwd, role })
       });
-      toast("User added");
+      toast("Пользователь добавлен");
     }else{
       await apiFetch("/api/users/" + userModalState.user.id, {
         method:"PUT",
         headers:{ "Content-Type":"application/json" },
         body: JSON.stringify({ role, password: pwd || undefined })
       });
-      toast("User updated");
+      toast("Пользователь обновлён");
     }
 
     document.getElementById("userModal").classList.add("hidden");
     await renderUsersTab();
     enforceRoleUI();
   }catch(e){
-    toast("Error: " + e.message);
+    toast("Ошибка: " + e.message);
   }
 }
 
@@ -1827,7 +1924,7 @@ function bindTabs(){
     t.addEventListener("click", ()=>{
       const me = getMe();
       if(t.id==="tabImports" && me?.role !== "admin"){
-        toast("No access to Imports (admin only)");
+        toast("Нет доступа к Imports (только admin)");
         return;
       }
       setTab(t.dataset.tab);
@@ -1847,7 +1944,6 @@ function bindChooser(groupId, stateKey, inputsId){
 }
 
 function bindCoreButtons(){
-  // LOGIN (server)
   document.getElementById("btnLogin").addEventListener("click", async ()=>{
     const login = document.getElementById("loginInput").value.trim();
     const password  = document.getElementById("passwordInput").value;
@@ -1860,19 +1956,17 @@ function bindCoreButtons(){
       setToken(r.token);
       setMe(r.user);
       openApp();
-      toast("Login successful");
+      toast("Успешный вход");
     }catch(e){
-      toast("Invalid login/password");
+      toast("Неверный login/password");
     }
   });
 
-  // LOGOUT
   document.getElementById("btnLogout").addEventListener("click", ()=>{
     clearToken();
     openLogin();
   });
 
-  // CHANGE PASSWORD (server)
   document.getElementById("btnChangePwd").addEventListener("click", ()=>{
     document.getElementById("pwdCurrent").value="";
     document.getElementById("pwdNew").value="";
@@ -1886,8 +1980,8 @@ function bindCoreButtons(){
     const cur = document.getElementById("pwdCurrent").value;
     const n1  = document.getElementById("pwdNew").value;
     const n2  = document.getElementById("pwdNew2").value;
-    if(!cur || !n1 || !n2){ toast("Fill in all fields"); return; }
-    if(n1 !== n2){ toast("Passwords do not match"); return; }
+    if(!cur || !n1 || !n2){ toast("Заполни все поля"); return; }
+    if(n1 !== n2){ toast("Пароли не совпадают"); return; }
 
     try{
       await apiFetch("/api/auth/change-password", {
@@ -1896,17 +1990,12 @@ function bindCoreButtons(){
         body: JSON.stringify({ currentPassword: cur, newPassword: n1 })
       });
       document.getElementById("pwdModal").classList.add("hidden");
-      toast("Password changed");
+      toast("Пароль изменён");
     }catch(e){
-      toast("Error: " + e.message);
+      toast("Ошибка: " + e.message);
     }
   });
 
-  // USER: search + date + export
-  document.getElementById("btnUserSearch").addEventListener("click", ()=>{
-    dateState.user.login = document.getElementById("userSearchLogin").value.trim();
-
-  // User Top limit
   const topSel = document.getElementById("userTopLimit");
   if(topSel){
     topSel.addEventListener("change", ()=>{
@@ -1914,6 +2003,9 @@ function bindCoreButtons(){
       renderUserTab().catch(console.error);
     });
   }
+
+  document.getElementById("btnUserSearch").addEventListener("click", ()=>{
+    dateState.user.login = document.getElementById("userSearchLogin").value.trim();
     renderUserTab().catch(console.error);
   });
   document.getElementById("btnApplyDate").addEventListener("click", ()=>{
@@ -1926,11 +2018,12 @@ function bindCoreButtons(){
       const st = dateState.user;
       const from = toDateOnlyISO(st.from);
       const to = toDateOnlyISO(st.to);
-      // забираем побольше
       const data = await apiRecords({
         type:"",
         login: st.login || "",
         from, to,
+        side: st.side || "all",
+        dp: st.dp || "all",
         page:1,
         pageSize:500
       });
@@ -1943,18 +2036,18 @@ function bindCoreButtons(){
         SKU: r.sku || "",
         BoxNumber: r.box_number || "",
         Container: r.container || "",
-        Audytor: r.auditor || "",
-        Result: r.result || ""
+        Auditor: r.auditor || "",
+        Result: r.result || "",
+        DP: r.dp || "",
+        Side: r.side || ""
       }));
-      if(!rows.length){ toast("No data to export"); return; }
-      const name = `ALL_${from}-${to}.xlsx`;
-      exportRowsToExcel(rows, "All", name);
+      if(!rows.length){ toast("Нет данных для экспорта"); return; }
+      exportRowsToExcel(rows, "All", `ALL_${from}-${to}.xlsx`);
     }catch(e){
-      toast("Export error: " + e.message);
+      toast("Ошибка экспорта: " + e.message);
     }
   });
 
-  // SHORTPICK: search + date + paging + export
   document.getElementById("btnSpSearch").addEventListener("click", ()=>{
     dateState.sp.login = document.getElementById("spSearchLogin").value.trim();
     dateState.sp.page = 1;
@@ -1969,8 +2062,7 @@ function bindCoreButtons(){
     dateState.sp.page = Math.max(1, dateState.sp.page-1);
     renderShortpickTab().catch(console.error);
   });
-  document.getElementById("spNext").addEventListener("click", async ()=>{
-    // просто листаем, render сам покажет
+  document.getElementById("spNext").addEventListener("click", ()=>{
     dateState.sp.page += 1;
     renderShortpickTab().catch(console.error);
   });
@@ -1979,21 +2071,30 @@ function bindCoreButtons(){
       const st = dateState.sp;
       const from = toDateOnlyISO(st.from);
       const to = toDateOnlyISO(st.to);
-      const data = await apiRecords({ type:TYPES.SHORTPICK, login: st.login||"", from, to, page:1, pageSize:500 });
+      const data = await apiRecords({
+        type:TYPES.SHORTPICK,
+        login: st.login||"",
+        from, to,
+        side: st.side || "all",
+        dp: st.dp || "all",
+        page:1,
+        pageSize:500
+      });
       const rows = (data.rows||[]).map(r=>({
         Date: fmtDate(r.date),
-        "Task Order": r.task_order || "",
+        "Task order": r.task_order || "",
         SKU: r.sku || "",
-        "Box Number": r.box_number || "",
+        "Box number": r.box_number || "",
+        DP: r.dp || "",
+        Side: r.side || "",
         Time: (r.time||"").replace("T"," "),
         Picker: r.person_login || ""
       }));
-      if(!rows.length){ toast("No data to export"); return; }
+      if(!rows.length){ toast("Нет данных для экспорта"); return; }
       exportRowsToExcel(rows, "Shortpick", `Shortpick_${from}-${to}.xlsx`);
-    }catch(e){ toast("Export error: " + e.message); }
+    }catch(e){ toast("Ошибка экспорта: " + e.message); }
   });
 
-  // AUDIT PICK: search + date + paging + export
   document.getElementById("btnApSearch").addEventListener("click", ()=>{
     dateState.ap.login = document.getElementById("apSearchLogin").value.trim();
     dateState.ap.result = document.getElementById("apResult").value;
@@ -2023,22 +2124,26 @@ function bindCoreButtons(){
         login: st.login||"",
         from, to,
         result: st.result||"all",
-        page:1, pageSize:500
+        side: st.side || "all",
+        dp: st.dp || "all",
+        page:1,
+        pageSize:500
       });
       const rows = (data.rows||[]).map(r=>({
         Date: fmtDate(r.date),
         Picker: r.person_login || "",
         Container: r.container || "",
         SKU: r.sku || "",
-        Audytor: r.auditor || "",
+        DP: r.dp || "",
+        Side: r.side || "",
+        Auditor: r.auditor || "",
         Result: r.result || ""
       }));
-      if(!rows.length){ toast("No data to export"); return; }
+      if(!rows.length){ toast("Нет данных для экспорта"); return; }
       exportRowsToExcel(rows, "Audit pick", `AuditPick_${from}-${to}.xlsx`);
-    }catch(e){ toast("Export error: " + e.message); }
+    }catch(e){ toast("Ошибка экспорта: " + e.message); }
   });
 
-  // AUDIT PA: search + date + paging + export
   document.getElementById("btnPaSearch").addEventListener("click", ()=>{
     dateState.pa.login = document.getElementById("paSearchLogin").value.trim();
     dateState.pa.result = document.getElementById("paResult").value;
@@ -2068,25 +2173,29 @@ function bindCoreButtons(){
         login: st.login||"",
         from, to,
         result: st.result||"all",
-        page:1, pageSize:500
+        side: st.side || "all",
+        dp: st.dp || "all",
+        page:1,
+        pageSize:500
       });
       const rows = (data.rows||[]).map(r=>({
         Date: fmtDate(r.date),
         Packer: r.person_login || "",
         Container: r.container || "",
         SKU: r.sku || "",
-        Audytor: r.auditor || "",
+        DP: r.dp || "",
+        Side: r.side || "",
+        Auditor: r.auditor || "",
         Result: r.result || ""
       }));
-      if(!rows.length){ toast("No data to export"); return; }
+      if(!rows.length){ toast("Нет данных для экспорта"); return; }
       exportRowsToExcel(rows, "Audit PA", `AuditPA_${from}-${to}.xlsx`);
-    }catch(e){ toast("Export error: " + e.message); }
+    }catch(e){ toast("Ошибка экспорта: " + e.message); }
   });
 
-  // IMPORT (admin only) -> server
   document.getElementById("btnAddImport").addEventListener("click", ()=>{
     const me = getMe();
-    if(me?.role !== "admin"){ toast("Only admin can upload files"); return; }
+    if(me?.role !== "admin"){ toast("Только admin может загружать файлы"); return; }
     document.getElementById("fileInput").click();
   });
 
@@ -2099,7 +2208,7 @@ function bindCoreButtons(){
       const fd = new FormData();
       fd.append("file", file);
       const r = await apiFetch("/api/import", { method:"POST", body: fd });
-      toast(`Import: ${r.rowsAdded} rows`);
+      toast(`Импорт: ${r.rowsAdded} строк`);
 
       await renderUserTab();
       await renderShortpickTab();
@@ -2108,16 +2217,14 @@ function bindCoreButtons(){
       await renderImportsTab();
     }catch(err){
       console.error(err);
-      toast("Import error: " + err.message);
+      toast("Ошибка импорта: " + err.message);
     }
   });
 
-  // USERS modal
   document.getElementById("btnAddUser").addEventListener("click", ()=> openUserModal({mode:"add"}) );
   document.getElementById("btnUserCancel").addEventListener("click", ()=> document.getElementById("userModal").classList.add("hidden") );
   document.getElementById("btnUserSave").addEventListener("click", saveUserFromModal);
 
-  // delegation (edit/delete users, delete/download imports)
   document.body.addEventListener("click", async (e)=>{
     const a = e.target.closest("[data-action]");
     if(!a) return;
@@ -2131,35 +2238,34 @@ function bindCoreButtons(){
     }
 
     if(action === "delUser"){
-      if(!confirm("Delete user?")) return;
+      if(!confirm("Удалить пользователя?")) return;
       try{
         await apiFetch("/api/users/" + id, { method:"DELETE" });
-        toast("User deleted");
+        toast("Пользователь удалён");
         await renderUsersTab();
       }catch(err){
-        toast("Error: " + err.message);
+        toast("Ошибка: " + err.message);
       }
     }
 
     if(action === "deleteImport"){
-      if(!confirm("Delete import and all rows from this file?")) return;
+      if(!confirm("Удалить импорт и все строки из этого файла?")) return;
       try{
         await apiFetch("/api/imports/" + id, { method:"DELETE" });
-        toast("Import deleted");
+        toast("Импорт удалён");
         await renderImportsTab();
         await renderUserTab();
       }catch(err){
-        toast("Error: " + err.message);
+        toast("Ошибка: " + err.message);
       }
     }
 
     if(action === "downloadImport"){
       e.preventDefault();
       try{
-        // скачивание файла: просто открываем endpoint
         window.location.href = "/api/imports/" + id + "/file";
       }catch(err){
-        toast("Error: " + err.message);
+        toast("Ошибка: " + err.message);
       }
     }
   });
