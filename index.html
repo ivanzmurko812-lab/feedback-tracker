@@ -532,6 +532,7 @@
         <div class="tab" data-tab="shortpickTab" id="tabShortpick">Shortpick</div>
         <div class="tab" data-tab="auditPickTab" id="tabAuditPick">Audit pick</div>
         <div class="tab" data-tab="auditPATab" id="tabAuditPA">Audit PA</div>
+        <div class="tab" data-tab="deliveryTab" id="tabDelivery">Delivery</div>
         <div class="tab" data-tab="usersTab" id="tabUsers">User management</div>
         <div class="tab" data-tab="blacklistTab" id="tabBlacklist">Black list</div>
         <div class="tab" data-tab="importsTab" id="tabImports">Imports</div>
@@ -836,6 +837,65 @@
           </div>
         </div>
 
+
+        <!-- DELIVERY TAB -->
+        <div id="deliveryTab" class="hidden">
+          <div class="grid-any">
+            <div class="card">
+              <h3>Delivery filters</h3>
+              <div class="col">
+                <label>Delivered</label>
+                <select id="deliveryDelivered">
+                  <option value="all">All</option>
+                  <option value="yes">Yes</option>
+                  <option value="no">No</option>
+                </select>
+                <label>Delivered date</label>
+                <input id="deliveryDeliveredDate" type="date" />
+                <button class="btn wide" id="btnDeliveryApplyFilters">Apply filters</button>
+                <button class="btn secondary wide" id="btnDeliveryResetFilters">Reset delivery filters</button>
+              </div>
+              <div class="hr"></div>
+              <div class="muted">
+                Click a login to open detailed feedback for that date. Delivery is saved for the whole package: <b>date + login</b>.
+              </div>
+            </div>
+
+            <div class="col" style="gap:16px;">
+              <div class="stats">
+                <div class="stat"><div class="k">Packages</div><div class="v" id="deliveryStatGroups">0</div><div class="sub">rows</div></div>
+                <div class="stat"><div class="k">Delivered</div><div class="v" id="deliveryStatYes">0</div><div class="sub">yes</div></div>
+                <div class="stat"><div class="k">Not delivered</div><div class="v" id="deliveryStatNo">0</div><div class="sub">no</div></div>
+                <div class="stat"><div class="k">Period</div><div class="v" style="font-size:18px; margin-top:14px;" id="deliveryStatPeriod">—</div><div class="sub">range</div></div>
+              </div>
+
+              <div class="card">
+                <div class="row" style="justify-content:space-between; align-items:flex-end; gap:14px;">
+                  <div>
+                    <h3 style="margin:0">Delivery list</h3>
+                    <div class="muted" id="deliveryInfo" style="margin-top:6px;">Click login to open details</div>
+                  </div>
+                </div>
+                <div class="hr"></div>
+                <div class="table-wrap table-scroll" id="deliveryTableWrap"></div>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3>Choose Date</h3>
+              <div class="chooser" id="deliveryChooser">
+                <div class="chip active" data-mode="day">📅 Day</div>
+                <div class="chip" data-mode="week">🗓 Week</div>
+                <div class="chip" data-mode="month">🗓 Month</div>
+                <div class="chip" data-mode="custom">🗓 Custom Date</div>
+              </div>
+              <div class="hr"></div>
+              <div class="col" id="deliveryDateInputs"></div>
+              <button class="btn wide" id="btnApplyDeliveryDate">Apply</button>
+            </div>
+          </div>
+        </div>
+
         <!-- USERS TAB -->
         <div id="usersTab" class="hidden">
           <div class="row" style="justify-content:space-between; margin-bottom:14px;">
@@ -1117,7 +1177,8 @@ const dateState = {
   user: { mode:"day", from:null, to:null, login:"", lbOrderBy:"total", lbOrderDir:"desc", lbLimit:25 },
   sp: { mode:"day", from:null, to:null, login:"", page:1 },
   ap: { mode:"day", from:null, to:null, login:"", result:"all", page:1, lbOrderBy:"all", lbOrderDir:"desc", lbLimit:25 },
-  pa: { mode:"day", from:null, to:null, login:"", result:"all", page:1, lbOrderBy:"all", lbOrderDir:"desc", lbLimit:25 }
+  pa: { mode:"day", from:null, to:null, login:"", result:"all", page:1, lbOrderBy:"all", lbOrderDir:"desc", lbLimit:25 },
+  delivery: { mode:"day", from:null, to:null, delivered:"all", deliveredDate:"", orderBy:"date", orderDir:"desc", expandedKey:"" }
 };
 
 function normalizeSideClient(v){
@@ -1187,6 +1248,7 @@ function refreshActiveTab(){
   if(activeTab==="shortpickTab") return renderShortpickTab().catch(console.error);
   if(activeTab==="auditPickTab") return renderAuditPickTab().catch(console.error);
   if(activeTab==="auditPATab") return renderAuditPATab().catch(console.error);
+  if(activeTab==="deliveryTab") return renderDeliveryTab().catch(console.error);
   if(activeTab==="usersTab") return renderUsersTab().catch(console.error);
   if(activeTab==="blacklistTab") return renderBlacklistTab().catch(console.error);
   if(activeTab==="importsTab") return renderImportsTab().catch(console.error);
@@ -1262,7 +1324,7 @@ function setTab(tabId){
     t.classList.toggle("active", t.dataset.tab === tabId);
   });
 
-  ["userTab","shortpickTab","auditPickTab","auditPATab","usersTab","blacklistTab","importsTab"].forEach(id=>{
+  ["userTab","shortpickTab","auditPickTab","auditPATab","deliveryTab","usersTab","blacklistTab","importsTab"].forEach(id=>{
     document.getElementById(id).classList.toggle("hidden", id !== tabId);
   });
 
@@ -1270,6 +1332,7 @@ function setTab(tabId){
   if(tabId==="shortpickTab") renderShortpickTab().catch(console.error);
   if(tabId==="auditPickTab") renderAuditPickTab().catch(console.error);
   if(tabId==="auditPATab") renderAuditPATab().catch(console.error);
+  if(tabId==="deliveryTab") renderDeliveryTab().catch(console.error);
   if(tabId==="usersTab") renderUsersTab().catch(console.error);
   if(tabId==="blacklistTab") renderBlacklistTab().catch(console.error);
   if(tabId==="importsTab") renderImportsTab().catch(console.error);
@@ -1319,13 +1382,43 @@ async function apiAuditLeaderboard({type, from, to, result, orderBy, orderDir, l
   return apiFetch("/api/audit-leaderboard?" + qs.toString());
 }
 
-let blacklistCache = [];
+
+async function apiDeliveryGroups({from, to, delivered, deliveredDate, side, dp, orderBy, orderDir}){
+  const qs = new URLSearchParams();
+  if(from) qs.set("from", from);
+  if(to) qs.set("to", to);
+  if(delivered && delivered !== "all") qs.set("delivered", delivered);
+  if(deliveredDate) qs.set("deliveredDate", deliveredDate);
+  if(side && side !== "all") qs.set("side", side);
+  if(dp && dp !== "all") qs.set("dp", dp);
+  qs.set("orderBy", orderBy || "date");
+  qs.set("orderDir", orderDir || "desc");
+  return apiFetch("/api/delivery-groups?" + qs.toString());
+}
+
+async function apiDeliveryDetails({date, login, side, dp}){
+  const qs = new URLSearchParams();
+  if(date) qs.set("date", date);
+  if(login) qs.set("login", login);
+  if(side && side !== "all") qs.set("side", side);
+  if(dp && dp !== "all") qs.set("dp", dp);
+  return apiFetch("/api/delivery-details?" + qs.toString());
+}
+
+async function apiDeliveryMark({date, login, delivered}){
+  return apiFetch("/api/delivery-mark", {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({ date, login, delivered })
+  });
+}
+
 
 async function apiBlacklist(){
   return apiFetch("/api/blacklist");
 }
 
-async function apiBlacklistAdd({login, note}){
+async function apiBlacklistAdd({ login, note }){
   return apiFetch("/api/blacklist", {
     method:"POST",
     headers:{ "Content-Type":"application/json" },
@@ -1334,9 +1427,7 @@ async function apiBlacklistAdd({login, note}){
 }
 
 async function apiBlacklistDelete(login){
-  return apiFetch("/api/blacklist/" + encodeURIComponent(login), {
-    method:"DELETE"
-  });
+  return apiFetch("/api/blacklist/" + encodeURIComponent(login), { method:"DELETE" });
 }
 
 
@@ -1852,6 +1943,206 @@ async function renderAuditPATab(){
   });
 }
 
+
+/** =========================================================
+ *  RENDER: DELIVERY
+ *  ========================================================= */
+async function renderDeliveryTab(){
+  const st = dateState.delivery;
+  const from = toDateOnlyISO(st.from);
+  const to = toDateOnlyISO(st.to);
+
+  document.getElementById("deliveryDelivered").value = st.delivered || "all";
+  document.getElementById("deliveryDeliveredDate").value = st.deliveredDate || "";
+
+  const data = await apiDeliveryGroups({
+    from, to,
+    delivered: st.delivered || "all",
+    deliveredDate: st.deliveredDate || "",
+    side: globalFilters.side || "all",
+    dp: globalFilters.dp || "all",
+    orderBy: st.orderBy || "date",
+    orderDir: st.orderDir || "desc"
+  });
+
+  const rows = data.rows || [];
+  const deliveredCount = rows.filter(r => !!r.delivered).length;
+  document.getElementById("deliveryStatGroups").textContent = rows.length;
+  document.getElementById("deliveryStatYes").textContent = deliveredCount;
+  document.getElementById("deliveryStatNo").textContent = rows.length - deliveredCount;
+  document.getElementById("deliveryStatPeriod").textContent = `${humanRange(st.from, st.to)} · ${filterBadge(globalFilters.side)} · ${filterBadge(globalFilters.dp)}`;
+
+  const info = [];
+  info.push(`Rows: <b>${rows.length}</b>`);
+  info.push(`Delivered filter: <b>${esc((st.delivered || "all").toUpperCase())}</b>`);
+  if(st.deliveredDate) info.push(`Delivered date: <b>${esc(st.deliveredDate)}</b>`);
+  document.getElementById("deliveryInfo").innerHTML = info.join(" • ");
+
+  const wrap = document.getElementById("deliveryTableWrap");
+  if(!rows.length){
+    wrap.innerHTML = `<div class="muted">No delivery feedback packages for the current filter.</div>`;
+    return;
+  }
+
+  const head = (key, title)=>{
+    const is = st.orderBy === key;
+    const dir = st.orderDir || "desc";
+    const arrow = is ? (dir==="asc" ? "↑" : "↓") : "↕";
+    return `<th class="sortable" data-k="${esc(key)}">${esc(title)} <span class="sort">${arrow}</span></th>`;
+  };
+
+  const body = rows.map((r, idx)=>{
+    const date = fmtDate(r.date);
+    const key = `${date}__${r.login || ""}`;
+    const expanded = st.expandedKey === key;
+    const deliveredText = r.delivered ? "Yes" : "No";
+    const deliveredBy = r.delivered_by || "—";
+    const deliveredAt = r.delivered_at ? formatWarsawTime(r.delivered_at) : "—";
+    return `
+      <tr>
+        <td class="td-muted">${esc(date)}</td>
+        <td><a href="#" class="lnk deliveryToggle" data-date="${esc(date)}" data-login="${esc(r.login || "")}">${esc(r.login || "")}</a></td>
+        <td class="right">${esc(r.shortpick || 0)}</td>
+        <td class="right">${esc(r.audit_pick || 0)}</td>
+        <td class="right">${esc(r.audit_pa || 0)}</td>
+        <td class="right" style="color:var(--blue1);font-weight:900;">${esc(r.all || 0)}</td>
+        <td><b>${esc(deliveredText)}</b></td>
+        <td>${esc(deliveredBy)}</td>
+        <td>${esc(deliveredAt)}</td>
+      </tr>
+      ${expanded ? `<tr><td colspan="9"><div class="card" style="margin:10px 0 2px 0;" data-delivery-host="1" data-date="${esc(date)}" data-login="${esc(r.login || "")}">Loading details...</div></td></tr>` : ""}
+    `;
+  }).join("");
+
+  wrap.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          ${head("date","Date")}
+          ${head("login","Login")}
+          ${head("shortpick","Shortpick")}
+          ${head("audit_pick","Audit pick")}
+          ${head("audit_pa","Audit PA")}
+          ${head("all","All")}
+          ${head("delivered","Delivered")}
+          ${head("delivered_by","Delivered by")}
+          ${head("delivered_at","Delivered at")}
+        </tr>
+      </thead>
+      <tbody>${body}</tbody>
+    </table>
+  `;
+
+  wrap.querySelectorAll("th.sortable").forEach(th=>{
+    th.addEventListener("click", ()=>{
+      const k = th.dataset.k;
+      if(st.orderBy === k){
+        st.orderDir = st.orderDir === "asc" ? "desc" : "asc";
+      }else{
+        st.orderBy = k;
+        st.orderDir = (k === "login") ? "asc" : "desc";
+      }
+      renderDeliveryTab().catch(console.error);
+    });
+  });
+
+  wrap.querySelectorAll(".deliveryToggle").forEach(a=>{
+    a.addEventListener("click", (e)=>{
+      e.preventDefault();
+      const key = `${a.dataset.date}__${a.dataset.login}`;
+      st.expandedKey = st.expandedKey === key ? "" : key;
+      renderDeliveryTab().catch(console.error);
+    });
+  });
+
+  const host = wrap.querySelector("[data-delivery-host='1']");
+  if(host){
+    const date = host.dataset.date;
+    const login = host.dataset.login;
+    const details = await apiDeliveryDetails({
+      date, login,
+      side: globalFilters.side || "all",
+      dp: globalFilters.dp || "all"
+    });
+
+    const meta = details.delivery || {};
+    const delivered = !!meta.delivered;
+    const rows2 = details.rows || [];
+    const detailsRows = rows2.map(r=>`
+      <tr>
+        <td>${esc(String(r.type || "").replaceAll("_"," "))}</td>
+        <td>${esc(fmtDate(r.date))}</td>
+        <td>${esc(formatWarsawTime(r.time || ""))}</td>
+        <td>${esc(r.task_order || "")}</td>
+        <td>${esc(r.sku || "")}</td>
+        <td>${esc(r.box_number || "")}</td>
+        <td>${esc(r.container || "")}</td>
+        <td>${esc(r.result || "")}</td>
+        <td>${esc(r.dp || "")}</td>
+        <td>${esc(r.side || "")}</td>
+        <td>${esc(r.auditor || "")}</td>
+      </tr>
+    `).join("");
+
+    host.innerHTML = `
+      <div class="row" style="justify-content:space-between; align-items:flex-start; gap:14px; margin-bottom:10px;">
+        <div>
+          <h3 style="margin:0;">Feedback package: ${esc(login)} · ${esc(date)}</h3>
+          <div class="muted" style="margin-top:6px;">
+            Delivery status: <b>${delivered ? "Yes" : "No"}</b>
+            ${meta.delivered_by ? `• Delivered by <b>${esc(meta.delivered_by)}</b>` : ""}
+            ${meta.delivered_at ? `• ${esc(formatWarsawTime(meta.delivered_at))}` : ""}
+          </div>
+        </div>
+        <div class="row" style="gap:8px;">
+          <button class="btn ${delivered ? "secondary" : ""}" id="btnDeliveryYes">Mark Yes</button>
+          <button class="btn secondary" id="btnDeliveryNo">Mark No</button>
+        </div>
+      </div>
+      <div class="table-wrap table-scroll" style="max-height:360px;">
+        <table>
+          <thead>
+            <tr>
+              <th>Type</th>
+              <th>Date</th>
+              <th>Time (Warsaw)</th>
+              <th>Task order</th>
+              <th>SKU</th>
+              <th>Box</th>
+              <th>Container</th>
+              <th>Result</th>
+              <th>DP</th>
+              <th>Side</th>
+              <th>Auditor</th>
+            </tr>
+          </thead>
+          <tbody>${detailsRows || `<tr><td colspan="11" class="muted">No detailed rows.</td></tr>`}</tbody>
+        </table>
+      </div>
+    `;
+
+    host.querySelector("#btnDeliveryYes").addEventListener("click", async ()=>{
+      try{
+        await apiDeliveryMark({ date, login, delivered: true });
+        toast("Delivery marked as Yes");
+        await renderDeliveryTab();
+      }catch(err){
+        toast("Error: " + err.message);
+      }
+    });
+
+    host.querySelector("#btnDeliveryNo").addEventListener("click", async ()=>{
+      try{
+        await apiDeliveryMark({ date, login, delivered: false });
+        toast("Delivery marked as No");
+        await renderDeliveryTab();
+      }catch(err){
+        toast("Error: " + err.message);
+      }
+    });
+  }
+}
+
 /** =========================================================
  *  USERS TAB (server)
  *  ========================================================= */
@@ -2303,6 +2594,25 @@ function bindCoreButtons(){
     }catch(e){ toast("Export error: " + e.message); }
   });
 
+  document.getElementById("btnApplyDeliveryDate").addEventListener("click", ()=>{
+    applyDate("delivery");
+    renderDeliveryTab().catch(console.error);
+  });
+
+  document.getElementById("btnDeliveryApplyFilters").addEventListener("click", ()=>{
+    dateState.delivery.delivered = document.getElementById("deliveryDelivered").value;
+    dateState.delivery.deliveredDate = document.getElementById("deliveryDeliveredDate").value || "";
+    renderDeliveryTab().catch(console.error);
+  });
+
+  document.getElementById("btnDeliveryResetFilters").addEventListener("click", ()=>{
+    dateState.delivery.delivered = "all";
+    dateState.delivery.deliveredDate = "";
+    document.getElementById("deliveryDelivered").value = "all";
+    document.getElementById("deliveryDeliveredDate").value = "";
+    renderDeliveryTab().catch(console.error);
+  });
+
   document.getElementById("btnBlacklistAdd").addEventListener("click", async ()=>{
     const login = document.getElementById("blLogin").value.trim();
     const note = document.getElementById("blNote").value.trim();
@@ -2317,6 +2627,7 @@ function bindCoreButtons(){
       await renderShortpickTab();
       await renderAuditPickTab();
       await renderAuditPATab();
+      await renderDeliveryTab();
     }catch(err){
       toast("Error: " + err.message);
     }
@@ -2343,6 +2654,7 @@ function bindCoreButtons(){
       await renderShortpickTab();
       await renderAuditPickTab();
       await renderAuditPATab();
+      await renderDeliveryTab();
       await renderBlacklistTab();
       await renderImportsTab();
     }catch(err){
@@ -2385,6 +2697,7 @@ function bindCoreButtons(){
         toast("Import deleted");
         await renderImportsTab();
         await renderUserTab();
+        await renderDeliveryTab();
       }catch(err){
         toast("Error: " + err.message);
       }
@@ -2401,6 +2714,7 @@ function bindCoreButtons(){
         await renderShortpickTab();
         await renderAuditPickTab();
         await renderAuditPATab();
+        await renderDeliveryTab();
       }catch(err){
         toast("Error: " + err.message);
       }
@@ -2437,11 +2751,13 @@ function openApp(){
   renderDateInputs("spDateInputs","sp");
   renderDateInputs("apDateInputs","ap");
   renderDateInputs("paDateInputs","pa");
+  renderDateInputs("deliveryDateInputs","delivery");
 
   applyDate("user");
   applyDate("sp");
   applyDate("ap");
   applyDate("pa");
+  applyDate("delivery");
 
   setTab("userTab");
 }
@@ -2453,6 +2769,7 @@ function openApp(){
   bindChooser("spChooser","sp","spDateInputs");
   bindChooser("apChooser","ap","apDateInputs");
   bindChooser("paChooser","pa","paDateInputs");
+  bindChooser("deliveryChooser","delivery","deliveryDateInputs");
 
   bindCoreButtons();
 
@@ -2474,6 +2791,7 @@ function openApp(){
 </script>
 </body>
 </html>
+
 
 
 
