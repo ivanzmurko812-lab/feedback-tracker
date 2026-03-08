@@ -1262,7 +1262,7 @@ function setTab(tabId){
     t.classList.toggle("active", t.dataset.tab === tabId);
   });
 
-  ["userTab","shortpickTab","auditPickTab","auditPATab","usersTab","importsTab"].forEach(id=>{
+  ["userTab","shortpickTab","auditPickTab","auditPATab","usersTab","blacklistTab","importsTab"].forEach(id=>{
     document.getElementById(id).classList.toggle("hidden", id !== tabId);
   });
 
@@ -2454,6 +2454,19 @@ function openApp(){
 </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
