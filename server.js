@@ -193,6 +193,10 @@ function toPgTimestamp(value) {
   return null;
 }
 
+function blacklistWhere(alias = "records") {
+  return `NOT EXISTS (SELECT 1 FROM blacklist bl WHERE bl.login = ${alias}.person_login)`;
+}
+
 function clampInt(v, min, max, fallback) {
   const n = parseInt(String(v ?? ""), 10);
   if (!isFinite(n)) return fallback;
@@ -260,6 +264,13 @@ async function initDatabase() {
       rows_count integer NOT NULL DEFAULT 0,
       mime text NOT NULL,
       bytes bytea NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS blacklist (
+      login text PRIMARY KEY,
+      note text,
+      created_by text NOT NULL,
+      created_at timestamptz NOT NULL DEFAULT now()
     );
 
     CREATE TABLE IF NOT EXISTS records (
@@ -450,6 +461,7 @@ app.get("/api/records", authRequired, async (req, res) => {
   if (result && result !== "all") add(`LOWER(result) = ?`, String(result).toLowerCase());
   if (side && side !== "all") add(`side = ?`, normalizeSide(side));
   if (dp && dp !== "all") add(`dp = ?`, normalizeDp(dp));
+  where.push(blacklistWhere("records"));
 
   const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
 
@@ -480,6 +492,9 @@ app.get("/api/records-export", authRequired, async (req, res) => {
   if (from) add(`date >= ?`, String(from));
   if (to) add(`date <= ?`, String(to));
   if (result && result !== "all") add(`LOWER(result) = ?`, String(result).toLowerCase());
+  if (side && side !== "all") add(`side = ?`, normalizeSide(side));
+  if (dp && dp !== "all") add(`dp = ?`, normalizeDp(dp));
+  where.push(blacklistWhere("records"));
 
   const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
 
@@ -512,6 +527,7 @@ app.get("/api/user-summary", authRequired, async (req, res) => {
   if (to) add(`date <= ?`, String(to));
   if (side && side !== "all") add(`side = ?`, normalizeSide(side));
   if (dp && dp !== "all") add(`dp = ?`, normalizeDp(dp));
+  where.push(blacklistWhere("records"));
   const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
 
   const grouped = await pool.query(
@@ -576,6 +592,7 @@ app.get("/api/user-leaderboard", authRequired, async (req, res) => {
   if (to) { where.push(`date <= $${i++}`); vals.push(String(to)); }
   if (side && side !== "all") { where.push(`side = $${i++}`); vals.push(normalizeSide(side)); }
   if (dp && dp !== "all") { where.push(`dp = $${i++}`); vals.push(normalizeDp(dp)); }
+  where.push(blacklistWhere("records"));
 
   const whereSql = where.length ? `WHERE ${where.join(" AND ")} AND COALESCE(person_login,'') <> ''`
                                 : `WHERE COALESCE(person_login,'') <> ''`;
@@ -634,6 +651,7 @@ app.get("/api/audit-leaderboard", authRequired, async (req, res) => {
   if (result && result !== "all") { where.push(`LOWER(result) = $${i++}`); vals.push(String(result).toLowerCase()); }
   if (side && side !== "all") { where.push(`side = $${i++}`); vals.push(normalizeSide(side)); }
   if (dp && dp !== "all") { where.push(`dp = $${i++}`); vals.push(normalizeDp(dp)); }
+  where.push(blacklistWhere("records"));
 
   const whereSql = `WHERE ${where.join(" AND ")}`;
 
@@ -665,6 +683,32 @@ app.get("/api/audit-leaderboard", authRequired, async (req, res) => {
 
   const q = await pool.query(sql, vals);
   res.json({ rows: q.rows });
+});
+
+// BLACKLIST
+app.get("/api/blacklist", authRequired, roleRequired("admin", "manager"), async (req, res) => {
+  const q = await pool.query(`SELECT login, note, created_by, created_at FROM blacklist ORDER BY created_at DESC, login ASC`);
+  res.json({ rows: q.rows });
+});
+
+app.post("/api/blacklist", authRequired, roleRequired("admin", "manager"), async (req, res) => {
+  const login = String(req.body?.login || "").trim();
+  const note = String(req.body?.note || "").trim();
+  if (!login) return res.status(400).json({ error: "missing login" });
+
+  await pool.query(
+    `INSERT INTO blacklist(login, note, created_by, created_at)
+     VALUES($1,$2,$3,now())
+     ON CONFLICT (login) DO UPDATE SET note = EXCLUDED.note, created_by = EXCLUDED.created_by, created_at = now()`,
+    [login, note || null, req.user.login]
+  );
+  res.json({ ok: true });
+});
+
+app.delete("/api/blacklist/:login", authRequired, roleRequired("admin", "manager"), async (req, res) => {
+  const login = String(req.params.login || "").trim();
+  await pool.query(`DELETE FROM blacklist WHERE login=$1`, [login]);
+  res.json({ ok: true });
 });
 
 // IMPORTS
