@@ -148,6 +148,28 @@
       border-color: rgba(30,79,211,.55);
       box-shadow: 0 18px 34px rgba(30,79,211,.28);
     }
+    .tabs-spacer{ flex:1; }
+    .global-filter-bar{
+      margin-left:auto;
+      display:flex;
+      align-items:flex-start;
+      gap:12px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+    .global-filter-card{
+      min-width:220px;
+      padding:10px 12px;
+      border-radius:16px;
+      border:1px solid rgba(190,200,220,.9);
+      background: rgba(255,255,255,.72);
+      box-shadow: 0 10px 20px rgba(12,18,40,.10);
+    }
+    .global-filter-card .filter-group-title{ margin-bottom:8px; }
+    @media (max-width: 1200px){
+      .global-filter-bar{ width:100%; justify-content:stretch; }
+      .global-filter-card{ flex:1 1 280px; }
+    }
 
     .content{ padding: 18px; }
 
@@ -504,6 +526,8 @@
         <div class="tab" data-tab="auditPATab" id="tabAuditPA">Audit PA</div>
         <div class="tab" data-tab="usersTab" id="tabUsers">User management</div>
         <div class="tab" data-tab="importsTab" id="tabImports">Imports</div>
+        <div class="tabs-spacer"></div>
+        <div class="global-filter-bar" id="globalFilterBar"></div>
       </div>
 
       <div class="content">
@@ -515,8 +539,7 @@
               <div class="col">
                 <label>Login</label>
                 <input id="userSearchLogin" type="text" placeholder="введите логин (или пусто для всех)" />
-                <div id="userFilterControls"></div>
-                <button class="btn wide" id="btnUserSearch">Search</button>
+                                <button class="btn wide" id="btnUserSearch">Search</button>
               </div>
               <div class="hr"></div>
               <div class="muted">
@@ -597,8 +620,7 @@
               <div class="col">
                 <label>Login (Picker)</label>
                 <input id="spSearchLogin" type="text" placeholder="введите логин (или пусто для всех)" />
-                <div id="spFilterControls"></div>
-                <button class="btn wide" id="btnSpSearch">Search</button>
+                                <button class="btn wide" id="btnSpSearch">Search</button>
               </div>
               <div class="hr"></div>
               <button class="btn wide" id="btnExportShortpick">⬇ Export Shortpick</button>
@@ -648,8 +670,7 @@
                   <option value="profit">Profit</option>
                   <option value="loss">Loss</option>
                 </select>
-                <div id="apFilterControls"></div>
-                <button class="btn wide" id="btnApSearch">Search</button>
+                                <button class="btn wide" id="btnApSearch">Search</button>
               </div>
               <div class="hr"></div>
               <button class="btn wide" id="btnExportAuditPick">⬇ Export Audit pick</button>
@@ -735,8 +756,7 @@
                   <option value="loss">Loss</option>
                   <option value="occupied">Occupied</option>
                 </select>
-                <div id="paFilterControls"></div>
-                <button class="btn wide" id="btnPaSearch">Search</button>
+                                <button class="btn wide" id="btnPaSearch">Search</button>
               </div>
               <div class="hr"></div>
               <button class="btn wide" id="btnExportAuditPA">⬇ Export Audit PA</button>
@@ -1052,11 +1072,12 @@ function formatWarsawTime(isoLocal){
 /** =========================================================
  *  FILTER STATE
  *  ========================================================= */
+const globalFilters = { side:"all", dp:"all" };
 const dateState = {
-  user: { mode:"day", from:null, to:null, login:"", side:"all", dp:"all", lbOrderBy:"total", lbOrderDir:"desc", lbLimit:25 },
-  sp: { mode:"day", from:null, to:null, login:"", side:"all", dp:"all", page:1 },
-  ap: { mode:"day", from:null, to:null, login:"", result:"all", side:"all", dp:"all", page:1, lbOrderBy:"all", lbOrderDir:"desc", lbLimit:25 },
-  pa: { mode:"day", from:null, to:null, login:"", result:"all", side:"all", dp:"all", page:1, lbOrderBy:"all", lbOrderDir:"desc", lbLimit:25 }
+  user: { mode:"day", from:null, to:null, login:"", lbOrderBy:"total", lbOrderDir:"desc", lbLimit:25 },
+  sp: { mode:"day", from:null, to:null, login:"", page:1 },
+  ap: { mode:"day", from:null, to:null, login:"", result:"all", page:1, lbOrderBy:"all", lbOrderDir:"desc", lbLimit:25 },
+  pa: { mode:"day", from:null, to:null, login:"", result:"all", page:1, lbOrderBy:"all", lbOrderDir:"desc", lbLimit:25 }
 };
 
 function normalizeSideClient(v){
@@ -1076,51 +1097,58 @@ function normalizeDpClient(v){
 function filterBadge(v){
   return v && v !== "all" ? v : "ALL";
 }
-function renderSegmentButtons(current, options, onPick){
+function renderSegmentButtons(current, options){
   return `
     <div class="segmented">
       ${options.map(opt=>`<button type="button" class="seg-btn ${current===opt.value ? "active" : ""}" data-value="${esc(opt.value)}">${esc(opt.label)}</button>`).join("")}
     </div>
   `;
 }
-function mountFilterControls(containerId, stateKey){
-  const box = document.getElementById(containerId);
+function renderGlobalFilters(){
+  const box = document.getElementById("globalFilterBar");
   if(!box) return;
-  const st = dateState[stateKey];
   box.innerHTML = `
-    <div class="filter-stack">
-      <div>
-        <div class="filter-group-title">Side</div>
-        ${renderSegmentButtons(st.side || "all", [
-          {value:"GEEK+", label:"GEEK+"},
-          {value:"HAI", label:"HAI"},
-          {value:"all", label:"ALL"}
-        ])}
-      </div>
-      <div>
-        <div class="filter-group-title">DP</div>
-        ${renderSegmentButtons(st.dp || "all", [
-          {value:"DP1", label:"DP1"},
-          {value:"DP2", label:"DP2"},
-          {value:"all", label:"ALL"}
-        ])}
-      </div>
+    <div class="global-filter-card">
+      <div class="filter-group-title">Side</div>
+      ${renderSegmentButtons(globalFilters.side || "all", [
+        {value:"GEEK+", label:"GEEK+"},
+        {value:"HAI", label:"HAI"},
+        {value:"all", label:"ALL"}
+      ])}
+    </div>
+    <div class="global-filter-card">
+      <div class="filter-group-title">DP</div>
+      ${renderSegmentButtons(globalFilters.dp || "all", [
+        {value:"DP1", label:"DP1"},
+        {value:"DP2", label:"DP2"},
+        {value:"all", label:"ALL"}
+      ])}
     </div>
   `;
-  const groups = box.querySelectorAll(".segmented");
-  const [sideGroup, dpGroup] = groups;
-  sideGroup?.querySelectorAll(".seg-btn").forEach(btn=>{
-    btn.addEventListener("click", ()=>{
-      st.side = normalizeSideClient(btn.dataset.value);
-      mountFilterControls(containerId, stateKey);
+  const cards = box.querySelectorAll('.global-filter-card');
+  cards[0]?.querySelectorAll('.seg-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      globalFilters.side = normalizeSideClient(btn.dataset.value);
+      renderGlobalFilters();
+      refreshActiveTab();
     });
   });
-  dpGroup?.querySelectorAll(".seg-btn").forEach(btn=>{
-    btn.addEventListener("click", ()=>{
-      st.dp = normalizeDpClient(btn.dataset.value);
-      mountFilterControls(containerId, stateKey);
+  cards[1]?.querySelectorAll('.seg-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      globalFilters.dp = normalizeDpClient(btn.dataset.value);
+      renderGlobalFilters();
+      refreshActiveTab();
     });
   });
+}
+function refreshActiveTab(){
+  const activeTab = document.querySelector('.tab.active')?.dataset.tab || 'userTab';
+  if(activeTab==="userTab") return renderUserTab().catch(console.error);
+  if(activeTab==="shortpickTab") return renderShortpickTab().catch(console.error);
+  if(activeTab==="auditPickTab") return renderAuditPickTab().catch(console.error);
+  if(activeTab==="auditPATab") return renderAuditPATab().catch(console.error);
+  if(activeTab==="usersTab") return renderUsersTab().catch(console.error);
+  if(activeTab==="importsTab") return renderImportsTab().catch(console.error);
 }
 
 function renderDateInputs(containerId, stateKey){
@@ -1256,7 +1284,6 @@ async function apiAuditLeaderboard({type, from, to, result, orderBy, orderDir, l
 
 async function renderUserTab(){
   const st = dateState.user;
-  mountFilterControls("userFilterControls", "user");
   document.getElementById("userSearchLogin").value = st.login || "";
 
   const from = toDateOnlyISO(st.from);
@@ -1266,15 +1293,15 @@ async function renderUserTab(){
   if(st.login) qs.set("login", st.login.trim());
   qs.set("from", from);
   qs.set("to", to);
-  if(st.side && st.side !== "all") qs.set("side", st.side);
-  if(st.dp && st.dp !== "all") qs.set("dp", st.dp);
+  if(globalFilters.side && globalFilters.side !== "all") qs.set("side", globalFilters.side);
+  if(globalFilters.dp && globalFilters.dp !== "all") qs.set("dp", globalFilters.dp);
 
   const summary = await apiFetch("/api/user-summary?" + qs.toString());
 
   document.getElementById("statShortpick").textContent = summary.shortpick || 0;
   document.getElementById("statAuditPickAll").textContent = summary.audit_pick?.all || summary.audit_pick?.total || 0;
   document.getElementById("statAuditPAAll").textContent = summary.audit_pa?.all || summary.audit_pa?.total || 0;
-  document.getElementById("statPeriod").textContent = `${humanRange(st.from, st.to)} · ${filterBadge(st.side)} · ${filterBadge(st.dp)}`;
+  document.getElementById("statPeriod").textContent = `${humanRange(st.from, st.to)} · ${filterBadge(globalFilters.side)} · ${filterBadge(globalFilters.dp)}`;
 
   const lbWrap = document.getElementById("userLeaderboardWrap");
   const topSel = document.getElementById("userTopLimit");
@@ -1286,8 +1313,8 @@ async function renderUserTab(){
     orderDir: st.lbOrderDir || "desc",
     limit: st.lbLimit || 25,
     login: st.login || "",
-    side: st.side || "all",
-    dp: st.dp || "all"
+    side: globalFilters.side || "all",
+    dp: globalFilters.dp || "all"
   });
 
   const rowsLb = lb.rows || [];
@@ -1380,7 +1407,7 @@ async function renderUserTab(){
     </div>
     <div class="hr"></div>
     <div class="muted">
-      Active filters: Side <b>${esc(filterBadge(st.side))}</b> • DP <b>${esc(filterBadge(st.dp))}</b><br>
+      Active filters: Side <b>${esc(filterBadge(globalFilters.side))}</b> • DP <b>${esc(filterBadge(globalFilters.dp))}</b><br>
       Audit pick: Profit <b>${ap.profit||0}</b> • Loss <b>${ap.loss||0}</b> • All <b>${apAll||0}</b><br>
       Audit PA: Profit <b>${pa.profit||0}</b> • Loss <b>${pa.loss||0}</b> • Occupied <b>${pa.occupied||0}</b> • All <b>${paAll||0}</b>
     </div>
@@ -1392,7 +1419,6 @@ async function renderUserTab(){
  *  ========================================================= */
 async function renderShortpickTab(){
   const st = dateState.sp;
-  mountFilterControls("spFilterControls", "sp");
   document.getElementById("spSearchLogin").value = st.login || "";
 
   const from = toDateOnlyISO(st.from);
@@ -1402,8 +1428,8 @@ async function renderShortpickTab(){
     type: TYPES.SHORTPICK,
     login: st.login || "",
     from, to,
-    side: st.side || "all",
-    dp: st.dp || "all",
+    side: globalFilters.side || "all",
+    dp: globalFilters.dp || "all",
     page: st.page,
     pageSize: PAGE_SIZE
   });
@@ -1412,7 +1438,7 @@ async function renderShortpickTab(){
   st.page = Math.min(st.page, totalPages);
 
   document.getElementById("spPageInfo").textContent =
-    `Page ${st.page} / ${totalPages} (${data.total||0} rows) · ${filterBadge(st.side)} · ${filterBadge(st.dp)}`;
+    `Page ${st.page} / ${totalPages} (${data.total||0} rows) · ${filterBadge(globalFilters.side)} · ${filterBadge(globalFilters.dp)}`;
 
   const wrap = document.getElementById("shortpickTableWrap");
   const rowsArr = data.rows || [];
@@ -1523,22 +1549,21 @@ function renderAuditLeaderboardTable({wrapId, infoId, rows, state, columns, onLo
 
 async function renderAuditPickTab(){
   const st = dateState.ap;
-  mountFilterControls("apFilterControls", "ap");
   document.getElementById("apSearchLogin").value = st.login || "";
   document.getElementById("apResult").value = st.result || "all";
 
   const from = toDateOnlyISO(st.from);
   const to = toDateOnlyISO(st.to);
 
-  document.getElementById("apStatPeriod").textContent = `${humanRange(st.from, st.to)} · ${filterBadge(st.side)} · ${filterBadge(st.dp)}`;
+  document.getElementById("apStatPeriod").textContent = `${humanRange(st.from, st.to)} · ${filterBadge(globalFilters.side)} · ${filterBadge(globalFilters.dp)}`;
 
   const data = await apiRecords({
     type: TYPES.AUDIT_PICK,
     login: st.login || "",
     from, to,
     result: st.result || "all",
-    side: st.side || "all",
-    dp: st.dp || "all",
+    side: globalFilters.side || "all",
+    dp: globalFilters.dp || "all",
     page: st.page,
     pageSize: PAGE_SIZE
   });
@@ -1547,8 +1572,8 @@ async function renderAuditPickTab(){
   if(st.login) sumQS.set("login", st.login);
   sumQS.set("from", from); 
   sumQS.set("to", to);
-  if(st.side && st.side !== "all") sumQS.set("side", st.side);
-  if(st.dp && st.dp !== "all") sumQS.set("dp", st.dp);
+  if(globalFilters.side && globalFilters.side !== "all") sumQS.set("side", globalFilters.side);
+  if(globalFilters.dp && globalFilters.dp !== "all") sumQS.set("dp", globalFilters.dp);
   const summary = await apiFetch("/api/user-summary?" + sumQS.toString());
   const ap = summary.audit_pick || {profit:0,loss:0,all:0};
 
@@ -1607,8 +1632,8 @@ async function renderAuditPickTab(){
     orderBy: st.lbOrderBy || "all",
     orderDir: st.lbOrderDir || "desc",
     limit: st.lbLimit || 25,
-    side: st.side || "all",
-    dp: st.dp || "all"
+    side: globalFilters.side || "all",
+    dp: globalFilters.dp || "all"
   });
 
   const lbWrap = document.getElementById("auditPickLbWrap");
@@ -1647,7 +1672,6 @@ async function renderAuditPickTab(){
  *  ========================================================= */
 async function renderAuditPATab(){
   const st = dateState.pa;
-  mountFilterControls("paFilterControls", "pa");
   document.getElementById("paSearchLogin").value = st.login || "";
   document.getElementById("paResult").value = st.result || "all";
 
@@ -1659,8 +1683,8 @@ async function renderAuditPATab(){
     login: st.login || "",
     from, to,
     result: st.result || "all",
-    side: st.side || "all",
-    dp: st.dp || "all",
+    side: globalFilters.side || "all",
+    dp: globalFilters.dp || "all",
     page: st.page,
     pageSize: PAGE_SIZE
   });
@@ -1669,8 +1693,8 @@ async function renderAuditPATab(){
   if(st.login) sumQS.set("login", st.login);
   sumQS.set("from", from); 
   sumQS.set("to", to);
-  if(st.side && st.side !== "all") sumQS.set("side", st.side);
-  if(st.dp && st.dp !== "all") sumQS.set("dp", st.dp);
+  if(globalFilters.side && globalFilters.side !== "all") sumQS.set("side", globalFilters.side);
+  if(globalFilters.dp && globalFilters.dp !== "all") sumQS.set("dp", globalFilters.dp);
   const summary = await apiFetch("/api/user-summary?" + sumQS.toString());
   const pa = summary.audit_pa || {profit:0,loss:0,occupied:0,all:0};
 
@@ -1683,7 +1707,7 @@ async function renderAuditPATab(){
   st.page = Math.min(st.page, totalPages);
 
   document.getElementById("paPageInfo").textContent =
-    `Page ${st.page} / ${totalPages} (${data.total||0} rows) · ${filterBadge(st.side)} · ${filterBadge(st.dp)}`;
+    `Page ${st.page} / ${totalPages} (${data.total||0} rows) · ${filterBadge(globalFilters.side)} · ${filterBadge(globalFilters.dp)}`;
 
   const wrap = document.getElementById("auditPATableWrap");
   const rowsArr = data.rows || [];
@@ -1730,8 +1754,8 @@ async function renderAuditPATab(){
     orderBy: st.lbOrderBy || "all",
     orderDir: st.lbOrderDir || "desc",
     limit: st.lbLimit || 25,
-    side: st.side || "all",
-    dp: st.dp || "all"
+    side: globalFilters.side || "all",
+    dp: globalFilters.dp || "all"
   });
 
   const lbWrap = document.getElementById("auditPaLbWrap");
@@ -2022,8 +2046,8 @@ function bindCoreButtons(){
         type:"",
         login: st.login || "",
         from, to,
-        side: st.side || "all",
-        dp: st.dp || "all",
+        side: globalFilters.side || "all",
+        dp: globalFilters.dp || "all",
         page:1,
         pageSize:500
       });
@@ -2075,8 +2099,8 @@ function bindCoreButtons(){
         type:TYPES.SHORTPICK,
         login: st.login||"",
         from, to,
-        side: st.side || "all",
-        dp: st.dp || "all",
+        side: globalFilters.side || "all",
+        dp: globalFilters.dp || "all",
         page:1,
         pageSize:500
       });
@@ -2124,8 +2148,8 @@ function bindCoreButtons(){
         login: st.login||"",
         from, to,
         result: st.result||"all",
-        side: st.side || "all",
-        dp: st.dp || "all",
+        side: globalFilters.side || "all",
+        dp: globalFilters.dp || "all",
         page:1,
         pageSize:500
       });
@@ -2173,8 +2197,8 @@ function bindCoreButtons(){
         login: st.login||"",
         from, to,
         result: st.result||"all",
-        side: st.side || "all",
-        dp: st.dp || "all",
+        side: globalFilters.side || "all",
+        dp: globalFilters.dp || "all",
         page:1,
         pageSize:500
       });
@@ -2285,6 +2309,7 @@ function openApp(){
   document.getElementById("appView").classList.remove("hidden");
 
   enforceRoleUI();
+  renderGlobalFilters();
 
   renderDateInputs("dateInputs","user");
   renderDateInputs("spDateInputs","sp");
@@ -2327,6 +2352,20 @@ function openApp(){
 </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
