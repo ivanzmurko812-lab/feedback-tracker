@@ -273,6 +273,16 @@ async function initDatabase() {
       created_at timestamptz NOT NULL DEFAULT now()
     );
 
+    CREATE TABLE IF NOT EXISTS delivery_status (
+      feedback_date date NOT NULL,
+      person_login text NOT NULL,
+      delivered boolean NOT NULL DEFAULT false,
+      delivered_by text,
+      delivered_at timestamptz,
+      updated_at timestamptz NOT NULL DEFAULT now(),
+      PRIMARY KEY (feedback_date, person_login)
+    );
+
     CREATE TABLE IF NOT EXISTS records (
       id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
       type text NOT NULL CHECK (type IN ('shortpick','audit_pick','audit_pa')),
@@ -298,6 +308,8 @@ async function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_records_login_date ON records(person_login, date);
     CREATE INDEX IF NOT EXISTS idx_records_import_id ON records(import_id);
     CREATE INDEX IF NOT EXISTS idx_records_type_result_date ON records(type, lower(result), date);
+    CREATE INDEX IF NOT EXISTS idx_delivery_status_login_date ON delivery_status(person_login, feedback_date);
+    CREATE INDEX IF NOT EXISTS idx_delivery_status_delivered_date ON delivery_status(delivered, delivered_at);
   `);
 
   // seed admin: 60078903 / 123456
@@ -711,6 +723,148 @@ app.delete("/api/blacklist/:login", authRequired, roleRequired("admin", "manager
   res.json({ ok: true });
 });
 
+
+// DELIVERY
+app.get("/api/delivery-groups", authRequired, roleRequired("admin", "manager"), async (req, res) => {
+  const {
+    from,
+    to,
+    side,
+    dp,
+    delivered = "all",
+    deliveredDate,
+    orderBy = "date",
+    orderDir = "desc",
+  } = req.query;
+
+  const where = [];
+  const vals = [];
+  let i = 1;
+
+  if (from) { where.push(`r.date >= $${i++}`); vals.push(String(from)); }
+  if (to) { where.push(`r.date <= $${i++}`); vals.push(String(to)); }
+  if (side && side !== "all") { where.push(`r.side = $${i++}`); vals.push(normalizeSide(side)); }
+  if (dp && dp !== "all") { where.push(`r.dp = $${i++}`); vals.push(normalizeDp(dp)); }
+  where.push(blacklistWhere("r"));
+
+  if (String(delivered).toLowerCase() === "yes") {
+    where.push(`COALESCE(ds.delivered,false) = true`);
+  } else if (String(delivered).toLowerCase() === "no") {
+    where.push(`COALESCE(ds.delivered,false) = false`);
+  }
+
+  if (deliveredDate) {
+    where.push(`DATE(ds.delivered_at) = $${i++}`);
+    vals.push(String(deliveredDate));
+  }
+
+  const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+
+  const od = String(orderDir).toLowerCase() === "asc" ? "asc" : "desc";
+  const ob = String(orderBy || "date");
+
+  let orderSql = `r.date DESC, COALESCE(r.person_login,'') ASC`;
+  if (ob === "date") orderSql = `r.date ${od}, COALESCE(r.person_login,'') ASC`;
+  else if (ob === "login") orderSql = `COALESCE(r.person_login,'') ${od}, r.date DESC`;
+  else if (ob === "shortpick") orderSql = `SUM(CASE WHEN r.type='shortpick' THEN 1 ELSE 0 END) ${od}, r.date DESC`;
+  else if (ob === "audit_pick") orderSql = `SUM(CASE WHEN r.type='audit_pick' THEN 1 ELSE 0 END) ${od}, r.date DESC`;
+  else if (ob === "audit_pa") orderSql = `SUM(CASE WHEN r.type='audit_pa' THEN 1 ELSE 0 END) ${od}, r.date DESC`;
+  else if (ob === "all") orderSql = `COUNT(*) ${od}, r.date DESC`;
+  else if (ob === "delivered") orderSql = `COALESCE(ds.delivered,false) ${od}, r.date DESC`;
+  else if (ob === "delivered_by") orderSql = `COALESCE(ds.delivered_by,'') ${od}, r.date DESC`;
+  else if (ob === "delivered_at") orderSql = `ds.delivered_at ${od} NULLS LAST, r.date DESC`;
+
+  const sql = `
+    SELECT
+      r.date,
+      COALESCE(r.person_login,'') AS login,
+      SUM(CASE WHEN r.type='shortpick' THEN 1 ELSE 0 END)::int AS shortpick,
+      SUM(CASE WHEN r.type='audit_pick' THEN 1 ELSE 0 END)::int AS audit_pick,
+      SUM(CASE WHEN r.type='audit_pa' THEN 1 ELSE 0 END)::int AS audit_pa,
+      COUNT(*)::int AS "all",
+      COALESCE(ds.delivered,false) AS delivered,
+      ds.delivered_by,
+      ds.delivered_at
+    FROM records r
+    LEFT JOIN delivery_status ds
+      ON ds.feedback_date = r.date
+     AND ds.person_login = r.person_login
+    ${whereSql}
+    GROUP BY r.date, r.person_login, ds.delivered, ds.delivered_by, ds.delivered_at
+    HAVING COALESCE(r.person_login,'') <> ''
+    ORDER BY ${orderSql}
+    LIMIT 2000
+  `;
+
+  const q = await pool.query(sql, vals);
+  res.json({ rows: q.rows });
+});
+
+app.get("/api/delivery-details", authRequired, roleRequired("admin", "manager"), async (req, res) => {
+  const { date, login, side, dp } = req.query;
+  if (!date || !login) return res.status(400).json({ error: "missing date/login" });
+
+  const vals = [String(date), String(login).trim()];
+  let i = 3;
+  const where = [`r.date = $1`, `r.person_login = $2`, blacklistWhere("r")];
+  if (side && side !== "all") { where.push(`r.side = $${i++}`); vals.push(normalizeSide(side)); }
+  if (dp && dp !== "all") { where.push(`r.dp = $${i++}`); vals.push(normalizeDp(dp)); }
+
+  const rows = await pool.query(
+    `SELECT r.*
+     FROM records r
+     WHERE ${where.join(" AND ")}
+     ORDER BY r.type ASC, r.time DESC NULLS LAST, r.created_at DESC`,
+    vals
+  );
+
+  const meta = await pool.query(
+    `SELECT feedback_date AS date, person_login AS login, delivered, delivered_by, delivered_at
+     FROM delivery_status
+     WHERE feedback_date = $1 AND person_login = $2`,
+    [String(date), String(login).trim()]
+  );
+
+  res.json({
+    rows: rows.rows,
+    delivery: meta.rows[0] || {
+      date: String(date),
+      login: String(login).trim(),
+      delivered: false,
+      delivered_by: null,
+      delivered_at: null,
+    }
+  });
+});
+
+app.post("/api/delivery-mark", authRequired, roleRequired("admin", "manager"), async (req, res) => {
+  const date = String(req.body?.date || "").trim();
+  const login = String(req.body?.login || "").trim();
+  const delivered = !!req.body?.delivered;
+
+  if (!date || !login) return res.status(400).json({ error: "missing date/login" });
+
+  await pool.query(
+    `INSERT INTO delivery_status(feedback_date, person_login, delivered, delivered_by, delivered_at, updated_at)
+     VALUES($1,$2,$3,$4,$5,now())
+     ON CONFLICT (feedback_date, person_login)
+     DO UPDATE SET
+       delivered = EXCLUDED.delivered,
+       delivered_by = EXCLUDED.delivered_by,
+       delivered_at = EXCLUDED.delivered_at,
+       updated_at = now()`,
+    [
+      date,
+      login,
+      delivered,
+      delivered ? req.user.login : null,
+      delivered ? new Date().toISOString() : null,
+    ]
+  );
+
+  res.json({ ok: true });
+});
+
 // IMPORTS
 app.get("/api/imports", authRequired, roleRequired("admin"), async (req, res) => {
   const q = await pool.query(
@@ -977,6 +1131,7 @@ const port = process.env.PORT || 3000;
   await initDatabase();
   app.listen(port, () => console.log("Listening on", port));
 })();
+
 
 
 
