@@ -1163,23 +1163,16 @@ function humanRange(from, to){
   return f === t ? f : `${f} — ${t}`;
 }
 
-function formatWarsawTime(isoLocal){
-  if(!isoLocal) return "";
-  const d = new Date(isoLocal);
-  if(isNaN(d)) return String(isoLocal).replace("T"," ").slice(0,16);
+function formatWarsawTime(v){
+  if(!v) return "";
 
-  const fmt = new Intl.DateTimeFormat("pl-PL", {
-    timeZone: "Europe/Warsaw",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false
-  });
-  const parts = fmt.formatToParts(d);
-  const get = (t)=> parts.find(p=>p.type===t)?.value || "";
-  return `${get("year")}-${get("month")}-${get("day")} ${get("hour")}:${get("minute")}`;
+  const s = String(v).trim();
+
+  if(!s) return "";
+
+  // if server already returned local timestamp string, show it as-is
+  if(s.includes("T")) return s.replace("T", " ").slice(0,16);
+  return s.slice(0,16);
 }
 
 /** =========================================================
@@ -2822,6 +2815,7 @@ function openApp(){
 </script>
 </body>
 </html>
+
 
 
 
