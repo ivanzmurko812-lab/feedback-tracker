@@ -486,82 +486,211 @@
   
 
     /* ===== ICQA dashboard ===== */
-    .icqa-page{ min-height:100vh; padding: 24px 34px 40px; }
+    .icqa-page{ min-height:100vh; padding: 18px; }
     .icqa-dashboard{
       display:flex;
       flex-direction:column;
-      gap:28px;
-      padding: 28px;
-      border-radius: var(--r1);
+      gap:18px;
+    }
+    .dashboard-hero{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:16px;
+      padding: 10px 0 2px;
+    }
+    .dashboard-hero-copy h1{
+      margin:0;
+      font-size: clamp(38px, 4vw, 56px);
+      font-weight:950;
+      line-height:1;
+      letter-spacing:-.02em;
+    }
+    .dashboard-hero-copy p{
+      margin:8px 0 0;
+      color:var(--muted);
+      font-size:16px;
+      font-weight:700;
+    }
+    .back-home-btn,
+    .icqa-logout,
+    .quick-btn,
+    .dc-box.active,
+    .menu-box.primary{
+      background: linear-gradient(180deg, var(--blue1), var(--blue2));
+      color:#fff;
+      border-color: rgba(47,108,246,.30);
+      box-shadow: 0 14px 26px rgba(30,79,211,.24);
+    }
+    .icqa-logout{
+      border:none;
+      border-radius:14px;
+      padding: 14px 22px;
+      font-size:16px;
+      font-weight:900;
+      cursor:pointer;
+      white-space:nowrap;
+    }
+    .dashboard-shell{
+      border-radius: 28px;
       background: linear-gradient(180deg, rgba(255,255,255,.58), rgba(255,255,255,.28));
       border: 1px solid rgba(255,255,255,.58);
       box-shadow: var(--shadow);
+      overflow:hidden;
       backdrop-filter: blur(12px);
+      padding: 12px 14px 16px;
     }
-    .icqa-header{ display:grid; grid-template-columns: 1fr auto 1fr; align-items:start; gap:18px; }
-    .icqa-title{
-      margin:0;
-      text-align:center;
-      font-size: clamp(42px, 5vw, 68px);
-      font-weight:950;
-      color:var(--text);
-      text-shadow: 0 8px 24px rgba(255,255,255,.35);
+    .dashboard-top-controls{
+      display:flex;
+      justify-content:space-between;
+      align-items:stretch;
+      gap:16px;
+      margin-bottom:18px;
     }
-    .icqa-logout{
-      justify-self:end;
-      align-self:start;
-      font-size: clamp(18px, 1.4vw, 24px);
-      font-weight:900;
-      cursor:pointer;
-      color:var(--text);
-      padding: 12px 18px;
-      border-radius: 16px;
-      background: rgba(255,255,255,.48);
-      border: 1px solid rgba(255,255,255,.7);
-      box-shadow: var(--shadow2);
-      transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
-    }
-    .icqa-logout:hover{ transform: translateY(-1px); background: rgba(255,255,255,.68); }
     .dc-row{ display:flex; gap:10px; flex-wrap:wrap; }
-    .dc-box, .menu-box{
+    .dc-box, .menu-box, .quick-btn, .dashboard-info-card, .dashboard-stat{
       background: linear-gradient(180deg, rgba(255,255,255,.88), rgba(255,255,255,.62));
-      border: 1px solid rgba(255,255,255,.92);
+      border: 1px solid rgba(190,200,220,.92);
       color:var(--text);
+      box-shadow: var(--shadow2);
+      backdrop-filter: blur(10px);
+    }
+    .dc-box, .menu-box, .quick-btn{
       font-weight:900;
       display:flex;
       align-items:center;
       justify-content:center;
-      box-shadow: var(--shadow2);
       cursor:pointer;
       user-select:none;
       transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease, background .15s ease;
-      backdrop-filter: blur(10px);
     }
-    .dc-box:hover, .menu-box:hover, .dc-box.active{
+    .dc-box:hover, .menu-box:hover, .quick-btn:hover, .dc-box.active{
       transform: translateY(-2px);
       box-shadow: 0 18px 36px rgba(12,18,40,.16);
-      border-color: rgba(47,108,246,.30);
-      background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(238,242,255,.76));
     }
-    .dc-box{ width:84px; height:60px; font-size:24px; border-radius: 18px; }
-    .dashboard-buttons{
-      margin-top:6px;
+    .dc-box{ width:84px; height:52px; font-size:22px; border-radius: 16px; }
+    .dashboard-mini-panels{ display:flex; gap:14px; flex-wrap:wrap; }
+    .mini-panel{
+      min-width: 190px;
+      border-radius: 18px;
+      padding: 10px;
+      text-align:center;
+    }
+    .mini-panel-title{
+      font-size:14px;
+      font-weight:900;
+      color:#3c4b72;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      margin-bottom:10px;
+    }
+    .mini-panel-options{ display:flex; gap:8px; justify-content:center; }
+    .mini-option{
+      min-width:68px;
+      min-height:40px;
+      border-radius: 14px;
+      padding: 0 14px;
+      font-size:14px;
+    }
+    .dashboard-grid{
       display:grid;
-      grid-template-columns: 1.25fr .7fr 1fr;
+      grid-template-columns: 1.1fr 1.3fr .95fr;
+      gap:16px;
       align-items:start;
-      gap: 26px;
-      min-height: 260px;
     }
-    .menu-box{ min-height:96px; font-size:28px; padding: 16px 22px; border-radius: 22px; }
-    .menu-box.center{ justify-self:center; width:190px; }
-    .menu-box.right{ justify-self:end; width:220px; }
-    .menu-box.left{ justify-self:start; width:320px; }
+    .dashboard-info-card{
+      border-radius: 22px;
+      padding: 18px;
+    }
+    .dashboard-info-card h3{
+      margin:0 0 14px;
+      font-size:20px;
+      font-weight:900;
+      text-align:center;
+    }
+    .dashboard-account-meta{
+      display:grid;
+      gap:12px;
+      margin-bottom:14px;
+    }
+    .dashboard-meta-line{
+      display:flex;
+      justify-content:space-between;
+      gap:14px;
+      padding: 12px 14px;
+      border:1px solid rgba(190,200,220,.8);
+      border-radius: 16px;
+      background: rgba(255,255,255,.48);
+      font-weight:800;
+    }
+    .dashboard-meta-label{ color:var(--muted); }
+    .dashboard-divider{ height:1px; background:rgba(190,200,220,.8); margin:14px 0; }
+    .quick-actions{ display:grid; gap:12px; }
+    .quick-btn{
+      width:100%;
+      justify-content:flex-start;
+      padding: 16px 18px;
+      border-radius: 16px;
+      font-size:18px;
+    }
+    .quick-btn.secondary{
+      background: linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,255,255,.72));
+      color:var(--text);
+      box-shadow: var(--shadow2);
+    }
+    .dashboard-center{
+      display:grid;
+      gap:16px;
+    }
+    .dashboard-stats{ display:grid; grid-template-columns: repeat(3, 1fr); gap:16px; }
+    .dashboard-stat{
+      border-radius: 20px;
+      padding: 18px;
+      text-align:center;
+    }
+    .dashboard-stat .k{ font-size:14px; font-weight:900; color:#2b3558; }
+    .dashboard-stat .v{ font-size:52px; line-height:1; font-weight:950; margin-top:10px; }
+    .dashboard-stat .sub{ font-size:14px; font-weight:800; color:var(--muted); margin-top:6px; }
+    .dashboard-menu-grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap:16px; }
+    .menu-box{
+      min-height:140px;
+      font-size:28px;
+      padding: 18px 22px;
+      border-radius: 22px;
+      flex-direction:column;
+      text-align:center;
+      gap:8px;
+    }
+    .menu-box small{
+      font-size:14px;
+      color:var(--muted);
+      font-weight:800;
+    }
+    .menu-box.primary small{ color: rgba(255,255,255,.88); }
+    .dashboard-side-card{
+      border-radius: 22px;
+      padding: 18px;
+    }
+    .dashboard-side-card h3{
+      margin:0 0 12px;
+      text-align:center;
+      font-size:18px;
+      font-weight:900;
+    }
+    .dashboard-side-list{ display:grid; gap:12px; }
+    .dashboard-side-item{
+      padding: 14px 16px;
+      border-radius: 16px;
+      border:1px solid rgba(190,200,220,.82);
+      background: rgba(255,255,255,.46);
+      font-weight:800;
+    }
     .dashboard-placeholder{
-      min-height: 140px;
+      min-height: 100px;
       display:flex;
       align-items:center;
       justify-content:center;
-      font-size: 20px;
+      font-size: 18px;
       font-weight: 800;
       color: var(--muted);
       background: rgba(255,255,255,.46);
@@ -571,7 +700,7 @@
       text-align:center;
       box-shadow: var(--shadow2);
     }
-    .feedback-page{ padding: 18px; }
+    .feedback-page{ padding: 0; }
     .feedback-topbar{
       display:flex;
       align-items:center;
@@ -591,15 +720,15 @@
       box-shadow: 0 14px 26px rgba(30,79,211,.24);
     }
     .feedback-heading{ margin:0; font-size: clamp(30px, 3vw, 44px); font-weight:950; }
+    @media (max-width: 1100px){
+      .dashboard-grid{ grid-template-columns:1fr; }
+      .dashboard-menu-grid, .dashboard-stats{ grid-template-columns:1fr; }
+      .dashboard-top-controls, .feedback-topbar{ flex-direction:column; align-items:flex-start; }
+    }
     @media (max-width: 900px){
-      .icqa-page{ padding:20px 18px 32px; }
-      .icqa-header{ grid-template-columns: 1fr; gap:18px; }
-      .icqa-title{ order:1; }
-      .dc-row{ order:2; justify-content:center; }
-      .icqa-logout{ order:3; justify-self:center; }
-      .dashboard-buttons{ grid-template-columns:1fr; min-height:auto; }
-      .menu-box.left, .menu-box.center, .menu-box.right{ width:100%; justify-self:stretch; }
-      .feedback-topbar{ flex-direction:column; align-items:flex-start; }
+      .icqa-page{ padding:18px 14px 28px; }
+      .dashboard-hero{ flex-direction:column; align-items:flex-start; }
+      .dc-row{ justify-content:flex-start; }
     }
 
   </style>
@@ -646,32 +775,105 @@
   <!-- APP -->
   <div class="icqa-page hidden" id="appView">
     <div id="dashboardView" class="icqa-dashboard">
-      <div class="icqa-header">
-        <div class="dc-row">
-          <div class="dc-box" data-dc="DC1">DC1</div>
-          <div class="dc-box active" data-dc="DC2">DC2</div>
-          <div class="dc-box" data-dc="DC3">DC3</div>
+      <div class="dashboard-hero">
+        <div class="dashboard-hero-copy">
+          <h1>Feedback Tracker</h1>
+          <p>Main page with quick access to account tools and modules.</p>
         </div>
-        <h1 class="icqa-title">ICQA Dashboard</h1>
-        <div class="icqa-logout" id="dashboardLogout">logout</div>
+        <button class="icqa-logout" id="dashboardLogout">Logout</button>
       </div>
 
-      <div class="dashboard-buttons">
-        <div class="menu-box left" id="btnOpenFeedbackDashboard">Feedback tracker</div>
-        <div class="menu-box center" id="btnOpenSob">SOB</div>
-        <div class="menu-box right" id="btnOpenRaport">Raport</div>
-      </div>
+      <div class="dashboard-shell">
+        <div class="dashboard-top-controls">
+          <div class="dc-row">
+            <div class="dc-box" data-dc="DC1">DC1</div>
+            <div class="dc-box active" data-dc="DC2">DC2</div>
+            <div class="dc-box" data-dc="DC3">DC3</div>
+          </div>
 
-      <div class="dashboard-placeholder hidden" id="dashboardPlaceholder"></div>
+          <div class="dashboard-mini-panels">
+            <div class="mini-panel">
+              <div class="mini-panel-title">Side</div>
+              <div class="mini-panel-options">
+                <div class="menu-box mini-option">GEEK+</div>
+                <div class="menu-box mini-option">HAI</div>
+                <div class="menu-box mini-option primary">ALL</div>
+              </div>
+            </div>
+            <div class="mini-panel">
+              <div class="mini-panel-title">DP</div>
+              <div class="mini-panel-options">
+                <div class="menu-box mini-option">DP1</div>
+                <div class="menu-box mini-option">DP2</div>
+                <div class="menu-box mini-option primary">ALL</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dashboard-grid">
+          <div class="dashboard-info-card">
+            <h3>My Account</h3>
+            <div class="dashboard-account-meta">
+              <div class="dashboard-meta-line"><span class="dashboard-meta-label">Login</span><span id="dashboardLoginValue">—</span></div>
+              <div class="dashboard-meta-line"><span class="dashboard-meta-label">Role</span><span id="dashboardRoleValue">—</span></div>
+              <div class="dashboard-meta-line"><span class="dashboard-meta-label">Selected DC</span><span id="dashboardDcValue">DC2</span></div>
+            </div>
+            <div class="dashboard-divider"></div>
+            <div class="quick-actions">
+              <button class="quick-btn primary" id="btnOpenFeedbackDashboard">Feedback Tracker</button>
+              <button class="quick-btn secondary" id="btnDashboardChangePwd">Change Password</button>
+              <button class="quick-btn secondary" id="btnDashboardUserMgmt">User Management</button>
+            </div>
+          </div>
+
+          <div class="dashboard-center">
+            <div class="dashboard-stats">
+              <div class="dashboard-stat">
+                <div class="k">Main Module</div>
+                <div class="v">01</div>
+                <div class="sub">Feedback Tracker</div>
+              </div>
+              <div class="dashboard-stat">
+                <div class="k">Additional</div>
+                <div class="v">02</div>
+                <div class="sub">Empty sections</div>
+              </div>
+              <div class="dashboard-stat">
+                <div class="k">Current DC</div>
+                <div class="v" id="dashboardDcStat">DC2</div>
+                <div class="sub">selected</div>
+              </div>
+            </div>
+
+            <div class="dashboard-menu-grid">
+              <div class="menu-box primary" id="dashboardFeedbackCard">Feedback Tracker<small>Open working section</small></div>
+              <div class="menu-box" id="btnOpenSob">SOB<small>Section is empty for now</small></div>
+              <div class="menu-box" id="btnOpenRaport">Report<small>Section is empty for now</small></div>
+            </div>
+
+            <div class="dashboard-placeholder hidden" id="dashboardPlaceholder"></div>
+          </div>
+
+          <div class="dashboard-side-card dashboard-info-card">
+            <h3>Quick Notes</h3>
+            <div class="dashboard-side-list">
+              <div class="dashboard-side-item">Feedback Tracker is the active working module.</div>
+              <div class="dashboard-side-item">Use Change Password to update your account password.</div>
+              <div class="dashboard-side-item">SOB and Report are ready as placeholders for future updates.</div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div id="feedbackPage" class="feedback-page hidden">
       <div class="feedback-topbar">
         <div>
-          <h2 class="feedback-heading">Feedback tracker</h2>
-          <div class="muted" style="margin-top:6px; text-align:left;">Главная страница доступна по кнопке ниже.</div>
+          <h2 class="feedback-heading">Feedback Tracker</h2>
+          <div class="muted" style="margin-top:6px; text-align:left;">Return to the main page with the button on the right.</div>
         </div>
-        <button class="back-home-btn" id="btnBackHome">← На главную</button>
+        <button class="back-home-btn" id="btnBackHome">← Back to Home</button>
       </div>
       <div class="shell-card">
       <div class="tabs">
@@ -1468,6 +1670,7 @@ function enforceRoleUI(){
     if(active && active.id === "tabImports") setTab("userTab");
   }
   document.getElementById("whoami").textContent = `${me.login} (${me.role})`;
+  updateDashboardHeader();
 }
 
 /** =========================================================
@@ -2547,16 +2750,27 @@ function bindCoreButtons(){
   document.getElementById("btnOpenFeedbackDashboard").addEventListener("click", ()=>{
     openFeedbackPage();
   });
+  document.getElementById("dashboardFeedbackCard").addEventListener("click", ()=>{
+    openFeedbackPage();
+  });
+  document.getElementById("btnDashboardChangePwd").addEventListener("click", ()=>{
+    document.getElementById("btnChangePwd").click();
+  });
+  document.getElementById("btnDashboardUserMgmt").addEventListener("click", ()=>{
+    openFeedbackPage();
+    setTab("usersTab");
+  });
   document.getElementById("btnOpenSob").addEventListener("click", ()=>{
-    showDashboardPlaceholder("Раздел SOB пока пустой.");
+    showDashboardPlaceholder("SOB section is empty for now.");
   });
   document.getElementById("btnOpenRaport").addEventListener("click", ()=>{
-    showDashboardPlaceholder("Раздел Raport пока пустой.");
+    showDashboardPlaceholder("Report section is empty for now.");
   });
   document.querySelectorAll(".dc-box").forEach(btn=>{
     btn.addEventListener("click", ()=>{
       document.querySelectorAll(".dc-box").forEach(x=>x.classList.remove("active"));
       btn.classList.add("active");
+      updateDashboardHeader();
     });
   });
 
@@ -2938,12 +3152,27 @@ function showDashboard(){
   document.getElementById("dashboardView").classList.remove("hidden");
   document.getElementById("feedbackPage").classList.add("hidden");
   hideDashboardPlaceholder();
+  updateDashboardHeader();
 }
 function openFeedbackPage(){
   document.getElementById("dashboardView").classList.add("hidden");
   document.getElementById("feedbackPage").classList.remove("hidden");
   setTab("userTab");
 }
+function updateDashboardHeader(){
+  const me = getMe();
+  if(!me) return;
+  const activeDc = document.querySelector(".dc-box.active")?.dataset.dc || "DC2";
+  const loginEl = document.getElementById("dashboardLoginValue");
+  const roleEl = document.getElementById("dashboardRoleValue");
+  const dcEl = document.getElementById("dashboardDcValue");
+  const dcStatEl = document.getElementById("dashboardDcStat");
+  if(loginEl) loginEl.textContent = me.login || "—";
+  if(roleEl) roleEl.textContent = me.role || "—";
+  if(dcEl) dcEl.textContent = activeDc;
+  if(dcStatEl) dcStatEl.textContent = activeDc;
+}
+
 function initAppContent(){
   enforceRoleUI();
   renderGlobalFilters();
@@ -3007,6 +3236,7 @@ function openApp(){
 </script>
 </body>
 </html>
+
 
 
 
