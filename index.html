@@ -487,50 +487,89 @@
 
     /* ===== ICQA dashboard ===== */
     .icqa-page{ min-height:100vh; padding: 24px 34px 40px; }
-    .icqa-dashboard{ display:flex; flex-direction:column; gap:42px; }
-    .icqa-header{ display:grid; grid-template-columns: 1fr auto 1fr; align-items:start; }
-    .icqa-title{ margin:0; text-align:center; font-size: clamp(42px, 5vw, 72px); font-weight:950; color:#000; }
-    .icqa-logout{ justify-self:end; align-self:start; font-size: clamp(22px, 2vw, 36px); font-weight:900; cursor:pointer; color:#000; }
-    .dc-row{ display:flex; gap:8px; }
+    .icqa-dashboard{
+      display:flex;
+      flex-direction:column;
+      gap:28px;
+      padding: 28px;
+      border-radius: var(--r1);
+      background: linear-gradient(180deg, rgba(255,255,255,.58), rgba(255,255,255,.28));
+      border: 1px solid rgba(255,255,255,.58);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+    .icqa-header{ display:grid; grid-template-columns: 1fr auto 1fr; align-items:start; gap:18px; }
+    .icqa-title{
+      margin:0;
+      text-align:center;
+      font-size: clamp(42px, 5vw, 68px);
+      font-weight:950;
+      color:var(--text);
+      text-shadow: 0 8px 24px rgba(255,255,255,.35);
+    }
+    .icqa-logout{
+      justify-self:end;
+      align-self:start;
+      font-size: clamp(18px, 1.4vw, 24px);
+      font-weight:900;
+      cursor:pointer;
+      color:var(--text);
+      padding: 12px 18px;
+      border-radius: 16px;
+      background: rgba(255,255,255,.48);
+      border: 1px solid rgba(255,255,255,.7);
+      box-shadow: var(--shadow2);
+      transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+    }
+    .icqa-logout:hover{ transform: translateY(-1px); background: rgba(255,255,255,.68); }
+    .dc-row{ display:flex; gap:10px; flex-wrap:wrap; }
     .dc-box, .menu-box{
-      background:#fff;
-      border:5px solid #1296db;
-      color:#000;
+      background: linear-gradient(180deg, rgba(255,255,255,.88), rgba(255,255,255,.62));
+      border: 1px solid rgba(255,255,255,.92);
+      color:var(--text);
       font-weight:900;
       display:flex;
       align-items:center;
       justify-content:center;
-      box-shadow:none;
+      box-shadow: var(--shadow2);
       cursor:pointer;
       user-select:none;
+      transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease, background .15s ease;
+      backdrop-filter: blur(10px);
     }
-    .dc-box{ width:72px; height:56px; font-size:26px; }
-    .dc-box.active{ background:#f3fbff; }
+    .dc-box:hover, .menu-box:hover, .dc-box.active{
+      transform: translateY(-2px);
+      box-shadow: 0 18px 36px rgba(12,18,40,.16);
+      border-color: rgba(47,108,246,.30);
+      background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(238,242,255,.76));
+    }
+    .dc-box{ width:84px; height:60px; font-size:24px; border-radius: 18px; }
     .dashboard-buttons{
-      margin-top:12px;
+      margin-top:6px;
       display:grid;
       grid-template-columns: 1.25fr .7fr 1fr;
       align-items:start;
-      gap: 36px;
-      min-height: 420px;
+      gap: 26px;
+      min-height: 260px;
     }
-    .menu-box{ min-height:92px; font-size:28px; padding: 16px 22px; }
-    .menu-box.center{ justify-self:center; width:170px; }
-    .menu-box.right{ justify-self:end; width:180px; }
-    .menu-box.left{ justify-self:start; width:270px; }
+    .menu-box{ min-height:96px; font-size:28px; padding: 16px 22px; border-radius: 22px; }
+    .menu-box.center{ justify-self:center; width:190px; }
+    .menu-box.right{ justify-self:end; width:220px; }
+    .menu-box.left{ justify-self:start; width:320px; }
     .dashboard-placeholder{
-      min-height: 180px;
+      min-height: 140px;
       display:flex;
       align-items:center;
       justify-content:center;
       font-size: 20px;
       font-weight: 800;
       color: var(--muted);
-      background: rgba(255,255,255,.55);
-      border: 2px dashed rgba(18,150,219,.45);
-      border-radius: 20px;
+      background: rgba(255,255,255,.46);
+      border: 1px dashed rgba(47,108,246,.35);
+      border-radius: 22px;
       padding: 20px;
       text-align:center;
+      box-shadow: var(--shadow2);
     }
     .feedback-page{ padding: 18px; }
     .feedback-topbar{
@@ -2968,6 +3007,7 @@ function openApp(){
 </script>
 </body>
 </html>
+
 
 
 
