@@ -483,6 +483,86 @@
       font-weight: 800;
       text-align:center;
     }
+  
+
+    /* ===== ICQA dashboard ===== */
+    .icqa-page{ min-height:100vh; padding: 24px 34px 40px; }
+    .icqa-dashboard{ display:flex; flex-direction:column; gap:42px; }
+    .icqa-header{ display:grid; grid-template-columns: 1fr auto 1fr; align-items:start; }
+    .icqa-title{ margin:0; text-align:center; font-size: clamp(42px, 5vw, 72px); font-weight:950; color:#000; }
+    .icqa-logout{ justify-self:end; align-self:start; font-size: clamp(22px, 2vw, 36px); font-weight:900; cursor:pointer; color:#000; }
+    .dc-row{ display:flex; gap:8px; }
+    .dc-box, .menu-box{
+      background:#fff;
+      border:5px solid #1296db;
+      color:#000;
+      font-weight:900;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      box-shadow:none;
+      cursor:pointer;
+      user-select:none;
+    }
+    .dc-box{ width:72px; height:56px; font-size:26px; }
+    .dc-box.active{ background:#f3fbff; }
+    .dashboard-buttons{
+      margin-top:12px;
+      display:grid;
+      grid-template-columns: 1.25fr .7fr 1fr;
+      align-items:start;
+      gap: 36px;
+      min-height: 420px;
+    }
+    .menu-box{ min-height:92px; font-size:28px; padding: 16px 22px; }
+    .menu-box.center{ justify-self:center; width:170px; }
+    .menu-box.right{ justify-self:end; width:180px; }
+    .menu-box.left{ justify-self:start; width:270px; }
+    .dashboard-placeholder{
+      min-height: 180px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--muted);
+      background: rgba(255,255,255,.55);
+      border: 2px dashed rgba(18,150,219,.45);
+      border-radius: 20px;
+      padding: 20px;
+      text-align:center;
+    }
+    .feedback-page{ padding: 18px; }
+    .feedback-topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      margin-bottom:16px;
+    }
+    .back-home-btn{
+      border:none;
+      border-radius:14px;
+      padding: 12px 18px;
+      font-size:16px;
+      font-weight:900;
+      background: linear-gradient(180deg, var(--blue1), var(--blue2));
+      color:#fff;
+      cursor:pointer;
+      box-shadow: 0 14px 26px rgba(30,79,211,.24);
+    }
+    .feedback-heading{ margin:0; font-size: clamp(30px, 3vw, 44px); font-weight:950; }
+    @media (max-width: 900px){
+      .icqa-page{ padding:20px 18px 32px; }
+      .icqa-header{ grid-template-columns: 1fr; gap:18px; }
+      .icqa-title{ order:1; }
+      .dc-row{ order:2; justify-content:center; }
+      .icqa-logout{ order:3; justify-self:center; }
+      .dashboard-buttons{ grid-template-columns:1fr; min-height:auto; }
+      .menu-box.left, .menu-box.center, .menu-box.right{ width:100%; justify-self:stretch; }
+      .feedback-topbar{ flex-direction:column; align-items:flex-start; }
+    }
+
   </style>
 </head>
 
@@ -525,8 +605,36 @@
   </div>
 
   <!-- APP -->
-  <div class="app-shell hidden" id="appView">
-    <div class="shell-card">
+  <div class="icqa-page hidden" id="appView">
+    <div id="dashboardView" class="icqa-dashboard">
+      <div class="icqa-header">
+        <div class="dc-row">
+          <div class="dc-box" data-dc="DC1">DC1</div>
+          <div class="dc-box active" data-dc="DC2">DC2</div>
+          <div class="dc-box" data-dc="DC3">DC3</div>
+        </div>
+        <h1 class="icqa-title">ICQA Dashboard</h1>
+        <div class="icqa-logout" id="dashboardLogout">logout</div>
+      </div>
+
+      <div class="dashboard-buttons">
+        <div class="menu-box left" id="btnOpenFeedbackDashboard">Feedback tracker</div>
+        <div class="menu-box center" id="btnOpenSob">SOB</div>
+        <div class="menu-box right" id="btnOpenRaport">Raport</div>
+      </div>
+
+      <div class="dashboard-placeholder hidden" id="dashboardPlaceholder"></div>
+    </div>
+
+    <div id="feedbackPage" class="feedback-page hidden">
+      <div class="feedback-topbar">
+        <div>
+          <h2 class="feedback-heading">Feedback tracker</h2>
+          <div class="muted" style="margin-top:6px; text-align:left;">Главная страница доступна по кнопке ниже.</div>
+        </div>
+        <button class="back-home-btn" id="btnBackHome">← На главную</button>
+      </div>
+      <div class="shell-card">
       <div class="tabs">
         <div class="tab active" data-tab="userTab" id="tabUser">User</div>
         <div class="tab" data-tab="shortpickTab" id="tabShortpick">Shortpick</div>
@@ -2390,6 +2498,28 @@ function bindCoreButtons(){
     clearToken();
     openLogin();
   });
+  document.getElementById("dashboardLogout").addEventListener("click", ()=>{
+    clearToken();
+    openLogin();
+  });
+  document.getElementById("btnBackHome").addEventListener("click", ()=>{
+    showDashboard();
+  });
+  document.getElementById("btnOpenFeedbackDashboard").addEventListener("click", ()=>{
+    openFeedbackPage();
+  });
+  document.getElementById("btnOpenSob").addEventListener("click", ()=>{
+    showDashboardPlaceholder("Раздел SOB пока пустой.");
+  });
+  document.getElementById("btnOpenRaport").addEventListener("click", ()=>{
+    showDashboardPlaceholder("Раздел Raport пока пустой.");
+  });
+  document.querySelectorAll(".dc-box").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      document.querySelectorAll(".dc-box").forEach(x=>x.classList.remove("active"));
+      btn.classList.add("active");
+    });
+  });
 
   document.getElementById("btnChangePwd").addEventListener("click", ()=>{
     document.getElementById("pwdCurrent").value="";
@@ -2755,16 +2885,27 @@ function bindCoreButtons(){
 /** =========================================================
  *  APP BOOT
  *  ========================================================= */
-function openLogin(){
-  document.getElementById("topbar").classList.add("hidden");
-  document.getElementById("loginView").classList.remove("hidden");
-  document.getElementById("appView").classList.add("hidden");
+function showDashboardPlaceholder(text){
+  const box = document.getElementById("dashboardPlaceholder");
+  box.textContent = text;
+  box.classList.remove("hidden");
 }
-function openApp(){
-  document.getElementById("topbar").classList.remove("hidden");
-  document.getElementById("loginView").classList.add("hidden");
-  document.getElementById("appView").classList.remove("hidden");
-
+function hideDashboardPlaceholder(){
+  const box = document.getElementById("dashboardPlaceholder");
+  box.classList.add("hidden");
+  box.textContent = "";
+}
+function showDashboard(){
+  document.getElementById("dashboardView").classList.remove("hidden");
+  document.getElementById("feedbackPage").classList.add("hidden");
+  hideDashboardPlaceholder();
+}
+function openFeedbackPage(){
+  document.getElementById("dashboardView").classList.add("hidden");
+  document.getElementById("feedbackPage").classList.remove("hidden");
+  setTab("userTab");
+}
+function initAppContent(){
   enforceRoleUI();
   renderGlobalFilters();
 
@@ -2781,8 +2922,20 @@ function openApp(){
   applyDate("pa");
   applyDate("delivery");
   applyDate("blacklist");
+}
+function openLogin(){
+  document.getElementById("topbar").classList.add("hidden");
+  document.getElementById("loginView").classList.remove("hidden");
+  document.getElementById("appView").classList.add("hidden");
+  showDashboard();
+}
+function openApp(){
+  document.getElementById("topbar").classList.add("hidden");
+  document.getElementById("loginView").classList.add("hidden");
+  document.getElementById("appView").classList.remove("hidden");
 
-  setTab("userTab");
+  initAppContent();
+  showDashboard();
 }
 
 (async function main(){
