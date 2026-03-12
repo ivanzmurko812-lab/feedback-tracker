@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Feedback Tracker</title>
+  <title>Dashboard</title>
 
   <!-- SheetJS -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -514,7 +514,7 @@
     }
     .back-home-btn,
     .icqa-logout,
-    .quick-btn,
+    .quick-btn.primary,
     .dc-box.active,
     .menu-box.primary{
       background: linear-gradient(180deg, var(--blue1), var(--blue2));
@@ -524,7 +524,7 @@
     }
     .icqa-logout{
       border:none;
-      border-radius:14px;
+      border-radius:16px;
       padding: 14px 22px;
       font-size:16px;
       font-weight:900;
@@ -533,23 +533,21 @@
     }
     .dashboard-shell{
       border-radius: 28px;
-      background: linear-gradient(180deg, rgba(255,255,255,.58), rgba(255,255,255,.28));
+      background: linear-gradient(180deg, rgba(255,255,255,.50), rgba(255,255,255,.24));
       border: 1px solid rgba(255,255,255,.58);
       box-shadow: var(--shadow);
       overflow:hidden;
       backdrop-filter: blur(12px);
-      padding: 12px 14px 16px;
+      padding: 16px;
     }
-    .dashboard-top-controls{
+    .dc-row{
       display:flex;
-      justify-content:space-between;
-      align-items:stretch;
-      gap:16px;
-      margin-bottom:18px;
+      gap:12px;
+      flex-wrap:wrap;
+      margin-bottom:16px;
     }
-    .dc-row{ display:flex; gap:10px; flex-wrap:wrap; }
-    .dc-box, .menu-box, .quick-btn, .dashboard-info-card, .dashboard-stat{
-      background: linear-gradient(180deg, rgba(255,255,255,.88), rgba(255,255,255,.62));
+    .dc-box, .menu-box, .quick-btn, .dashboard-info-card{
+      background: linear-gradient(180deg, rgba(255,255,255,.90), rgba(255,255,255,.68));
       border: 1px solid rgba(190,200,220,.92);
       color:var(--text);
       box-shadow: var(--shadow2);
@@ -568,33 +566,10 @@
       transform: translateY(-2px);
       box-shadow: 0 18px 36px rgba(12,18,40,.16);
     }
-    .dc-box{ width:84px; height:52px; font-size:22px; border-radius: 16px; }
-    .dashboard-mini-panels{ display:flex; gap:14px; flex-wrap:wrap; }
-    .mini-panel{
-      min-width: 190px;
-      border-radius: 18px;
-      padding: 10px;
-      text-align:center;
-    }
-    .mini-panel-title{
-      font-size:14px;
-      font-weight:900;
-      color:#3c4b72;
-      text-transform:uppercase;
-      letter-spacing:.08em;
-      margin-bottom:10px;
-    }
-    .mini-panel-options{ display:flex; gap:8px; justify-content:center; }
-    .mini-option{
-      min-width:68px;
-      min-height:40px;
-      border-radius: 14px;
-      padding: 0 14px;
-      font-size:14px;
-    }
+    .dc-box{ min-width:84px; height:52px; font-size:22px; border-radius: 16px; }
     .dashboard-grid{
       display:grid;
-      grid-template-columns: 1.1fr 1.3fr .95fr;
+      grid-template-columns: minmax(320px, 420px) 1fr;
       gap:16px;
       align-items:start;
     }
@@ -604,7 +579,7 @@
     }
     .dashboard-info-card h3{
       margin:0 0 14px;
-      font-size:20px;
+      font-size:24px;
       font-weight:900;
       text-align:center;
     }
@@ -634,27 +609,23 @@
       font-size:18px;
     }
     .quick-btn.secondary{
-      background: linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,255,255,.72));
+      background: linear-gradient(180deg, rgba(255,255,255,.95), rgba(255,255,255,.74));
       color:var(--text);
       box-shadow: var(--shadow2);
     }
     .dashboard-center{
       display:grid;
       gap:16px;
+      align-content:start;
     }
-    .dashboard-stats{ display:grid; grid-template-columns: repeat(3, 1fr); gap:16px; }
-    .dashboard-stat{
-      border-radius: 20px;
-      padding: 18px;
-      text-align:center;
+    .dashboard-menu-grid{
+      display:grid;
+      grid-template-columns: repeat(3, minmax(180px, 1fr));
+      gap:16px;
     }
-    .dashboard-stat .k{ font-size:14px; font-weight:900; color:#2b3558; }
-    .dashboard-stat .v{ font-size:52px; line-height:1; font-weight:950; margin-top:10px; }
-    .dashboard-stat .sub{ font-size:14px; font-weight:800; color:var(--muted); margin-top:6px; }
-    .dashboard-menu-grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap:16px; }
     .menu-box{
-      min-height:140px;
-      font-size:28px;
+      min-height:150px;
+      font-size:26px;
       padding: 18px 22px;
       border-radius: 22px;
       flex-direction:column;
@@ -667,26 +638,8 @@
       font-weight:800;
     }
     .menu-box.primary small{ color: rgba(255,255,255,.88); }
-    .dashboard-side-card{
-      border-radius: 22px;
-      padding: 18px;
-    }
-    .dashboard-side-card h3{
-      margin:0 0 12px;
-      text-align:center;
-      font-size:18px;
-      font-weight:900;
-    }
-    .dashboard-side-list{ display:grid; gap:12px; }
-    .dashboard-side-item{
-      padding: 14px 16px;
-      border-radius: 16px;
-      border:1px solid rgba(190,200,220,.82);
-      background: rgba(255,255,255,.46);
-      font-weight:800;
-    }
     .dashboard-placeholder{
-      min-height: 100px;
+      min-height: 90px;
       display:flex;
       align-items:center;
       justify-content:center;
@@ -722,8 +675,8 @@
     .feedback-heading{ margin:0; font-size: clamp(30px, 3vw, 44px); font-weight:950; }
     @media (max-width: 1100px){
       .dashboard-grid{ grid-template-columns:1fr; }
-      .dashboard-menu-grid, .dashboard-stats{ grid-template-columns:1fr; }
-      .dashboard-top-controls, .feedback-topbar{ flex-direction:column; align-items:flex-start; }
+      .dashboard-menu-grid{ grid-template-columns:1fr; }
+      .feedback-topbar{ flex-direction:column; align-items:flex-start; }
     }
     @media (max-width: 900px){
       .icqa-page{ padding:18px 14px 28px; }
@@ -777,38 +730,17 @@
     <div id="dashboardView" class="icqa-dashboard">
       <div class="dashboard-hero">
         <div class="dashboard-hero-copy">
-          <h1>Feedback Tracker</h1>
+          <h1>Dashboard</h1>
           <p>Main page with quick access to account tools and modules.</p>
         </div>
         <button class="icqa-logout" id="dashboardLogout">Logout</button>
       </div>
 
       <div class="dashboard-shell">
-        <div class="dashboard-top-controls">
-          <div class="dc-row">
-            <div class="dc-box" data-dc="DC1">DC1</div>
-            <div class="dc-box active" data-dc="DC2">DC2</div>
-            <div class="dc-box" data-dc="DC3">DC3</div>
-          </div>
-
-          <div class="dashboard-mini-panels">
-            <div class="mini-panel">
-              <div class="mini-panel-title">Side</div>
-              <div class="mini-panel-options">
-                <div class="menu-box mini-option">GEEK+</div>
-                <div class="menu-box mini-option">HAI</div>
-                <div class="menu-box mini-option primary">ALL</div>
-              </div>
-            </div>
-            <div class="mini-panel">
-              <div class="mini-panel-title">DP</div>
-              <div class="mini-panel-options">
-                <div class="menu-box mini-option">DP1</div>
-                <div class="menu-box mini-option">DP2</div>
-                <div class="menu-box mini-option primary">ALL</div>
-              </div>
-            </div>
-          </div>
+        <div class="dc-row">
+          <div class="dc-box" data-dc="DC1">DC1</div>
+          <div class="dc-box active" data-dc="DC2">DC2</div>
+          <div class="dc-box" data-dc="DC3">DC3</div>
         </div>
 
         <div class="dashboard-grid">
@@ -828,40 +760,13 @@
           </div>
 
           <div class="dashboard-center">
-            <div class="dashboard-stats">
-              <div class="dashboard-stat">
-                <div class="k">Main Module</div>
-                <div class="v">01</div>
-                <div class="sub">Feedback Tracker</div>
-              </div>
-              <div class="dashboard-stat">
-                <div class="k">Additional</div>
-                <div class="v">02</div>
-                <div class="sub">Empty sections</div>
-              </div>
-              <div class="dashboard-stat">
-                <div class="k">Current DC</div>
-                <div class="v" id="dashboardDcStat">DC2</div>
-                <div class="sub">selected</div>
-              </div>
-            </div>
-
             <div class="dashboard-menu-grid">
               <div class="menu-box primary" id="dashboardFeedbackCard">Feedback Tracker<small>Open working section</small></div>
-              <div class="menu-box" id="btnOpenSob">SOB<small>Section is empty for now</small></div>
-              <div class="menu-box" id="btnOpenRaport">Report<small>Section is empty for now</small></div>
+              <div class="menu-box" id="btnOpenSob">SOB<small>Coming later</small></div>
+              <div class="menu-box" id="btnOpenRaport">Report<small>Coming later</small></div>
             </div>
 
             <div class="dashboard-placeholder hidden" id="dashboardPlaceholder"></div>
-          </div>
-
-          <div class="dashboard-side-card dashboard-info-card">
-            <h3>Quick Notes</h3>
-            <div class="dashboard-side-list">
-              <div class="dashboard-side-item">Feedback Tracker is the active working module.</div>
-              <div class="dashboard-side-item">Use Change Password to update your account password.</div>
-              <div class="dashboard-side-item">SOB and Report are ready as placeholders for future updates.</div>
-            </div>
           </div>
         </div>
       </div>
@@ -3236,6 +3141,7 @@ function openApp(){
 </script>
 </body>
 </html>
+
 
 
 
