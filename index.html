@@ -762,8 +762,8 @@
           <div class="dashboard-center">
             <div class="dashboard-menu-grid">
               <div class="menu-box primary" id="dashboardFeedbackCard">Feedback Tracker<small>Open working section</small></div>
-              <div class="menu-box" id="btnOpenSob">SOB<small>Coming later</small></div>
-              <div class="menu-box" id="btnOpenRaport">Report<small>Coming later</small></div>
+              <div class="menu-box" id="btnOpenSob">SOP<small>Coming later</small></div>
+              <div class="menu-box" id="btnOpenRaport">Raport<small>Coming later</small></div>
             </div>
 
             <div class="dashboard-placeholder hidden" id="dashboardPlaceholder"></div>
@@ -2666,10 +2666,10 @@ function bindCoreButtons(){
     setTab("usersTab");
   });
   document.getElementById("btnOpenSob").addEventListener("click", ()=>{
-    showDashboardPlaceholder("SOB section is empty for now.");
+    showDashboardPlaceholder("SOP section is empty for now.");
   });
   document.getElementById("btnOpenRaport").addEventListener("click", ()=>{
-    showDashboardPlaceholder("Report section is empty for now.");
+    showDashboardPlaceholder("Raport section is empty for now.");
   });
   document.querySelectorAll(".dc-box").forEach(btn=>{
     btn.addEventListener("click", ()=>{
@@ -3141,6 +3141,7 @@ function openApp(){
 </script>
 </body>
 </html>
+
 
 
 
