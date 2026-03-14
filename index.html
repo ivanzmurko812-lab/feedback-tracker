@@ -2547,7 +2547,7 @@ function openUserModal({mode, user}){
   document.getElementById("userModalTitle").textContent = (mode==="add") ? "Add User" : "Edit User";
   document.getElementById("umLogin").value = user ? user.login : "";
   document.getElementById("umLogin").disabled = (mode==="edit");
-  document.getElementById("umPassword").value = "";
+  document.getElementById("umPassword").value = "111111";
 
   const roleSelect = document.getElementById("umRole");
   roleSelect.innerHTML = "";
