@@ -685,6 +685,495 @@
       .dc-row{ justify-content:flex-start; }
     }
 
+    .report-shell{
+      display:grid;
+      grid-template-columns: 320px 1fr;
+      gap:16px;
+      align-items:start;
+    }
+    .report-form-grid{
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0,1fr));
+      gap:12px;
+    }
+    .report-section{
+      margin-bottom:18px;
+      padding:14px;
+      border-radius:18px;
+      border:1px solid rgba(82,128,230,.32);
+      background:
+        radial-gradient(circle at top right, rgba(47,108,246,.10), transparent 42%),
+        linear-gradient(180deg, rgba(245,249,255,.98), rgba(234,242,255,.90));
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.86),
+        0 16px 34px rgba(47,108,246,.08);
+    }
+    .report-section h4{
+      margin:0 0 14px;
+      padding:10px 14px;
+      border-radius:14px;
+      border:1px solid rgba(66,113,227,.42);
+      background: linear-gradient(180deg, #4b80f8, #2f63df);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.18),
+        0 12px 24px rgba(47,108,246,.18);
+      font-size:15px;
+      text-align:center;
+      color:#fff;
+      letter-spacing:.02em;
+    }
+    .report-section.section-header{
+      border-color: rgba(54,114,232,.45);
+      background:
+        radial-gradient(circle at top right, rgba(47,108,246,.14), transparent 42%),
+        linear-gradient(180deg, rgba(243,248,255,.98), rgba(230,239,255,.92));
+    }
+    .report-section.section-header h4{
+      background: linear-gradient(180deg, #4f83f8, #2c5fdf);
+    }
+    .report-section.section-geek{
+      border-color: rgba(156,170,194,.46);
+      background:
+        radial-gradient(circle at top right, rgba(148,160,183,.10), transparent 42%),
+        linear-gradient(180deg, rgba(248,249,252,.98), rgba(235,239,246,.92));
+    }
+    .report-section.section-geek h4{
+      background: linear-gradient(180deg, #8d99ad, #6f7b91);
+    }
+    .report-section.section-geek .import-grid-field label{
+      background: linear-gradient(180deg, #9aa5b7, #7f8a9e);
+      color:#fff;
+      border-bottom:1px solid rgba(111,123,145,.34);
+    }
+    .report-section.section-hai{
+      border-color: rgba(107,155,241,.44);
+      background:
+        radial-gradient(circle at top right, rgba(111,168,255,.14), transparent 42%),
+        linear-gradient(180deg, rgba(243,248,255,.98), rgba(228,239,255,.92));
+    }
+    .report-section.section-hai h4{
+      background: linear-gradient(180deg, #7eb1ff, #5f90ef);
+    }
+    .report-section.section-hai .import-grid-field label{
+      background: linear-gradient(180deg, #8ebaff, #6f9ef4);
+      color:#fff;
+      border-bottom:1px solid rgba(95,144,239,.30);
+    }
+    .report-section.section-backlog{
+      border-color: rgba(67,125,230,.44);
+      background:
+        radial-gradient(circle at top right, rgba(47,108,246,.10), transparent 42%),
+        linear-gradient(180deg, rgba(246,249,255,.98), rgba(233,240,255,.92));
+    }
+    .report-section.section-backlog h4{
+      background: linear-gradient(180deg, #6a9cff, #4676e6);
+    }
+    .report-section.section-hours{
+      border-color: rgba(41,88,210,.50);
+      background:
+        radial-gradient(circle at top right, rgba(35,85,217,.16), transparent 42%),
+        linear-gradient(180deg, rgba(240,245,255,.98), rgba(225,234,255,.92));
+    }
+    .report-section.section-hours h4{
+      background: linear-gradient(180deg, #325fe0, #1f49c2);
+    }
+    .import-grid-field{
+      display:grid;
+      grid-template-rows:auto 1fr;
+      gap:0;
+      border:1px solid rgba(82,128,230,.42);
+      border-radius:16px;
+      overflow:hidden;
+      background:
+        radial-gradient(circle at top right, rgba(47,108,246,.10), transparent 45%),
+        linear-gradient(180deg, rgba(255,255,255,.98), rgba(239,246,255,.94));
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.82),
+        0 12px 24px rgba(47,108,246,.18);
+      transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+    }
+    .import-grid-field label{
+      margin:0;
+      padding:8px 10px;
+      background: linear-gradient(180deg, #4f83f8, #2c5fdf);
+      border-bottom:1px solid rgba(82,128,230,.34);
+      font-size:12px;
+      font-weight:900;
+      text-align:center;
+      color:#fff;
+      letter-spacing:.01em;
+      text-shadow: 0 1px 0 rgba(0,0,0,.08);
+    }
+    .import-grid-field input,
+    .import-grid-field select{
+      width:100%;
+      min-height:52px;
+      padding:12px 14px;
+      border:none;
+      border-radius:0;
+      background: linear-gradient(180deg, rgba(255,255,255,.99), rgba(243,248,255,.98));
+      outline:none;
+      font-size:14px;
+      font-weight:800;
+      text-align:center;
+      box-shadow:none;
+      color:var(--text);
+      transition: background .18s ease, box-shadow .18s ease;
+    }
+    .import-grid-field:hover{
+      border-color: rgba(47,108,246,.72);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.82),
+        0 16px 32px rgba(47,108,246,.24);
+    }
+    .import-grid-field input:focus,
+    .import-grid-field select:focus{
+      background: rgba(255,255,255,1);
+      box-shadow:
+        inset 0 0 0 2px rgba(47,108,246,.22),
+        0 0 0 5px rgba(47,108,246,.12),
+        0 14px 28px rgba(47,108,246,.18);
+    }
+    .import-grid-field select{
+      appearance:none;
+      background-image:
+        linear-gradient(45deg, transparent 50%, var(--blue2) 50%),
+        linear-gradient(135deg, var(--blue2) 50%, transparent 50%),
+        linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,251,255,.98));
+      background-position:
+        calc(100% - 18px) calc(50% - 2px),
+        calc(100% - 12px) calc(50% - 2px),
+        0 0;
+      background-size: 6px 6px, 6px 6px, 100% 100%;
+      background-repeat:no-repeat;
+    }
+    .dpmo-import-shell{
+      border-radius:18px;
+      overflow:auto;
+      border:1px solid rgba(82,128,230,.4);
+      background:
+        radial-gradient(circle at top right, rgba(47,108,246,.12), transparent 42%),
+        linear-gradient(180deg, rgba(246,250,255,.94), rgba(234,242,255,.88));
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.8),
+        0 14px 30px rgba(47,108,246,.14);
+    }
+    .dpmo-import-table{
+      width:100%;
+      min-width:980px;
+      border-collapse:collapse;
+      font-family:var(--font);
+    }
+    .dpmo-import-table th,
+    .dpmo-import-table td{
+      border:1px solid rgba(190,200,220,.95);
+      padding:8px;
+      text-align:center;
+      font-size:12px;
+      font-weight:800;
+      color:var(--text);
+      background: rgba(255,255,255,.92);
+    }
+    .dpmo-import-table th{
+      background: linear-gradient(180deg, #4f83f8, #2c5fdf);
+      font-weight:900;
+      color:#fff;
+      text-shadow: 0 1px 0 rgba(0,0,0,.08);
+    }
+    .dpmo-import-table .dpmo-side-label{
+      background: linear-gradient(180deg, #4f83f8, #2c5fdf);
+      font-weight:900;
+      min-width:150px;
+      color:#fff;
+    }
+    .dpmo-import-table .dpmo-row-label{
+      background: linear-gradient(180deg, #4f83f8, #2c5fdf);
+      font-weight:900;
+      min-width:90px;
+      color:#fff;
+    }
+    .dpmo-import-table .dpmo-sub-label{
+      background: linear-gradient(180deg, #edf3ff, #dfe9fa);
+      font-weight:900;
+      color:var(--text);
+      min-width:92px;
+    }
+    .dpmo-label-stack{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      align-items:center;
+    }
+    .dpmo-label-stack select{
+      width:64px;
+      padding:6px 8px;
+      border-radius:8px;
+      border:1px solid rgba(190,200,220,.95);
+      appearance:none;
+      background-image:
+        linear-gradient(45deg, transparent 50%, var(--blue2) 50%),
+        linear-gradient(135deg, var(--blue2) 50%, transparent 50%),
+        linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,251,255,.98));
+      background-position:
+        calc(100% - 16px) calc(50% - 2px),
+        calc(100% - 10px) calc(50% - 2px),
+        0 0;
+      background-size: 6px 6px, 6px 6px, 100% 100%;
+      background-repeat:no-repeat;
+      font-size:12px;
+      font-weight:900;
+      text-align:center;
+      box-shadow: 0 8px 16px rgba(47,108,246,.14);
+      color:var(--text);
+    }
+    .dpmo-import-table input{
+      width:100%;
+      padding:10px 8px;
+      border-radius:8px;
+      border:1px solid rgba(190,200,220,.95);
+      background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,251,255,.98));
+      text-align:center;
+      font-size:12px;
+      font-weight:800;
+      color:var(--text);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.82),
+        0 8px 16px rgba(47,108,246,.10);
+      transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+    }
+    .dpmo-import-table input:focus,
+    .dpmo-label-stack select:focus{
+      outline:none;
+      border-color: rgba(82,128,230,.95);
+      background: rgba(255,255,255,1);
+      box-shadow:
+        0 0 0 4px rgba(47,108,246,.12),
+        0 14px 28px rgba(47,108,246,.20);
+    }
+    .dpmo-import-table input[readonly]{
+      background:#eef3fb;
+      cursor:default;
+    }
+    .report-preview{
+      overflow:auto;
+      padding: 12px;
+      border-radius: 20px;
+      background: linear-gradient(180deg, var(--card), var(--card2));
+      border: 1px solid var(--stroke);
+      box-shadow: var(--shadow2);
+    }
+    .report-page{ padding:0; }
+    .report-tabs{
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+      padding: 14px 16px;
+      border-bottom:1px solid rgba(255,255,255,.55);
+      background: linear-gradient(180deg, rgba(255,255,255,.56), rgba(255,255,255,.28));
+    }
+    .report-panel{
+      padding:18px;
+    }
+    .report-import-grid{
+      display:grid;
+      grid-template-columns: 320px 1fr;
+      gap:16px;
+      align-items:start;
+    }
+    .report-import-controls{
+      background:
+        radial-gradient(circle at top right, rgba(47,108,246,.16), transparent 42%),
+        linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,255,255,.72));
+      border:1px solid rgba(160,182,230,.72);
+      box-shadow: 0 22px 46px rgba(25,35,70,.12);
+    }
+    .report-sticky-card{
+      position:sticky;
+      top:16px;
+    }
+    .report-meta-line{
+      padding:12px 14px;
+      border-radius:14px;
+      border:1px solid rgba(190,200,220,.9);
+      background: rgba(255,255,255,.72);
+      font-weight:800;
+      color:var(--muted);
+      text-align:center;
+    }
+    .report-preview-card{
+      display:grid;
+      gap:16px;
+    }
+    .report-history-table{
+      width:100%;
+      border-collapse:separate;
+      border-spacing:0 10px;
+    }
+    .report-history-table th{
+      padding:10px 12px;
+      text-align:left;
+      font-size:13px;
+      color:var(--muted);
+      font-weight:900;
+    }
+    .report-history-table td{
+      padding:14px 12px;
+      background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(241,246,255,.92));
+      border-top:1px solid rgba(82,128,230,.20);
+      border-bottom:1px solid rgba(82,128,230,.20);
+      font-weight:800;
+      color:var(--text);
+    }
+    .report-history-table td:first-child{
+      border-left:1px solid rgba(82,128,230,.20);
+      border-top-left-radius:14px;
+      border-bottom-left-radius:14px;
+    }
+    .report-history-table td:last-child{
+      border-right:1px solid rgba(82,128,230,.20);
+      border-top-right-radius:14px;
+      border-bottom-right-radius:14px;
+    }
+    .report-history-chip{
+      display:inline-flex;
+      align-items:center;
+      padding:6px 10px;
+      border-radius:999px;
+      background: linear-gradient(180deg, #4f83f8, #2c5fdf);
+      color:#fff;
+      font-size:12px;
+      font-weight:900;
+      box-shadow: 0 8px 18px rgba(47,108,246,.18);
+    }
+    .import-form-shell{
+      border-radius: 20px;
+      border: 1px solid rgba(190,200,220,.9);
+      background: linear-gradient(180deg, rgba(255,255,255,.86), rgba(255,255,255,.62));
+      box-shadow: 0 18px 36px rgba(12,18,40,.10);
+      padding:16px;
+    }
+    .import-form-shell .card{
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      padding: 0;
+    }
+    .import-kicker{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 12px;
+      border-radius:999px;
+      background: rgba(47,108,246,.12);
+      color: var(--blue2);
+      font-weight: 900;
+      font-size: 12px;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .import-lead{
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-weight: 700;
+      text-align:left;
+      line-height:1.45;
+    }
+    .report-preview-table{
+      width:100%;
+      min-width:960px;
+      border-collapse:collapse;
+      background: rgba(255,255,255,.94);
+      border-radius: 16px;
+      overflow:hidden;
+      font-family:var(--font);
+      box-shadow: 0 10px 22px rgba(12,18,40,.08);
+    }
+    .report-preview-table th,
+    .report-preview-table td{
+      border:1px solid rgba(190,200,220,.95);
+      padding:8px 9px;
+      font-size:15px;
+      text-align:center;
+      line-height:1.15;
+      color:var(--text);
+    }
+    .report-preview-table th{
+      font-weight:900;
+    }
+    .report-preview-table td{
+      font-weight:800;
+    }
+    .report-preview-table .report-title{
+      background: linear-gradient(180deg, var(--blue1), var(--blue2));
+      color:#fff;
+      font-size:18px;
+      font-weight:950;
+      letter-spacing:.03em;
+      text-transform:none;
+      box-shadow: inset 0 -1px 0 rgba(255,255,255,.18);
+    }
+    .report-preview-table .section-green{ background: #dfe9fb; }
+    .report-preview-table .section-blue{ background: #dce6f8; }
+    .report-preview-table .section-yellow{ background: #fff0b8; }
+    .report-preview-table .section-pink{ background: #f4d6e0; }
+    .report-preview-table .section-gray{ background: #edf2fa; }
+    .report-preview-table .label-cell{
+      font-weight:900;
+      background: linear-gradient(180deg, rgba(242,246,255,.98), rgba(233,239,251,.98));
+      color:var(--text);
+    }
+    .report-preview-table .value-cell{
+      font-weight:800;
+      background: rgba(255,255,255,.96);
+      color:var(--text);
+    }
+    .report-preview-table tr:first-child td:first-child{
+      border-top-left-radius: 14px;
+    }
+    .report-preview-table tr:first-child td:last-child{
+      border-top-right-radius: 14px;
+    }
+    .report-preview-table tr:last-child td:first-child{
+      border-bottom-left-radius: 14px;
+    }
+    .report-preview-table tr:last-child td:last-child{
+      border-bottom-right-radius: 14px;
+    }
+    .report-preview-table td[colspan="12"].report-title,
+    .report-preview-table td[colspan="7"].report-title,
+    .report-preview-table td[rowspan="4"].report-title{
+      font-size: 17px;
+      letter-spacing:.03em;
+    }
+    .report-days-grid{
+      display:grid;
+      grid-template-columns: repeat(7, minmax(180px,1fr));
+      gap:12px;
+    }
+    .day-card{
+      padding:12px;
+      border-radius:14px;
+      border:1px solid rgba(190,200,220,.9);
+      background: rgba(255,255,255,.78);
+      box-shadow: 0 10px 18px rgba(12,18,40,.08);
+    }
+    .day-card h5{
+      margin:0 0 10px;
+      font-size:16px;
+      text-align:center;
+    }
+    @media (max-width: 1200px){
+      .report-shell{ grid-template-columns:1fr; }
+      .report-import-grid{ grid-template-columns:1fr; }
+      .report-form-grid{ grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .report-days-grid{ grid-template-columns: repeat(2, minmax(0,1fr)); }
+    }
+    @media (max-width: 760px){
+      .report-form-grid,
+      .report-days-grid{ grid-template-columns:1fr; }
+    }
+
   </style>
 </head>
 
@@ -711,17 +1200,17 @@
       <div class="login-form">
         <div class="col">
           <label>Login</label>
-          <input id="loginInput" type="text" placeholder="e.g. 60078903" autocomplete="username" />
+          <input id="loginInput" type="text" placeholder="e.g. 1" autocomplete="username" value="1" />
         </div>
         <div class="col">
           <label>Password</label>
-          <input id="passwordInput" type="password" placeholder="******" autocomplete="current-password" />
+          <input id="passwordInput" type="password" placeholder="******" autocomplete="current-password" value="1" />
         </div>
         <button class="btn wide login-btn" id="btnLogin">login</button>
       </div>
 
       <div class="hint">
-       
+        Local login: <b>1</b> / <b>1</b>
       </div>
     </div>
   </div>
@@ -764,7 +1253,7 @@
             <div class="dashboard-menu-grid">
               <div class="menu-box primary" id="dashboardFeedbackCard">Feedback Tracker<small>Open working section</small></div>
               <div class="menu-box" id="btnOpenSob">SOP<small>Coming later</small></div>
-              <div class="menu-box" id="btnOpenRaport">Raport<small>Coming later</small></div>
+              <div class="menu-box" id="btnOpenRaport">Raport<small>Daily raport and Import</small></div>
             </div>
 
             <div class="dashboard-placeholder hidden" id="dashboardPlaceholder"></div>
@@ -1220,9 +1709,97 @@
           <div id="importsTableWrap"></div>
           <input id="fileInput" type="file" accept=".xlsx,.xlsm,.xls" class="hidden" />
         </div>
+
       </div>
     </div>
   </div>
+
+    <div id="reportPage" class="report-page hidden">
+      <div class="feedback-topbar">
+        <div>
+          <h2 class="feedback-heading">Raport</h2>
+          <div class="muted" style="margin-top:6px; text-align:left;">Daily raport and Import in one workspace.</div>
+        </div>
+        <button class="back-home-btn" id="btnBackHomeFromRaport">← Back to Home</button>
+      </div>
+      <div class="shell-card">
+        <div class="report-tabs">
+          <div class="tab active" data-report-tab="sunrise" id="reportTabSunrise">Daily raport</div>
+          <div class="tab" data-report-tab="import" id="reportTabImport">Import</div>
+          <div class="tab" data-report-tab="history" id="reportTabHistory">History</div>
+        </div>
+
+        <div class="report-panel" id="reportPanelSunrise">
+          <div class="report-shell">
+            <div class="card report-sticky-card">
+              <h3>Daily raport filters</h3>
+              <div class="col">
+                <label>Date</label>
+                <input id="sunriseViewDate" type="date" />
+                <label>DP</label>
+                <select id="sunriseViewDp">
+                  <option value="DP1">DP1</option>
+                  <option value="DP2">DP2</option>
+                </select>
+                <button class="btn wide" id="btnLoadSunriseView">Show Daily raport</button>
+              </div>
+              <div class="hr"></div>
+              <div class="report-meta-line" id="sunriseViewMeta">Choose date and DP.</div>
+            </div>
+            <div class="card">
+              <h3>Daily raport preview</h3>
+              <div id="sunrisePreviewWrap" class="report-preview"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="report-panel hidden" id="reportPanelImport">
+          <div class="report-import-grid">
+            <div class="card report-sticky-card report-import-controls">
+              <div class="import-kicker">Raport Import</div>
+              <h3>Import controls</h3>
+              <p class="import-lead">Choose the raport type, date, DP and shift, then fill in only the values you need. The same data appears in the matching raport preview.</p>
+              <div class="col">
+                <label>Raport type</label>
+                <select id="reportEditType">
+                  <option value="sunrise">Daily raport</option>
+                </select>
+                <label>Date</label>
+                <input id="reportEditDate" type="date" />
+                <label>DP</label>
+                <select id="reportEditDp">
+                  <option value="DP1">DP1</option>
+                  <option value="DP2">DP2</option>
+                </select>
+                <div id="reportEditShiftWrap">
+                  <label>Shift</label>
+                  <select id="reportEditShift">
+                    <option value="Day">Day</option>
+                    <option value="Night">Night</option>
+                  </select>
+                </div>
+                <button class="btn secondary wide" id="btnLoadReportDraft">Load existing</button>
+                <button class="btn secondary wide" id="btnClearReportDraft">Clear form</button>
+                <button class="btn wide" id="btnSaveReportDraft">Save raport</button>
+              </div>
+              <div class="hr"></div>
+              <div class="muted">Data entered here is used for Daily raport with the same date and DP.</div>
+            </div>
+            <div class="report-preview-card">
+              <div id="reportEditFormWrap" class="import-form-shell"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="report-panel hidden" id="reportPanelHistory">
+          <div class="card">
+            <h3>Raport history</h3>
+            <div class="muted" style="margin-bottom:12px;">Latest saved raports with author and time.</div>
+            <div id="reportHistoryWrap"></div>
+          </div>
+        </div>
+      </div>
+    </div>
 
   <!-- CHANGE PASSWORD MODAL -->
   <div class="modal-backdrop hidden" id="pwdModal">
@@ -1298,6 +1875,7 @@ const TYPES = {
 };
 
 const PAGE_SIZE = 14;
+const API_BASE = "";
 
 function toast(msg){
   const t = document.getElementById("toast");
@@ -1321,13 +1899,12 @@ function clearToken(){
 }
 function getMe(){ return loadJSON(LS_KEYS.me, null); }
 function setMe(me){ saveJSON(LS_KEYS.me, me); }
-
 async function apiFetch(path, { method="GET", headers={}, body=null } = {}){
   const h = { ...headers };
   const token = getToken();
   if(token) h["Authorization"] = "Bearer " + token;
 
-  const res = await fetch(path, { method, headers:h, body });
+  const res = await fetch(API_BASE + path, { method, headers:h, body });
   const ct = res.headers.get("content-type") || "";
   let data = null;
   try{
@@ -1441,6 +2018,127 @@ const dateState = {
   pa: { mode:"day", from:null, to:null, login:"", result:"all", page:1, lbOrderBy:"all", lbOrderDir:"desc", lbLimit:25 },
   delivery: { mode:"day", from:null, to:null, delivered:"all", loginFilter:"", orderBy:"date", orderDir:"desc", expandedKey:"" },
   blacklist: { mode:"day", from:null, to:null }
+};
+
+const REPORT_DEFINITIONS = {
+  sunrise: {
+    label: "Daily raport",
+    sections: [
+      { title: "Header", fields: [
+        { key:"teamLeader", label:"Team leader", type:"text" },
+        { key:"hcPlanned", label:"HC planned", type:"number" },
+        { key:"hcActual", label:"HC actual", type:"number" }
+      ]},
+      { title: "Audit Pick Geek", fields: [
+        { key:"geekAuditAllBox", label:"Audit Pick all box", type:"number" },
+        { key:"geekRegisteredProfit", label:"Registered Profit", type:"number" },
+        { key:"geekRegisteredLoss", label:"Registered Loss", type:"number" }
+      ]},
+      { title: "Audit Pick HAI", fields: [
+        { key:"haiAuditAllBox", label:"Audit Pick all box", type:"number" },
+        { key:"haiRegisteredProfit", label:"Registered Profit", type:"number" },
+        { key:"haiRegisteredLoss", label:"Registered Loss", type:"number" }
+      ]},
+      { title: "Short pick Geek", fields: [
+        { key:"geekShortpickAll", label:"Short pick all", type:"number" },
+        { key:"geekShortpickTrue", label:"Short pick true", type:"number" },
+        { key:"geekShortpickFalse", label:"Short pick false", type:"number" }
+      ]},
+      { title: "Short pick HAI", fields: [
+        { key:"haiShortpickAll", label:"Short pick all", type:"number" },
+        { key:"haiShortpickTrue", label:"Short pick true", type:"number" },
+        { key:"haiShortpickFalse", label:"Short pick false", type:"number" }
+      ]},
+      { title: "Geek", fields: [
+        { key:"geekPickExcept", label:"Pick except", type:"number" },
+        { key:"geekAbPick", label:"AB Pick", type:"number" },
+        { key:"geekAbRegistration", label:"AB registration", type:"number" },
+        { key:"geekAllPickTotal", label:"All Pick total", type:"number" }
+      ]},
+      { title: "HAI", fields: [
+        { key:"haiPickExcept", label:"Pick except", type:"number" },
+        { key:"haiAbPick", label:"AB Pick", type:"number" },
+        { key:"haiAbRegistration", label:"AB registration", type:"number" },
+        { key:"haiAllPickTotal", label:"All Pick total", type:"number" }
+      ]},
+      { title: "QC Genue Geek", fields: [
+        { key:"geekQcProfit", label:"QC profit", type:"number" },
+        { key:"geekQcLoss", label:"QC loss", type:"number" },
+        { key:"geekQcAllBox", label:"QC all box", type:"number" },
+        { key:"geekCounting", label:"Counting 00:00-23:59", type:"number" }
+      ]},
+      { title: "QC Genue HAI", fields: [
+        { key:"haiQcProfit", label:"QC profit", type:"number" },
+        { key:"haiQcLoss", label:"QC loss", type:"number" },
+        { key:"haiQcAllBox", label:"QC all box", type:"number" },
+        { key:"haiCounting", label:"Counting 00:00-23:59", type:"number" }
+      ]},
+      { title: "Backlog", fields: [
+        { key:"backlogGeek", label:"To be picked AB Geek+", type:"number" },
+        { key:"backlogHai", label:"To be picked AB Hai", type:"number" }
+      ]},
+      { title: "DPMO", fields: [
+        { key:"dpmoPickingException", label:"Picking Exception", type:"number" },
+        { key:"dpmoShortPick", label:"Short Pick", type:"number" },
+        { key:"geekBand", label:"Geek+ 10/11", type:"text" },
+        { key:"haiBand", label:"Hai 10/11", type:"text" },
+        { key:"geekDirect", label:"Geek+ Direct", type:"number" },
+        { key:"geekIndirect", label:"Geek+ Indirect", type:"number" },
+        { key:"geekDc2", label:"Geek+ DC2", type:"number" },
+        { key:"geekDc3", label:"Geek+ DC3", type:"number" },
+        { key:"geekHome", label:"Geek+ Home", type:"number" },
+        { key:"geekEos", label:"Geek+ EOS", type:"number" },
+        { key:"geekSos", label:"Geek+ SOS", type:"number" },
+        { key:"geekAnotherProcess", label:"Geek+ Another Process", type:"number" },
+        { key:"haiDirect", label:"Hai Direct", type:"number" },
+        { key:"haiIndirect", label:"Hai Indirect", type:"number" },
+        { key:"haiDc2", label:"Hai DC2", type:"number" },
+        { key:"haiDc3", label:"Hai DC3", type:"number" },
+        { key:"haiHome", label:"Hai Home", type:"number" },
+        { key:"haiEos", label:"Hai EOS", type:"number" },
+        { key:"haiSos", label:"Hai SOS", type:"number" },
+        { key:"haiAnotherProcess", label:"Hai Another Process", type:"number" }
+      ]}
+    ]
+  },
+  daily_raport: {
+    label: "Sunrise",
+    sections: [
+      { title: "Header", fields: [
+        { key:"reportName", label:"Title", type:"text" },
+        { key:"weekLabel", label:"Week label", type:"text" },
+        { key:"weekStart", label:"Week start", type:"text" },
+        { key:"weekEnd", label:"Week end", type:"text" }
+      ]},
+      { title: "Targets / summary", fields: [
+        { key:"targetPercent", label:"Target %", type:"text" },
+        { key:"weekPercent", label:"% week", type:"text" },
+        { key:"countingGeekTarget", label:"Counting Geek target", type:"number" },
+        { key:"countingGeekWeek", label:"Counting Geek % week", type:"text" },
+        { key:"countingHaiTarget", label:"Counting Hai target", type:"number" },
+        { key:"countingHaiWeek", label:"Counting Hai % week", type:"text" },
+        { key:"pickAuditHaiTarget", label:"Pick audit Hai target", type:"number" },
+        { key:"pickAuditHaiWeek", label:"Pick audit Hai % week", type:"text" },
+        { key:"pickAuditGeekTarget", label:"Pick audit Geek target", type:"number" },
+        { key:"pickAuditGeekWeek", label:"Pick audit Geek % week", type:"text" },
+        { key:"paAuditHaiTarget", label:"PA audit Hai target", type:"number" },
+        { key:"paAuditHaiWeek", label:"PA audit Hai % week", type:"text" },
+        { key:"paAuditGeekTarget", label:"PA audit Geek target", type:"number" },
+        { key:"paAuditGeekWeek", label:"PA audit Geek % week", type:"text" },
+        { key:"abPickDc1Target", label:"AB pick DC1 target", type:"number" },
+        { key:"abPickDc1Week", label:"AB pick DC1 % week", type:"text" }
+      ]}
+    ],
+    days: 7
+  }
+};
+
+const reportState = {
+  view: { type:"sunrise", date:toDateOnlyISO(new Date()), dp:"DP1", payload:null },
+  edit: { type:"sunrise", date:toDateOnlyISO(new Date()), dp:"DP1", payload:{} }
+};
+const reportWorkspaceState = {
+  activeTab: "sunrise"
 };
 
 function normalizeSideClient(v){
@@ -1674,6 +2372,682 @@ async function apiDeliveryMark({date, login, delivered}){
     headers:{ "Content-Type":"application/json" },
     body: JSON.stringify({ date, login, delivered })
   });
+}
+
+async function apiReports({type, date, dp}){
+  const qs = new URLSearchParams();
+  if(type) qs.set("type", type);
+  if(date) qs.set("date", date);
+  if(dp) qs.set("dp", dp);
+  return apiFetch("/api/reports?" + qs.toString());
+}
+
+async function apiSaveReport({type, date, dp, payload}){
+  return apiFetch("/api/reports", {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({ type, date, dp, payload })
+  });
+}
+
+function dailyDayFieldDefs(){
+  return [
+    { key:"date", label:"Date", type:"text" },
+    { key:"headcount", label:"Headcount", type:"number" },
+    { key:"hcDayPercent", label:"HC % Day", type:"text" },
+    { key:"hcShiftPercent", label:"HeadCount % Shift", type:"text" },
+    { key:"countingGeek", label:"Counting Geek", type:"number" },
+    { key:"countingGeekPercent", label:"Counting Geek % Day", type:"text" },
+    { key:"countingHai", label:"Counting Hai", type:"number" },
+    { key:"countingHaiPercent", label:"Counting Hai % Day", type:"text" },
+    { key:"pickAuditHai", label:"Pick audit Hai", type:"number" },
+    { key:"pickAuditGeek", label:"Pick audit Geek", type:"number" },
+    { key:"paAuditHai", label:"PA audit Hai", type:"number" },
+    { key:"paAuditGeek", label:"PA audit Geek", type:"number" },
+    { key:"abPickDc1", label:"AB pick DC1", type:"number" },
+    { key:"totalShift", label:"Total Shift", type:"number" },
+    { key:"totalDp", label:"Total DP1,DP2", type:"number" }
+  ];
+}
+
+function reportDefaults(type){
+  const def = REPORT_DEFINITIONS[type] || REPORT_DEFINITIONS.sunrise;
+  const payload = {};
+  for(const section of def.sections || []){
+    for(const field of section.fields || []){
+      payload[field.key] = "";
+    }
+  }
+  if(type === "daily_raport"){
+    payload.shiftLabel = "Day";
+    payload.days = Array.from({length:7}, (_,idx)=>{
+      const dayObj = {};
+      dailyDayFieldDefs().forEach(f=>{
+        dayObj[f.key] = f.key === "date" ? String(idx + 1) : "";
+      });
+      return dayObj;
+    });
+  }
+  return payload;
+}
+
+function mergeReportPayload(type, payload){
+  const merged = reportDefaults(type);
+  const src = payload && typeof payload === "object" ? payload : {};
+  Object.keys(merged).forEach(key=>{
+    if(key === "days") return;
+    if(src[key] !== undefined && src[key] !== null) merged[key] = src[key];
+  });
+  if(type === "daily_raport"){
+    merged.days = merged.days.map((day, idx)=>{
+      const incoming = Array.isArray(src.days) ? (src.days[idx] || {}) : {};
+      const out = { ...day };
+      Object.keys(out).forEach(k=>{
+        if(incoming[k] !== undefined && incoming[k] !== null) out[k] = incoming[k];
+      });
+      return out;
+    });
+  }
+  return merged;
+}
+
+function reportInputHtml(id, field, value){
+  return `
+    <div class="import-grid-field">
+      <label for="${esc(id)}">${esc(field.label)}</label>
+      <input id="${esc(id)}" data-report-field="${esc(field.key)}" type="${field.type === "number" ? "number" : "text"}" value="${esc(value ?? "")}" />
+    </div>
+  `;
+}
+
+function reportDayNameFromDate(dateStr){
+  if(!dateStr) return "";
+  const date = new Date(`${dateStr}T00:00:00`);
+  if(Number.isNaN(date.getTime())) return "";
+  return date.toLocaleDateString("en-US", { weekday:"long" });
+}
+
+function toNumberOrZero(value){
+  const normalized = String(value ?? "").replace(",", ".").trim();
+  const num = Number(normalized);
+  return Number.isFinite(num) ? num : 0;
+}
+
+function applyAutoDpmoTotals(payload){
+  if(!payload || typeof payload !== "object") return payload;
+  const geekTotal =
+    toNumberOrZero(payload.geekSos) +
+    toNumberOrZero(payload.geekAnotherProcess) +
+    toNumberOrZero(payload.geekDc2) +
+    toNumberOrZero(payload.geekDc3) +
+    toNumberOrZero(payload.geekHome) +
+    toNumberOrZero(payload.geekEos) +
+    toNumberOrZero(payload.geekDirect) +
+    toNumberOrZero(payload.geekIndirect);
+  const haiTotal =
+    toNumberOrZero(payload.haiSos) +
+    toNumberOrZero(payload.haiAnotherProcess) +
+    toNumberOrZero(payload.haiDc2) +
+    toNumberOrZero(payload.haiDc3) +
+    toNumberOrZero(payload.haiHome) +
+    toNumberOrZero(payload.haiEos) +
+    toNumberOrZero(payload.haiDirect) +
+    toNumberOrZero(payload.haiIndirect);
+  payload.dpmoPickingException = geekTotal ? String(geekTotal) : "";
+  payload.dpmoShortPick = haiTotal ? String(haiTotal) : "";
+  return payload;
+}
+
+function renderDpmoImportSection(payload){
+  return `
+    <div class="report-section section-hours">
+      <h4>Hours</h4>
+      <div class="dpmo-import-shell">
+        <table class="dpmo-import-table">
+          <tr>
+            <th></th>
+            <th colspan="2">SOS</th>
+            <th>Another Process</th>
+            <th>DC2</th>
+            <th>DC3</th>
+            <th>Home</th>
+            <th colspan="2">EOS</th>
+          </tr>
+          <tr>
+            <td rowspan="2" class="dpmo-row-label">
+              <div class="dpmo-label-stack">
+                <span>Geek+</span>
+                <select data-report-field="geekBand">
+                  <option value="10" ${String(payload.geekBand || "10") === "10" ? "selected" : ""}>10</option>
+                  <option value="11" ${String(payload.geekBand || "10") === "11" ? "selected" : ""}>11</option>
+                </select>
+              </div>
+            </td>
+            <td class="dpmo-sub-label">Direct</td>
+            <td><input data-report-field="geekDirect" type="number" value="${esc(payload.geekDirect ?? "")}" /></td>
+            <td rowspan="2"><input data-report-field="geekAnotherProcess" type="number" value="${esc(payload.geekAnotherProcess ?? "")}" /></td>
+            <td rowspan="2"><input data-report-field="geekDc2" type="number" value="${esc(payload.geekDc2 ?? "")}" /></td>
+            <td rowspan="2"><input data-report-field="geekDc3" type="number" value="${esc(payload.geekDc3 ?? "")}" /></td>
+            <td rowspan="2"><input data-report-field="geekHome" type="number" value="${esc(payload.geekHome ?? "")}" /></td>
+            <td><input data-report-field="geekEos" type="number" value="${esc(payload.geekEos ?? "")}" /></td>
+            <td><input data-report-field="geekSos" type="number" value="${esc(payload.geekSos ?? "")}" /></td>
+          </tr>
+          <tr>
+            <td class="dpmo-sub-label">Indirect</td>
+            <td><input data-report-field="geekIndirect" type="number" value="${esc(payload.geekIndirect ?? "")}" /></td>
+            <td><input data-report-field="geekEos" type="number" value="${esc(payload.geekEos ?? "")}" /></td>
+            <td></td>
+          </tr>
+          <tr>
+            <th></th>
+            <th colspan="2">SOS</th>
+            <th>Another Process</th>
+            <th>DC2</th>
+            <th>DC3</th>
+            <th>Home</th>
+            <th colspan="2">EOS</th>
+          </tr>
+          <tr>
+            <td rowspan="2" class="dpmo-row-label">
+              <div class="dpmo-label-stack">
+                <span>Hai</span>
+                <select data-report-field="haiBand">
+                  <option value="10" ${String(payload.haiBand || "10") === "10" ? "selected" : ""}>10</option>
+                  <option value="11" ${String(payload.haiBand || "10") === "11" ? "selected" : ""}>11</option>
+                </select>
+              </div>
+            </td>
+            <td class="dpmo-sub-label">Direct</td>
+            <td><input data-report-field="haiDirect" type="number" value="${esc(payload.haiDirect ?? "")}" /></td>
+            <td rowspan="2"><input data-report-field="haiAnotherProcess" type="number" value="${esc(payload.haiAnotherProcess ?? "")}" /></td>
+            <td rowspan="2"><input data-report-field="haiDc2" type="number" value="${esc(payload.haiDc2 ?? "")}" /></td>
+            <td rowspan="2"><input data-report-field="haiDc3" type="number" value="${esc(payload.haiDc3 ?? "")}" /></td>
+            <td rowspan="2"><input data-report-field="haiHome" type="number" value="${esc(payload.haiHome ?? "")}" /></td>
+            <td><input data-report-field="haiEos" type="number" value="${esc(payload.haiEos ?? "")}" /></td>
+            <td><input data-report-field="haiSos" type="number" value="${esc(payload.haiSos ?? "")}" /></td>
+          </tr>
+          <tr>
+            <td class="dpmo-sub-label">Indirect</td>
+            <td><input data-report-field="haiIndirect" type="number" value="${esc(payload.haiIndirect ?? "")}" /></td>
+            <td><input data-report-field="haiEos" type="number" value="${esc(payload.haiEos ?? "")}" /></td>
+            <td></td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function renderReportEditor(){
+  const type = reportState.edit.type;
+  const payload = applyAutoDpmoTotals(mergeReportPayload(type, reportState.edit.payload));
+  if(type === "sunrise"){
+    payload.shift = document.getElementById("reportEditShift")?.value || payload.shift || "Day";
+    payload.reportDateLabel = reportState.edit.date;
+    payload.dayLabel = reportDayNameFromDate(reportState.edit.date);
+  }
+  reportState.edit.payload = payload;
+  const def = REPORT_DEFINITIONS[type];
+  const wrap = document.getElementById("reportEditFormWrap");
+  if(!wrap) return;
+
+  const sectionClassName = (title)=>{
+    const t = String(title || "").toLowerCase();
+    if(t.includes("header")) return "section-header";
+    if(t.includes("hours") || t.includes("dpmo")) return "section-hours";
+    if(t.includes("backlog")) return "section-backlog";
+    if(t.includes("hai")) return "section-hai";
+    if(t.includes("geek")) return "section-geek";
+    return "";
+  };
+
+  let html = `
+    <div class="card" style="margin-bottom:14px;">
+      <h3>${esc(def.label)} fields</h3>
+  `;
+  for(const section of def.sections){
+    if(type === "sunrise" && section.title === "DPMO"){
+      html += renderDpmoImportSection(payload);
+      continue;
+    }
+    html += `
+      <div class="report-section ${sectionClassName(section.title)}">
+        <h4>${esc(section.title)}</h4>
+        <div class="report-form-grid">
+          ${section.fields.map(field=>reportInputHtml(`reportField_${field.key}`, field, payload[field.key])).join("")}
+        </div>
+      </div>
+    `;
+  }
+
+  if(type === "daily_raport"){
+    html += `<div class="report-section"><h4>Days</h4><div class="report-days-grid">`;
+    payload.days.forEach((day, idx)=>{
+      html += `
+        <div class="day-card">
+          <h5>Day ${idx + 1}</h5>
+          <div class="col" style="gap:10px;">
+            ${dailyDayFieldDefs().map(field=>`
+              <div class="col">
+                <label for="reportDay_${idx}_${field.key}">${esc(field.label)}</label>
+                <input id="reportDay_${idx}_${field.key}" data-report-day="${idx}" data-report-day-field="${esc(field.key)}" type="${field.type === "number" ? "number" : "text"}" value="${esc(day[field.key] ?? "")}" />
+              </div>
+            `).join("")}
+          </div>
+        </div>
+      `;
+    });
+    html += `</div></div>`;
+  }
+
+  html += `
+    </div>
+    <div class="card">
+      <h3>Preview</h3>
+      <div id="reportEditPreview" class="report-preview"></div>
+    </div>
+  `;
+  wrap.innerHTML = html;
+  renderReportPreview("reportEditPreview", type, payload, reportState.edit.date, reportState.edit.dp);
+}
+
+function collectReportEditorPayload(){
+  const type = reportState.edit.type;
+  const payload = reportDefaults(type);
+  document.querySelectorAll("[data-report-field]").forEach(el=>{
+    payload[el.dataset.reportField] = el.value;
+  });
+  if(type === "sunrise"){
+    payload.shift = document.getElementById("reportEditShift")?.value || "Day";
+    payload.reportDateLabel = reportState.edit.date;
+    payload.dayLabel = reportDayNameFromDate(reportState.edit.date);
+  }
+  if(type === "daily_raport"){
+    const shiftEl = document.getElementById("reportEditShift");
+    payload.shiftLabel = shiftEl ? shiftEl.value : (payload.shiftLabel || "Day");
+    payload.days = Array.from({length:7}, (_,idx)=>{
+      const dayObj = {};
+      dailyDayFieldDefs().forEach(field=>{
+        const el = document.querySelector(`[data-report-day="${idx}"][data-report-day-field="${field.key}"]`);
+        dayObj[field.key] = el ? el.value : "";
+      });
+      return dayObj;
+    });
+  }
+  reportState.edit.payload = applyAutoDpmoTotals(payload);
+  return reportState.edit.payload;
+}
+
+function valueOrDash(v){
+  return String(v ?? "").trim() || "—";
+}
+
+function formatReportType(type){
+  if(type === "sunrise") return "Daily raport";
+  if(type === "daily_raport") return "Sunrise";
+  return valueOrDash(type);
+}
+
+function sunrisePreviewHtml(payload, date, dp){
+  const p = mergeReportPayload("sunrise", payload);
+  const geekBand = valueOrDash(p.geekBand || "10");
+  const haiBand = valueOrDash(p.haiBand || "10");
+  return `
+    <table class="report-preview-table">
+      <tr>
+        <td class="section-green label-cell">Day</td>
+        <td class="section-green value-cell">${esc(valueOrDash(p.dayLabel))}</td>
+        <td class="section-green label-cell">Shift</td>
+        <td class="section-green value-cell">${esc(valueOrDash(p.shift))}</td>
+        <td class="section-green label-cell">Team Leader</td>
+        <td colspan="3" class="section-green value-cell">${esc(valueOrDash(p.owner || p.teamLeader))}</td>
+        <td class="section-green label-cell">HC planned</td>
+        <td class="section-green value-cell">${esc(valueOrDash(p.hcPlanned))}</td>
+        <td class="section-green label-cell">HC actual</td>
+        <td class="section-green value-cell">${esc(valueOrDash(p.hcActual))}</td>
+      </tr>
+      <tr><td colspan="12" class="report-title">Made on a work shift</td></tr>
+      <tr class="section-blue"><th colspan="6">Geek+</th><th colspan="6">Hai</th></tr>
+      <tr>
+        <td colspan="2" class="label-cell">Audit Pick</td>
+        <td colspan="2" class="label-cell">Short pick</td>
+        <td colspan="2" class="label-cell">Pick.Except</td>
+        <td colspan="2" class="label-cell">Audit Pick</td>
+        <td colspan="2" class="label-cell">Short pick</td>
+        <td colspan="2" class="label-cell">Pick.Except</td>
+      </tr>
+      <tr>
+        <td class="label-cell">All box</td>
+        <td class="value-cell">${esc(valueOrDash(p.geekAuditAllBox))}</td>
+        <td class="label-cell">All</td>
+        <td class="value-cell">${esc(valueOrDash(p.geekShortpickAll))}</td>
+        <td class="label-cell">Pick Except</td>
+        <td class="value-cell">${esc(valueOrDash(p.geekPickExcept))}</td>
+        <td class="label-cell">All box</td>
+        <td class="value-cell">${esc(valueOrDash(p.haiAuditAllBox))}</td>
+        <td class="label-cell">All</td>
+        <td class="value-cell">${esc(valueOrDash(p.haiShortpickAll))}</td>
+        <td class="label-cell">Pick Except</td>
+        <td class="value-cell">${esc(valueOrDash(p.haiPickExcept))}</td>
+      </tr>
+      <tr>
+        <td class="label-cell">Registered Profit</td>
+        <td class="value-cell">${esc(valueOrDash(p.geekRegisteredProfit))}</td>
+        <td class="label-cell">true</td>
+        <td class="value-cell">${esc(valueOrDash(p.geekShortpickTrue))}</td>
+        <td class="label-cell">AB Pick</td>
+        <td class="value-cell">${esc(valueOrDash(p.geekAbPick))}</td>
+        <td class="label-cell">Registered Profit</td>
+        <td class="value-cell">${esc(valueOrDash(p.haiRegisteredProfit))}</td>
+        <td class="label-cell">true</td>
+        <td class="value-cell">${esc(valueOrDash(p.haiShortpickTrue))}</td>
+        <td class="label-cell">AB Pick</td>
+        <td class="value-cell">${esc(valueOrDash(p.haiAbPick))}</td>
+      </tr>
+      <tr>
+        <td class="label-cell">Registered Loss</td>
+        <td class="value-cell">${esc(valueOrDash(p.geekRegisteredLoss))}</td>
+        <td class="label-cell">False</td>
+        <td class="value-cell">${esc(valueOrDash(p.geekShortpickFalse))}</td>
+        <td class="label-cell">AB registration</td>
+        <td class="value-cell">${esc(valueOrDash(p.geekAbRegistration))}</td>
+        <td class="label-cell">Registered Loss</td>
+        <td class="value-cell">${esc(valueOrDash(p.haiRegisteredLoss))}</td>
+        <td class="label-cell">False</td>
+        <td class="value-cell">${esc(valueOrDash(p.haiShortpickFalse))}</td>
+        <td class="label-cell">AB registration</td>
+        <td class="value-cell">${esc(valueOrDash(p.haiAbRegistration))}</td>
+      </tr>
+      <tr>
+        <td colspan="3" class="label-cell">All Pick Geek+</td>
+        <td colspan="3" class="value-cell">${esc(valueOrDash(p.geekAllPickTotal))}</td>
+        <td colspan="3" class="label-cell">All Pick Hai</td>
+        <td colspan="3" class="value-cell">${esc(valueOrDash(p.haiAllPickTotal))}</td>
+      </tr>
+      <tr>
+        <td colspan="6" class="label-cell">QC Genue</td>
+        <td colspan="6" class="label-cell">QC Genue</td>
+      </tr>
+      <tr>
+        <td class="label-cell">profit</td>
+        <td class="value-cell">${esc(valueOrDash(p.geekQcProfit))}</td>
+        <td class="label-cell">loss</td>
+        <td class="value-cell">${esc(valueOrDash(p.geekQcLoss))}</td>
+        <td class="label-cell">all box</td>
+        <td class="value-cell">${esc(valueOrDash(p.geekQcAllBox))}</td>
+        <td class="label-cell">profit</td>
+        <td class="value-cell">${esc(valueOrDash(p.haiQcProfit))}</td>
+        <td class="label-cell">loss</td>
+        <td class="value-cell">${esc(valueOrDash(p.haiQcLoss))}</td>
+        <td class="label-cell">all box</td>
+        <td class="value-cell">${esc(valueOrDash(p.haiQcAllBox))}</td>
+      </tr>
+      <tr>
+        <td colspan="6" class="value-cell">Counting 00:00-23:59 ${esc(valueOrDash(p.geekCounting))}</td>
+        <td colspan="6" class="value-cell">Counting 00:00-23:59 ${esc(valueOrDash(p.haiCounting))}</td>
+      </tr>
+      <tr><td colspan="12" class="report-title">to be done (backlog)</td></tr>
+      <tr>
+        <td colspan="6" class="value-cell">To be picked AB ${esc(valueOrDash(p.backlogGeek))}</td>
+        <td colspan="6" class="value-cell">To be picked AB ${esc(valueOrDash(p.backlogHai))}</td>
+      </tr>
+      <tr>
+        <td colspan="2" class="label-cell">Remarks</td>
+        <td colspan="10" class="value-cell">${esc(valueOrDash(p.remarks))}</td>
+      </tr>
+      <tr>
+        <td rowspan="6" class="report-title">DPMO</td>
+        <td rowspan="3" class="label-cell">Picking Exception</td>
+        <td rowspan="3" class="value-cell">${esc(valueOrDash(p.dpmoPickingException))}</td>
+        <td class="label-cell">${esc(geekBand)}</td>
+        <td colspan="2" class="label-cell">SOS</td>
+        <td class="label-cell">Another Process</td>
+        <td class="label-cell">DC2</td>
+        <td class="label-cell">DC3</td>
+        <td class="label-cell">Home</td>
+        <td colspan="2" class="label-cell">EOS</td>
+      </tr>
+      <tr>
+        <td rowspan="2" class="section-blue label-cell">Geek+</td>
+        <td class="label-cell">Direct</td>
+        <td class="value-cell">${esc(valueOrDash(p.geekDirect))}</td>
+        <td rowspan="2" class="value-cell">${esc(valueOrDash(p.geekAnotherProcess))}</td>
+        <td rowspan="2" class="value-cell">${esc(valueOrDash(p.geekDc2))}</td>
+        <td rowspan="2" class="value-cell">${esc(valueOrDash(p.geekDc3))}</td>
+        <td rowspan="2" class="value-cell">${esc(valueOrDash(p.geekHome))}</td>
+        <td class="value-cell">${esc(valueOrDash(p.geekEos))}</td>
+        <td class="value-cell">${esc(valueOrDash(p.geekSos))}</td>
+      </tr>
+      <tr>
+        <td class="label-cell">Indirect</td>
+        <td class="value-cell">${esc(valueOrDash(p.geekIndirect))}</td>
+        <td class="value-cell">${esc(valueOrDash(p.geekEos))}</td>
+        <td class="value-cell"></td>
+      </tr>
+      <tr>
+        <td rowspan="3" class="label-cell">Short Pick</td>
+        <td rowspan="3" class="value-cell">${esc(valueOrDash(p.dpmoShortPick))}</td>
+        <td class="label-cell">${esc(haiBand)}</td>
+        <td colspan="2" class="label-cell">SOS</td>
+        <td class="label-cell">Another Process</td>
+        <td class="label-cell">DC2</td>
+        <td class="label-cell">DC3</td>
+        <td class="label-cell">Home</td>
+        <td colspan="2" class="label-cell">EOS</td>
+      </tr>
+      <tr>
+        <td rowspan="2" class="section-blue label-cell">Hai</td>
+        <td class="label-cell">Direct</td>
+        <td class="value-cell">${esc(valueOrDash(p.haiDirect))}</td>
+        <td rowspan="2" class="value-cell">${esc(valueOrDash(p.haiAnotherProcess))}</td>
+        <td rowspan="2" class="value-cell">${esc(valueOrDash(p.haiDc2))}</td>
+        <td rowspan="2" class="value-cell">${esc(valueOrDash(p.haiDc3))}</td>
+        <td rowspan="2" class="value-cell">${esc(valueOrDash(p.haiHome))}</td>
+        <td class="value-cell">${esc(valueOrDash(p.haiEos))}</td>
+        <td class="value-cell">${esc(valueOrDash(p.haiSos))}</td>
+      </tr>
+      <tr>
+        <td class="label-cell">Indirect</td>
+        <td class="value-cell">${esc(valueOrDash(p.haiIndirect))}</td>
+        <td class="value-cell">${esc(valueOrDash(p.haiEos))}</td>
+        <td class="value-cell"></td>
+      </tr>
+    </table>
+  `;
+}
+
+function dailyRaportPreviewHtml(payload, date, dp){
+  const p = mergeReportPayload("daily_raport", payload);
+  const shift = valueOrDash(p.shiftLabel);
+  const title = valueOrDash(p.reportName || "Sunrise");
+  const weekLine = [p.weekLabel, p.weekStart, p.weekEnd].filter(Boolean).join("  ");
+  const dayHeaders = p.days.map((day, idx)=>`<th>${esc(valueOrDash(day.date || `${idx+1}`))}</th>`).join("");
+  const row = (label, targetValue, weekValue, key, cls="")=>`
+    <tr class="${cls}">
+      <td class="label-cell">${esc(label)}</td>
+      <td>${esc(valueOrDash(targetValue))}</td>
+      <td>${esc(valueOrDash(weekValue))}</td>
+      ${p.days.map(day=>`<td>${esc(valueOrDash(day[key]))}</td>`).join("")}
+    </tr>
+  `;
+
+  return `
+    <table class="report-preview-table">
+      <tr><th colspan="10" class="report-title">${esc(title)}</th></tr>
+      <tr>
+        <td class="label-cell">Date</td><td>${esc(valueOrDash(date))}</td>
+        <td class="label-cell">DP</td><td>${esc(valueOrDash(dp))}</td>
+        <td class="label-cell">Shift</td><td>${esc(shift)}</td>
+        <td class="label-cell">Week</td><td colspan="3">${esc(valueOrDash(weekLine))}</td>
+      </tr>
+    </table>
+    <table class="report-preview-table" style="margin-top:12px;">
+      <tr class="section-yellow"><th>Metric</th><th>Target</th><th>% week</th>${dayHeaders}</tr>
+      ${row("Headcount", "", "", "headcount", "section-yellow")}
+      ${row("HC % Day", p.targetPercent, p.weekPercent, "hcDayPercent", "section-green")}
+      ${row("HeadCount % Shift", "", "", "hcShiftPercent", "section-green")}
+      ${row("Counting Geek", p.countingGeekTarget, p.countingGeekWeek, "countingGeek", "section-pink")}
+      ${row("Counting Geek % Day", "", "", "countingGeekPercent", "section-green")}
+      ${row("Counting Hai", p.countingHaiTarget, p.countingHaiWeek, "countingHai", "section-pink")}
+      ${row("Counting Hai % Day", "", "", "countingHaiPercent", "section-green")}
+      ${row("Pick audit Hai", p.pickAuditHaiTarget, p.pickAuditHaiWeek, "pickAuditHai", "section-gray")}
+      ${row("Pick audit Geek", p.pickAuditGeekTarget, p.pickAuditGeekWeek, "pickAuditGeek", "section-gray")}
+      ${row("PA audit Hai", p.paAuditHaiTarget, p.paAuditHaiWeek, "paAuditHai", "section-gray")}
+      ${row("PA audit Geek", p.paAuditGeekTarget, p.paAuditGeekWeek, "paAuditGeek", "section-gray")}
+      ${row("AB pick DC1", p.abPickDc1Target, p.abPickDc1Week, "abPickDc1", "section-green")}
+      ${row("Total Shift", "", "", "totalShift", "section-gray")}
+      ${row("Total DP1,DP2", "", "", "totalDp", "section-yellow")}
+    </table>
+  `;
+}
+
+function renderReportPreview(containerId, type, payload, date, dp){
+  const wrap = document.getElementById(containerId);
+  if(!wrap) return;
+  if(!payload){
+    wrap.innerHTML = `<div class="muted">No raport saved for this date and DP.</div>`;
+    return;
+  }
+  wrap.innerHTML = type === "daily_raport"
+    ? dailyRaportPreviewHtml(payload, date, dp)
+    : sunrisePreviewHtml(payload, date, dp);
+}
+
+async function loadReportIntoState(kind){
+  const st = reportState[kind];
+  const data = await apiReports({ type: st.type, date: st.date, dp: st.dp });
+  const row = (data.rows || [])[0] || null;
+  st.payload = row ? mergeReportPayload(st.type, row.payload) : reportDefaults(st.type);
+  return row;
+}
+
+async function renderReportImportTab(){
+  const typeEl = document.getElementById("reportEditType");
+  const dateEl = document.getElementById("reportEditDate");
+  const dpEl = document.getElementById("reportEditDp");
+  const shiftWrap = document.getElementById("reportEditShiftWrap");
+  const shiftEl = document.getElementById("reportEditShift");
+  if(typeEl) typeEl.value = reportState.edit.type;
+  if(dateEl) dateEl.value = reportState.edit.date;
+  if(dpEl) dpEl.value = reportState.edit.dp;
+  reportState.edit.payload = mergeReportPayload(reportState.edit.type, reportState.edit.payload);
+  if(shiftWrap) shiftWrap.classList.toggle("hidden", reportState.edit.type !== "daily_raport" && reportState.edit.type !== "sunrise");
+  if(shiftEl){
+    shiftEl.value = reportState.edit.type === "sunrise"
+      ? (reportState.edit.payload.shift || "Day")
+      : (reportState.edit.payload.shiftLabel || "Day");
+  }
+  renderReportEditor();
+}
+
+function getUnsavedPayloadForView(type, date, dp){
+  if(reportState.edit.type === type && reportState.edit.date === date && reportState.edit.dp === dp){
+    return mergeReportPayload(type, reportState.edit.payload);
+  }
+  return null;
+}
+
+async function renderSunriseTab(){
+  const date = reportState.view.date;
+  const dp = reportState.view.dp;
+  document.getElementById("sunriseViewDate").value = date;
+  document.getElementById("sunriseViewDp").value = dp;
+
+  const unsaved = getUnsavedPayloadForView("sunrise", date, dp);
+  if(unsaved){
+    document.getElementById("sunriseViewMeta").innerHTML = `Unsaved Daily raport data for <b>${esc(date)}</b> · <b>${esc(dp)}</b> from Import tab.`;
+    renderReportPreview("sunrisePreviewWrap", "sunrise", unsaved, date, dp);
+    return;
+  }
+
+  reportState.view.type = "sunrise";
+  const row = await loadReportIntoState("view");
+  document.getElementById("sunriseViewMeta").innerHTML = row
+    ? `Saved Daily raport: <b>${esc(date)}</b> · <b>${esc(dp)}</b> · updated by <b>${esc(row.updated_by || "")}</b>`
+    : `No saved Daily raport for <b>${esc(date)}</b> and <b>${esc(dp)}</b>.`;
+  renderReportPreview("sunrisePreviewWrap", "sunrise", row ? row.payload : null, date, dp);
+}
+
+async function renderReportHistoryTab(){
+  const wrap = document.getElementById("reportHistoryWrap");
+  if(!wrap) return;
+  const data = await apiReports({});
+  const rows = (data.rows || []).slice().sort((a, b)=>
+    String(b.updated_at || "").localeCompare(String(a.updated_at || "")) ||
+    String(b.report_date || "").localeCompare(String(a.report_date || ""))
+  );
+
+  if(!rows.length){
+    wrap.innerHTML = `<div class="muted">No raport history yet.</div>`;
+    return;
+  }
+
+  wrap.innerHTML = `
+    <table class="report-history-table">
+      <thead>
+        <tr>
+          <th>Raport</th>
+          <th>Date</th>
+          <th>DP</th>
+          <th>Updated by</th>
+          <th>Updated at</th>
+          <th>Created by</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map(row=>`
+          <tr>
+            <td><span class="report-history-chip">${esc(formatReportType(row.report_type))}</span></td>
+            <td>${esc(valueOrDash(row.report_date))}</td>
+            <td>${esc(valueOrDash(row.dp))}</td>
+            <td>${esc(valueOrDash(row.updated_by))}</td>
+            <td>${esc(valueOrDash(formatWarsawTime(row.updated_at)))}</td>
+            <td>${esc(valueOrDash(row.created_by))}</td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+async function renderDailyTab(){
+  const date = reportState.view.date;
+  const dp = reportState.view.dp;
+  document.getElementById("dailyViewDate").value = date;
+  document.getElementById("dailyViewDp").value = dp;
+
+  const unsaved = getUnsavedPayloadForView("daily_raport", date, dp);
+  if(unsaved){
+    document.getElementById("dailyViewMeta").innerHTML = `Unsaved Sunrise for <b>${esc(date)}</b> · <b>${esc(dp)}</b> · shift <b>${esc(valueOrDash(unsaved.shiftLabel))}</b>.`;
+    renderReportPreview("dailyPreviewWrap", "daily_raport", unsaved, date, dp);
+    return;
+  }
+
+  reportState.view.type = "daily_raport";
+  const row = await loadReportIntoState("view");
+  const shift = row?.payload?.shiftLabel ? ` · shift <b>${esc(row.payload.shiftLabel)}</b>` : "";
+  document.getElementById("dailyViewMeta").innerHTML = row
+    ? `Saved Sunrise: <b>${esc(date)}</b> · <b>${esc(dp)}</b>${shift} · updated by <b>${esc(row.updated_by || "")}</b>`
+    : `No saved Sunrise for <b>${esc(date)}</b> and <b>${esc(dp)}</b>.`;
+  renderReportPreview("dailyPreviewWrap", "daily_raport", row ? row.payload : null, date, dp);
+}
+
+async function renderReportWorkspace(){
+  document.getElementById("reportPanelSunrise").classList.toggle("hidden", reportWorkspaceState.activeTab !== "sunrise");
+  document.getElementById("reportPanelImport").classList.toggle("hidden", reportWorkspaceState.activeTab !== "import");
+  document.getElementById("reportPanelHistory").classList.toggle("hidden", reportWorkspaceState.activeTab !== "history");
+  document.getElementById("reportTabSunrise").classList.toggle("active", reportWorkspaceState.activeTab === "sunrise");
+  document.getElementById("reportTabImport").classList.toggle("active", reportWorkspaceState.activeTab === "import");
+  document.getElementById("reportTabHistory").classList.toggle("active", reportWorkspaceState.activeTab === "history");
+
+  if(reportWorkspaceState.activeTab === "sunrise") await renderSunriseTab();
+  if(reportWorkspaceState.activeTab === "import") await renderReportImportTab();
+  if(reportWorkspaceState.activeTab === "history") await renderReportHistoryTab();
+}
+
+function setReportWorkspaceTab(tabId){
+  reportWorkspaceState.activeTab = tabId;
+  renderReportWorkspace().catch(console.error);
 }
 
 
@@ -2512,7 +3886,7 @@ function downloadBlob(filename, blob){
 }
 async function downloadImportFile(id, filename){
   const token = getToken();
-  const res = await fetch("/api/imports/" + encodeURIComponent(id) + "/file", {
+  const res = await fetch(API_BASE + "/api/imports/" + encodeURIComponent(id) + "/file", {
     headers: token ? { Authorization: "Bearer " + token } : {}
   });
   if(!res.ok){
@@ -2653,6 +4027,9 @@ function bindCoreButtons(){
   document.getElementById("btnBackHome").addEventListener("click", ()=>{
     showDashboard();
   });
+  document.getElementById("btnBackHomeFromRaport").addEventListener("click", ()=>{
+    showDashboard();
+  });
   document.getElementById("btnOpenFeedbackDashboard").addEventListener("click", ()=>{
     openFeedbackPage();
   });
@@ -2670,7 +4047,10 @@ function bindCoreButtons(){
     showDashboardPlaceholder("SOP section is empty for now.");
   });
   document.getElementById("btnOpenRaport").addEventListener("click", ()=>{
-    showDashboardPlaceholder("Raport section is empty for now.");
+    openReportPage("sunrise");
+  });
+  document.querySelectorAll("[data-report-tab]").forEach(tab=>{
+    tab.addEventListener("click", ()=> setReportWorkspaceTab(tab.dataset.reportTab));
   });
   document.querySelectorAll(".dc-box").forEach(btn=>{
     btn.addEventListener("click", ()=>{
@@ -2972,6 +4352,82 @@ function bindCoreButtons(){
     }
   });
 
+  document.getElementById("btnLoadSunriseView").addEventListener("click", async ()=>{
+    reportState.view.date = document.getElementById("sunriseViewDate").value || toDateOnlyISO(new Date());
+    reportState.view.dp = document.getElementById("sunriseViewDp").value;
+    await renderSunriseTab();
+  });
+
+  document.getElementById("reportEditType").addEventListener("change", ()=>{
+    collectReportEditorPayload();
+    reportState.edit.type = document.getElementById("reportEditType").value;
+    reportState.edit.payload = reportDefaults(reportState.edit.type);
+    renderReportImportTab().catch(console.error);
+  });
+  document.getElementById("reportEditDate").addEventListener("change", ()=>{
+    reportState.edit.date = document.getElementById("reportEditDate").value || toDateOnlyISO(new Date());
+    reportState.view.date = reportState.edit.date;
+    renderReportEditor();
+  });
+  document.getElementById("reportEditDp").addEventListener("change", ()=>{
+    reportState.edit.dp = document.getElementById("reportEditDp").value;
+    reportState.view.dp = reportState.edit.dp;
+    renderReportEditor();
+  });
+  document.getElementById("reportEditShift").addEventListener("change", ()=>{
+    if(reportState.edit.type !== "daily_raport") return;
+    reportState.edit.payload = { ...mergeReportPayload(reportState.edit.type, reportState.edit.payload), shiftLabel: document.getElementById("reportEditShift").value };
+    renderReportEditor();
+  });
+
+  document.getElementById("btnLoadReportDraft").addEventListener("click", async ()=>{
+    reportState.edit.type = document.getElementById("reportEditType").value;
+    reportState.edit.date = document.getElementById("reportEditDate").value || toDateOnlyISO(new Date());
+    reportState.edit.dp = document.getElementById("reportEditDp").value;
+    reportState.view.date = reportState.edit.date;
+    reportState.view.dp = reportState.edit.dp;
+    const row = await loadReportIntoState("edit");
+    renderReportImportTab();
+    toast(row ? "Raport loaded" : "No saved raport, blank form opened");
+  });
+
+  document.getElementById("btnClearReportDraft").addEventListener("click", ()=>{
+    reportState.edit.type = document.getElementById("reportEditType").value;
+    reportState.edit.date = document.getElementById("reportEditDate").value || toDateOnlyISO(new Date());
+    reportState.edit.dp = document.getElementById("reportEditDp").value;
+    reportState.view.date = reportState.edit.date;
+    reportState.view.dp = reportState.edit.dp;
+    reportState.edit.payload = reportDefaults(reportState.edit.type);
+    renderReportImportTab().catch(console.error);
+  });
+
+  document.getElementById("btnSaveReportDraft").addEventListener("click", async ()=>{
+    try{
+      reportState.edit.type = document.getElementById("reportEditType").value;
+      reportState.edit.date = document.getElementById("reportEditDate").value || toDateOnlyISO(new Date());
+      reportState.edit.dp = document.getElementById("reportEditDp").value;
+      const payload = collectReportEditorPayload();
+      await apiSaveReport({
+        type: reportState.edit.type,
+        date: reportState.edit.date,
+        dp: reportState.edit.dp,
+        payload
+      });
+      toast("Raport saved");
+      if(reportState.edit.type === "sunrise"){
+        reportState.view.date = reportState.edit.date;
+        reportState.view.dp = reportState.edit.dp;
+      }
+      if(reportState.edit.type === "daily_raport"){
+        reportState.view.date = reportState.edit.date;
+        reportState.view.dp = reportState.edit.dp;
+      }
+      await renderReportWorkspace();
+    }catch(err){
+      toast("Error: " + err.message);
+    }
+  });
+
   document.getElementById("btnAddUser").addEventListener("click", ()=> openUserModal({mode:"add"}) );
   document.getElementById("btnUserCancel").addEventListener("click", ()=> document.getElementById("userModal").classList.add("hidden") );
   document.getElementById("btnUserSave").addEventListener("click", saveUserFromModal);
@@ -3039,6 +4495,15 @@ function bindCoreButtons(){
       }
     }
   });
+
+  document.body.addEventListener("input", (e)=>{
+    if(e.target.matches("[data-report-field], [data-report-day-field]")){
+      try{
+        const payload = collectReportEditorPayload();
+        renderReportPreview("reportEditPreview", reportState.edit.type, payload, reportState.edit.date, reportState.edit.dp);
+      }catch(_){}
+    }
+  });
 }
 
 /** =========================================================
@@ -3057,13 +4522,21 @@ function hideDashboardPlaceholder(){
 function showDashboard(){
   document.getElementById("dashboardView").classList.remove("hidden");
   document.getElementById("feedbackPage").classList.add("hidden");
+  document.getElementById("reportPage").classList.add("hidden");
   hideDashboardPlaceholder();
   updateDashboardHeader();
 }
 function openFeedbackPage(){
   document.getElementById("dashboardView").classList.add("hidden");
   document.getElementById("feedbackPage").classList.remove("hidden");
+  document.getElementById("reportPage").classList.add("hidden");
   setTab("userTab");
+}
+function openReportPage(tabId="sunrise"){
+  document.getElementById("dashboardView").classList.add("hidden");
+  document.getElementById("feedbackPage").classList.add("hidden");
+  document.getElementById("reportPage").classList.remove("hidden");
+  setReportWorkspaceTab(tabId);
 }
 function updateDashboardHeader(){
   const me = getMe();
@@ -3142,7 +4615,6 @@ function openApp(){
 </script>
 </body>
 </html>
-
 
 
 
