@@ -3,6 +3,7 @@ import multer from "multer";
 import pg from "pg";
 import XLSX from "xlsx";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 import crypto from "crypto";
 
@@ -11,11 +12,32 @@ app.use(express.json({ limit: "10mb" }));
 
 const upload = multer({ limits: { fileSize: 50 * 1024 * 1024 } });
 const { Pool } = pg;
+const LOCAL_MODE = !process.env.DATABASE_URL;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const LOCAL_STATE_FILE = path.join(__dirname, "local-state.json");
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
 });
+
+function createDefaultLocalState() {
+  return {
+    users: [
+      {
+        id: "local-admin-1",
+        login: "1",
+        pass_hash: crypto.createHash("sha256").update("1").digest("hex"),
+        role: "admin",
+        created_at: new Date().toISOString()
+      }
+    ],
+    reports: []
+  };
+}
+
+let localState = createDefaultLocalState();
 
 const JWT_SECRET = process.env.JWT_SECRET || "CHANGE_ME_IN_RENDER_ENV";
 const TOKEN_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days
@@ -31,6 +53,30 @@ function uuid() {
 }
 function sha256Hex(s) {
   return crypto.createHash("sha256").update(String(s)).digest("hex");
+}
+
+function loadLocalState() {
+  try {
+    if (!fs.existsSync(LOCAL_STATE_FILE)) {
+      localState = createDefaultLocalState();
+      fs.writeFileSync(LOCAL_STATE_FILE, JSON.stringify(localState, null, 2), "utf8");
+      return;
+    }
+    const raw = fs.readFileSync(LOCAL_STATE_FILE, "utf8");
+    const parsed = JSON.parse(raw || "{}");
+    localState = {
+      users: Array.isArray(parsed.users) && parsed.users.length ? parsed.users : createDefaultLocalState().users,
+      reports: Array.isArray(parsed.reports) ? parsed.reports : []
+    };
+  } catch (err) {
+    console.error("Failed to load local state:", err);
+    localState = createDefaultLocalState();
+  }
+}
+
+function saveLocalState() {
+  if (!LOCAL_MODE) return;
+  fs.writeFileSync(LOCAL_STATE_FILE, JSON.stringify(localState, null, 2), "utf8");
 }
 
 function base64url(input) {
@@ -224,6 +270,19 @@ function normalizeSide(value) {
   return s;
 }
 
+function normalizeReportType(value) {
+  const s = String(value ?? "").trim().toLowerCase().replace(/\s+/g, "_");
+  if (!s) return null;
+  if (s === "sunrise") return "sunrise";
+  if (s === "daily_raport" || s === "daily_report" || s === "dailyraport") return "daily_raport";
+  return null;
+}
+
+function sanitizeReportPayload(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return JSON.parse(JSON.stringify(value));
+}
+
 function findHeaderIndexes(header, name) {
   const target = String(name || "").trim().toLowerCase();
   const out = [];
@@ -245,6 +304,12 @@ function findBlockColumn(header, startIdx, nextStartIdx, names) {
  *  DB init
  *  ========================================================= */
 async function initDatabase() {
+  if (LOCAL_MODE) {
+    loadLocalState();
+    console.log("DATABASE_URL is missing. Starting in local file mode.");
+    return;
+  }
+
   await pool.query(`
     CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
@@ -310,11 +375,29 @@ async function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_records_type_result_date ON records(type, lower(result), date);
     CREATE INDEX IF NOT EXISTS idx_delivery_status_login_date ON delivery_status(person_login, feedback_date);
     CREATE INDEX IF NOT EXISTS idx_delivery_status_delivered_date ON delivery_status(delivered, delivered_at);
+
+    CREATE TABLE IF NOT EXISTS reports (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      report_type text NOT NULL CHECK (report_type IN ('sunrise','daily_raport')),
+      report_date date NOT NULL,
+      dp text NOT NULL,
+      payload jsonb NOT NULL DEFAULT '{}'::jsonb,
+      created_by text NOT NULL,
+      updated_by text NOT NULL,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now(),
+      UNIQUE (report_type, report_date, dp)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_reports_lookup
+      ON reports(report_type, report_date DESC, dp);
   `);
 
   // seed admin: 60078903 / 123456
   const adminLogin = "60078903";
   const adminHash = sha256Hex("123456");
+  const localLogin = "1";
+  const localHash = sha256Hex("1");
 
   await pool.query(
     `
@@ -325,13 +408,22 @@ async function initDatabase() {
     [adminLogin, adminHash]
   );
 
+  await pool.query(
+    `
+    INSERT INTO users (login, pass_hash, role)
+    VALUES ($1, $2, 'admin')
+    ON CONFLICT (login) DO UPDATE SET role='admin', pass_hash=EXCLUDED.pass_hash;
+  `,
+    [localLogin, localHash]
+  );
+
   console.log("Database initialized");
 }
 
 /** =========================================================
  *  API
  *  ========================================================= */
-app.get("/api/health", (req, res) => res.json({ ok: true }));
+app.get("/api/health", (req, res) => res.json({ ok: true, localMode: LOCAL_MODE }));
 
 // AUTH
 app.post("/api/auth/login", async (req, res) => {
@@ -345,6 +437,14 @@ app.post("/api/auth/login", async (req, res) => {
 
   const { login, password } = req.body || {};
   if (!login || !password) return res.status(400).json({ error: "missing login/password" });
+
+  if (LOCAL_MODE) {
+    const u = localState.users.find((x) => x.login === String(login).trim());
+    if (!u) return res.status(401).json({ error: "invalid credentials" });
+    if (sha256Hex(password) !== u.pass_hash) return res.status(401).json({ error: "invalid credentials" });
+    const token = signJWT({ userId: u.id, login: u.login, role: u.role });
+    return res.json({ token, user: { id: u.id, login: u.login, role: u.role } });
+  }
 
   const q = await pool.query(`SELECT id,login,pass_hash,role FROM users WHERE login=$1`, [
     String(login).trim(),
@@ -362,6 +462,15 @@ app.post("/api/auth/change-password", authRequired, async (req, res) => {
   const { currentPassword, newPassword } = req.body || {};
   if (!currentPassword || !newPassword) return res.status(400).json({ error: "missing fields" });
 
+  if (LOCAL_MODE) {
+    const u = localState.users.find((x) => x.id === req.user.userId);
+    if (!u) return res.status(404).json({ error: "user not found" });
+    if (sha256Hex(currentPassword) !== u.pass_hash) return res.status(401).json({ error: "wrong password" });
+    u.pass_hash = sha256Hex(newPassword);
+    saveLocalState();
+    return res.json({ ok: true });
+  }
+
   const q = await pool.query(`SELECT pass_hash FROM users WHERE id=$1`, [req.user.userId]);
   const u = q.rows[0];
   if (!u) return res.status(404).json({ error: "user not found" });
@@ -377,6 +486,13 @@ app.post("/api/auth/change-password", authRequired, async (req, res) => {
 
 // USERS
 app.get("/api/users", authRequired, roleRequired("admin", "manager"), async (req, res) => {
+  if (LOCAL_MODE) {
+    const rows = localState.users
+      .slice()
+      .sort((a, b) => String(b.created_at || "").localeCompare(String(a.created_at || "")))
+      .map(({ id, login, role, created_at }) => ({ id, login, role, created_at }));
+    return res.json({ rows });
+  }
   const q = await pool.query(`SELECT id,login,role,created_at FROM users ORDER BY created_at DESC`);
   res.json({ rows: q.rows });
 });
@@ -388,6 +504,23 @@ app.post("/api/users", authRequired, roleRequired("admin", "manager"), async (re
 
   const r = String(role || "manager");
   if (me.role === "manager" && r === "admin") return res.status(403).json({ error: "manager cannot create admin" });
+
+  if (LOCAL_MODE) {
+    const normalizedLogin = String(login).trim();
+    if (localState.users.some((x) => x.login === normalizedLogin)) {
+      return res.status(409).json({ error: "login exists" });
+    }
+    const user = {
+      id: uuid(),
+      login: normalizedLogin,
+      pass_hash: sha256Hex(password),
+      role: r,
+      created_at: new Date().toISOString()
+    };
+    localState.users.push(user);
+    saveLocalState();
+    return res.json({ ok: true, id: user.id });
+  }
 
   try {
     const ins = await pool.query(
@@ -408,14 +541,26 @@ app.put("/api/users/:id", authRequired, roleRequired("admin", "manager"), async 
   const id = req.params.id;
   const { role, password } = req.body || {};
 
-  const q = await pool.query(`SELECT id,role FROM users WHERE id=$1`, [id]);
-  const target = q.rows[0];
+  let target;
+  if (LOCAL_MODE) {
+    target = localState.users.find((x) => String(x.id) === String(id));
+  } else {
+    const q = await pool.query(`SELECT id,role FROM users WHERE id=$1`, [id]);
+    target = q.rows[0];
+  }
   if (!target) return res.status(404).json({ error: "not found" });
 
   if (me.role === "manager" && target.role === "admin")
     return res.status(403).json({ error: "manager cannot edit admin" });
   if (me.role === "manager" && role === "admin")
     return res.status(403).json({ error: "manager cannot set admin" });
+
+  if (LOCAL_MODE) {
+    if (role) target.role = String(role);
+    if (password) target.pass_hash = sha256Hex(password);
+    saveLocalState();
+    return res.json({ ok: true });
+  }
 
   const sets = [];
   const vals = [];
@@ -440,12 +585,23 @@ app.delete("/api/users/:id", authRequired, roleRequired("admin", "manager"), asy
 
   if (String(me.userId) === String(id)) return res.status(400).json({ error: "cannot delete self" });
 
-  const q = await pool.query(`SELECT role FROM users WHERE id=$1`, [id]);
-  const target = q.rows[0];
+  let target;
+  if (LOCAL_MODE) {
+    target = localState.users.find((x) => String(x.id) === String(id));
+  } else {
+    const q = await pool.query(`SELECT role FROM users WHERE id=$1`, [id]);
+    target = q.rows[0];
+  }
   if (!target) return res.status(404).json({ error: "not found" });
 
   if (me.role === "manager" && target.role === "admin")
     return res.status(403).json({ error: "manager cannot delete admin" });
+
+  if (LOCAL_MODE) {
+    localState.users = localState.users.filter((x) => String(x.id) !== String(id));
+    saveLocalState();
+    return res.json({ ok: true });
+  }
 
   await pool.query(`DELETE FROM users WHERE id=$1`, [id]);
   res.json({ ok: true });
@@ -869,6 +1025,89 @@ app.post("/api/delivery-mark", authRequired, roleRequired("admin", "manager"), a
   );
 
   res.json({ ok: true });
+});
+
+// REPORTS
+app.get("/api/reports", authRequired, async (req, res) => {
+  const reportType = normalizeReportType(req.query.type);
+  const reportDate = toPgDate(req.query.date);
+  const dp = normalizeDp(req.query.dp);
+
+  if (LOCAL_MODE) {
+    const rows = localState.reports
+      .filter((x) => (!reportType || x.report_type === reportType) && (!reportDate || x.report_date === reportDate) && (!dp || x.dp === dp))
+      .sort((a, b) => String(b.report_date).localeCompare(String(a.report_date)) || String(a.report_type).localeCompare(String(b.report_type)) || String(a.dp).localeCompare(String(b.dp)));
+    return res.json({ rows });
+  }
+
+  const where = [];
+  const vals = [];
+  const add = (sql, v) => {
+    vals.push(v);
+    where.push(sql.replace("?", `$${vals.length}`));
+  };
+
+  if (reportType) add(`report_type = ?`, reportType);
+  if (reportDate) add(`report_date = ?`, reportDate);
+  if (dp) add(`dp = ?`, dp);
+
+  const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+  const q = await pool.query(
+    `SELECT id, report_type, report_date, dp, payload, created_by, updated_by, created_at, updated_at
+     FROM reports
+     ${whereSql}
+     ORDER BY report_date DESC, report_type ASC, dp ASC`,
+    vals
+  );
+
+  res.json({ rows: q.rows });
+});
+
+app.post("/api/reports", authRequired, roleRequired("admin", "manager"), async (req, res) => {
+  const reportType = normalizeReportType(req.body?.type);
+  const reportDate = toPgDate(req.body?.date);
+  const dp = normalizeDp(req.body?.dp);
+  const payload = sanitizeReportPayload(req.body?.payload);
+
+  if (!reportType || !reportDate || !dp) {
+    return res.status(400).json({ error: "missing type/date/dp" });
+  }
+
+  if (LOCAL_MODE) {
+    const now = new Date().toISOString();
+    const idx = localState.reports.findIndex((x) => x.report_type === reportType && x.report_date === reportDate && x.dp === dp);
+    const row = idx >= 0
+      ? { ...localState.reports[idx], payload, updated_by: req.user.login, updated_at: now }
+      : {
+          id: uuid(),
+          report_type: reportType,
+          report_date: reportDate,
+          dp,
+          payload,
+          created_by: req.user.login,
+          updated_by: req.user.login,
+          created_at: now,
+          updated_at: now
+        };
+    if (idx >= 0) localState.reports[idx] = row;
+    else localState.reports.push(row);
+    saveLocalState();
+    return res.json({ ok: true, row });
+  }
+
+  const q = await pool.query(
+    `INSERT INTO reports(report_type, report_date, dp, payload, created_by, updated_by, created_at, updated_at)
+     VALUES($1,$2,$3,$4::jsonb,$5,$5,now(),now())
+     ON CONFLICT (report_type, report_date, dp)
+     DO UPDATE SET
+       payload = EXCLUDED.payload,
+       updated_by = EXCLUDED.updated_by,
+       updated_at = now()
+     RETURNING id, report_type, report_date, dp, payload, updated_by, updated_at`,
+    [reportType, reportDate, dp, JSON.stringify(payload), req.user.login]
+  );
+
+  res.json({ ok: true, row: q.rows[0] });
 });
 
 // IMPORTS
