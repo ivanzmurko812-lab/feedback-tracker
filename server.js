@@ -1370,11 +1370,25 @@ app.get("/", (req, res) => {
 const port = process.env.PORT || 3000;
 const host = "0.0.0.0";
 
-(async () => {
-  await initDatabase();
-  app.listen(port, host, () => console.log(`Listening on ${host}:${port}`));
-})();
+process.on("uncaughtException", (err) => {
+  console.error("UNCAUGHT EXCEPTION:", err);
+  process.exit(1);
+});
 
+process.on("unhandledRejection", (err) => {
+  console.error("UNHANDLED REJECTION:", err);
+  process.exit(1);
+});
+
+(async () => {
+  try {
+    await initDatabase();
+    app.listen(port, host, () => console.log(`Listening on ${host}:${port}`));
+  } catch (err) {
+    console.error("STARTUP ERROR:", err);
+    process.exit(1);
+  }
+})();
 
 
 
