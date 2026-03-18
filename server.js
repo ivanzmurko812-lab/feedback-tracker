@@ -1371,12 +1371,12 @@ app.get("/", (req, res) => {
 });
 
 const port = process.env.PORT || 3000;
+const host = "0.0.0.0";
 
 (async () => {
   await initDatabase();
-  app.listen(port, () => console.log("Listening on", port));
+  app.listen(port, host, () => console.log(`Listening on ${host}:${port}`));
 })();
-
 
 
 
