@@ -1361,9 +1361,6 @@ app.post("/api/import", authRequired, roleRequired("admin"), upload.single("file
 /** =========================================================
  *  Serve frontend
  *  ========================================================= */
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 app.use(express.static(__dirname));
 
 app.get("/", (req, res) => {
