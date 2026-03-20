@@ -1004,6 +1004,60 @@
       display:grid;
       gap:16px;
     }
+    .sop-page{ padding:0; }
+    .sop-grid{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(280px, 1fr));
+      gap:20px;
+      padding:20px;
+    }
+    .sop-card{
+      border-radius:20px;
+      border:1px solid rgba(82,128,230,.28);
+      background:
+        radial-gradient(circle at top right, rgba(47,108,246,.12), transparent 40%),
+        linear-gradient(180deg, rgba(255,255,255,.96), rgba(238,244,255,.90));
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.86),
+        0 18px 34px rgba(47,108,246,.10);
+      padding:22px;
+      display:grid;
+      gap:14px;
+    }
+    .sop-kicker{
+      display:inline-flex;
+      align-items:center;
+      width:max-content;
+      padding:8px 12px;
+      border-radius:999px;
+      background: linear-gradient(180deg, #4f83f8, #2c5fdf);
+      color:#fff;
+      font-size:12px;
+      font-weight:900;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      box-shadow: 0 10px 20px rgba(47,108,246,.18);
+    }
+    .sop-title{
+      margin:0;
+      font-size:28px;
+      font-weight:950;
+      color:var(--text);
+    }
+    .sop-desc{
+      margin:0;
+      color:var(--muted);
+      font-weight:700;
+      line-height:1.55;
+    }
+    .sop-actions{
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+    @media (max-width: 900px){
+      .sop-grid{ grid-template-columns:1fr; }
+    }
     .report-history-table{
       width:100%;
       border-collapse:separate;
@@ -1200,7 +1254,7 @@
       <div class="login-form">
         <div class="col">
           <label>Login</label>
-          <input id="loginInput" type="text" placeholder="e.g. 1" autocomplete="username" value="1" />
+          <input id="loginInput" type="text" placeholder="e.g. admin" autocomplete="username" value="admin" />
         </div>
         <div class="col">
           <label>Password</label>
@@ -1210,7 +1264,7 @@
       </div>
 
       <div class="hint">
-        Local login: <b>1</b> / <b>1</b>
+        Local login: <b>admin</b> / <b>1</b>
       </div>
     </div>
   </div>
@@ -1796,6 +1850,38 @@
             <h3>Raport history</h3>
             <div class="muted" style="margin-bottom:12px;">Latest saved raports with author and time.</div>
             <div id="reportHistoryWrap"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="sopPage" class="sop-page hidden">
+      <div class="feedback-topbar">
+        <div>
+          <h2 class="feedback-heading">SOP</h2>
+          <div class="muted" style="margin-top:6px; text-align:left;">Feedback Tracker SOP documents in English and Polish.</div>
+        </div>
+        <button class="back-home-btn" id="btnBackHomeFromSop">← Back to Home</button>
+      </div>
+      <div class="shell-card">
+        <div class="sop-grid">
+          <div class="sop-card">
+            <div class="sop-kicker">English</div>
+            <h3 class="sop-title">Feedback Tracker SOP EN</h3>
+            <p class="sop-desc">Official English SOP document for Feedback Tracker. You can open it directly in the browser or download the file.</p>
+            <div class="sop-actions">
+              <a class="btn wide" href="/docs/Feedback.Tracker.SOP.EN.docx" target="_blank" rel="noopener noreferrer">Open EN SOP</a>
+              <a class="btn secondary wide" href="/docs/Feedback.Tracker.SOP.EN.docx" download="Feedback.Tracker.SOP.EN.docx">Download EN</a>
+            </div>
+          </div>
+          <div class="sop-card">
+            <div class="sop-kicker">Polski</div>
+            <h3 class="sop-title">Feedback Tracker SOP PL</h3>
+            <p class="sop-desc">Official Polish SOP document for Feedback Tracker. You can open it directly in the browser or download the file.</p>
+            <div class="sop-actions">
+              <a class="btn wide" href="/docs/Feedback.Tracker.SOP.PL.docx" target="_blank" rel="noopener noreferrer">Open PL SOP</a>
+              <a class="btn secondary wide" href="/docs/Feedback.Tracker.SOP.PL.docx" download="Feedback.Tracker.SOP.PL.docx">Download PL</a>
+            </div>
           </div>
         </div>
       </div>
@@ -4030,6 +4116,9 @@ function bindCoreButtons(){
   document.getElementById("btnBackHomeFromRaport").addEventListener("click", ()=>{
     showDashboard();
   });
+  document.getElementById("btnBackHomeFromSop").addEventListener("click", ()=>{
+    showDashboard();
+  });
   document.getElementById("btnOpenFeedbackDashboard").addEventListener("click", ()=>{
     openFeedbackPage();
   });
@@ -4044,7 +4133,7 @@ function bindCoreButtons(){
     setTab("usersTab");
   });
   document.getElementById("btnOpenSob").addEventListener("click", ()=>{
-    showDashboardPlaceholder("SOP section is empty for now.");
+    openSopPage();
   });
   document.getElementById("btnOpenRaport").addEventListener("click", ()=>{
     openReportPage("sunrise");
@@ -4523,6 +4612,7 @@ function showDashboard(){
   document.getElementById("dashboardView").classList.remove("hidden");
   document.getElementById("feedbackPage").classList.add("hidden");
   document.getElementById("reportPage").classList.add("hidden");
+  document.getElementById("sopPage").classList.add("hidden");
   hideDashboardPlaceholder();
   updateDashboardHeader();
 }
@@ -4530,13 +4620,21 @@ function openFeedbackPage(){
   document.getElementById("dashboardView").classList.add("hidden");
   document.getElementById("feedbackPage").classList.remove("hidden");
   document.getElementById("reportPage").classList.add("hidden");
+  document.getElementById("sopPage").classList.add("hidden");
   setTab("userTab");
 }
 function openReportPage(tabId="sunrise"){
   document.getElementById("dashboardView").classList.add("hidden");
   document.getElementById("feedbackPage").classList.add("hidden");
   document.getElementById("reportPage").classList.remove("hidden");
+  document.getElementById("sopPage").classList.add("hidden");
   setReportWorkspaceTab(tabId);
+}
+function openSopPage(){
+  document.getElementById("dashboardView").classList.add("hidden");
+  document.getElementById("feedbackPage").classList.add("hidden");
+  document.getElementById("reportPage").classList.add("hidden");
+  document.getElementById("sopPage").classList.remove("hidden");
 }
 function updateDashboardHeader(){
   const me = getMe();
