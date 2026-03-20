@@ -27,7 +27,7 @@ function createDefaultLocalState() {
     users: [
       {
         id: "local-admin-1",
-        login: "1",
+        login: "admin",
         pass_hash: crypto.createHash("sha256").update("1").digest("hex"),
         role: "admin",
         created_at: new Date().toISOString()
@@ -68,6 +68,15 @@ function loadLocalState() {
       users: Array.isArray(parsed.users) && parsed.users.length ? parsed.users : createDefaultLocalState().users,
       reports: Array.isArray(parsed.reports) ? parsed.reports : []
     };
+    const adminUser = localState.users.find((x) => String(x.id) === "local-admin-1");
+    if (adminUser) {
+      adminUser.login = "admin";
+      adminUser.pass_hash = sha256Hex("1");
+      adminUser.role = "admin";
+    } else {
+      localState.users.unshift(createDefaultLocalState().users[0]);
+    }
+    saveLocalState();
   } catch (err) {
     console.error("Failed to load local state:", err);
     localState = createDefaultLocalState();
@@ -1389,7 +1398,6 @@ process.on("unhandledRejection", (err) => {
     process.exit(1);
   }
 })();
-
 
 
 
